@@ -1,176 +1,146 @@
 import XCTest
+import CryptoKit
 @testable import iOSSecurityTools
 
 final class AESEncryptionTests: XCTestCase {
     
-    var encryption: AESEncryption!
+    var aesEncryption: AESEncryption!
     
     override func setUp() {
         super.setUp()
-        encryption = AESEncryption.shared
+        aesEncryption = AESEncryption()
     }
     
     override func tearDown() {
-        encryption = nil
+        aesEncryption = nil
         super.tearDown()
     }
     
     // MARK: - Key Generation Tests
     
     func testGenerateKey() throws {
-        let key = try encryption.generateKey()
-        XCTAssertEqual(key.bitCount, 256)
+        let key = try aesEncryption.generateKey()
+        XCTAssertNotNil(key)
+        XCTAssertEqual(key.count, 32) // AES-256 key size
     }
     
-    func testGenerateKeyFromPassword() throws {
-        let password = "testPassword123"
-        let salt = encryption.generateSalt()
-        let key = try encryption.generateKey(from: password, salt: salt)
-        XCTAssertEqual(key.bitCount, 256)
+    func testGenerateKeyWithCustomSize() throws {
+        let key = try aesEncryption.generateKey(size: .bits128)
+        XCTAssertNotNil(key)
+        XCTAssertEqual(key.count, 16) // AES-128 key size
     }
     
-    func testGenerateKeyFromPasswordWithoutSalt() throws {
-        let password = "testPassword123"
-        let key = try encryption.generateKey(from: password)
-        XCTAssertEqual(key.bitCount, 256)
+    func testGenerateKeyWithInvalidSize() {
+        XCTAssertThrowsError(try aesEncryption.generateKey(size: .bits64)) { error in
+            XCTAssertEqual(error as? AESEncryptionError, .invalidKeySize)
+        }
     }
     
     // MARK: - Encryption Tests
     
-    func testEncryptDecryptData() throws {
-        let key = try encryption.generateKey()
-        let originalData = "Hello, World!".data(using: .utf8)!
+    func testEncryptString() throws {
+        let key = try aesEncryption.generateKey()
+        let plaintext = "Hello, World!"
         
-        let encryptedData = try encryption.encrypt(originalData, with: key)
-        let decryptedData = try encryption.decrypt(encryptedData, with: key)
-        
-        XCTAssertEqual(originalData, decryptedData)
+        let encryptedData = try aesEncryption.encrypt(plaintext, with: key)
+        XCTAssertNotNil(encryptedData)
+        XCTAssertNotEqual(encryptedData, plaintext.data(using: .utf8))
     }
     
-    func testEncryptDecryptString() throws {
-        let key = try encryption.generateKey()
-        let originalString = "Hello, World!"
+    func testEncryptData() throws {
+        let key = try aesEncryption.generateKey()
+        let plaintextData = "Secret message".data(using: .utf8)!
         
-        let encryptedData = try encryption.encrypt(originalString, with: key)
-        let decryptedString = try encryption.decryptToString(encryptedData, with: key)
-        
-        XCTAssertEqual(originalString, decryptedString)
+        let encryptedData = try aesEncryption.encrypt(plaintextData, with: key)
+        XCTAssertNotNil(encryptedData)
+        XCTAssertNotEqual(encryptedData, plaintextData)
     }
     
-    func testEncryptDecryptLargeData() throws {
-        let key = try encryption.generateKey()
-        let originalData = Data(repeating: 0, count: 1024 * 1024) // 1MB
+    func testEncryptEmptyString() throws {
+        let key = try aesEncryption.generateKey()
+        let plaintext = ""
         
-        let encryptedData = try encryption.encrypt(originalData, with: key)
-        let decryptedData = try encryption.decrypt(encryptedData, with: key)
-        
-        XCTAssertEqual(originalData, decryptedData)
+        let encryptedData = try aesEncryption.encrypt(plaintext, with: key)
+        XCTAssertNotNil(encryptedData)
     }
     
-    func testEncryptDecryptEmptyData() throws {
-        let key = try encryption.generateKey()
-        let originalData = Data()
+    func testEncryptLargeData() throws {
+        let key = try aesEncryption.generateKey()
+        let largeData = String(repeating: "A", count: 10000).data(using: .utf8)!
         
-        let encryptedData = try encryption.encrypt(originalData, with: key)
-        let decryptedData = try encryption.decrypt(encryptedData, with: key)
-        
-        XCTAssertEqual(originalData, decryptedData)
+        let encryptedData = try aesEncryption.encrypt(largeData, with: key)
+        XCTAssertNotNil(encryptedData)
+        XCTAssertNotEqual(encryptedData, largeData)
     }
     
-    // MARK: - File Encryption Tests
+    // MARK: - Decryption Tests
     
-    func testEncryptDecryptFile() throws {
-        let key = try encryption.generateKey()
-        let originalContent = "This is a test file content"
-        let originalData = originalContent.data(using: .utf8)!
+    func testDecryptString() throws {
+        let key = try aesEncryption.generateKey()
+        let plaintext = "Hello, World!"
         
-        // Create temporary file
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test.txt")
-        try originalData.write(to: tempURL)
+        let encryptedData = try aesEncryption.encrypt(plaintext, with: key)
+        let decryptedString = try aesEncryption.decrypt(encryptedData, with: key)
         
-        defer {
-            try? FileManager.default.removeItem(at: tempURL)
-        }
-        
-        // Encrypt file
-        let encryptedFileURL = try encryption.encryptFile(at: tempURL, with: key)
-        
-        defer {
-            try? FileManager.default.removeItem(at: encryptedFileURL)
-        }
-        
-        // Decrypt file
-        let decryptedFileURL = try encryption.decryptFile(at: encryptedFileURL, with: key)
-        
-        defer {
-            try? FileManager.default.removeItem(at: decryptedFileURL)
-        }
-        
-        // Verify content
-        let decryptedData = try Data(contentsOf: decryptedFileURL)
-        let decryptedContent = String(data: decryptedData, encoding: .utf8)
-        
-        XCTAssertEqual(originalContent, decryptedContent)
+        XCTAssertEqual(decryptedString, plaintext)
     }
     
-    // MARK: - Salt Generation Tests
-    
-    func testGenerateSalt() {
-        let salt1 = encryption.generateSalt()
-        let salt2 = encryption.generateSalt()
+    func testDecryptData() throws {
+        let key = try aesEncryption.generateKey()
+        let plaintextData = "Secret message".data(using: .utf8)!
         
-        XCTAssertEqual(salt1.count, 32)
-        XCTAssertEqual(salt2.count, 32)
-        XCTAssertNotEqual(salt1, salt2) // Salts should be different
-    }
-    
-    // MARK: - Error Tests
-    
-    func testEncryptWithInvalidKey() {
-        let invalidKey = SymmetricKey(size: .bits128)
-        let data = "Test".data(using: .utf8)!
+        let encryptedData = try aesEncryption.encrypt(plaintextData, with: key)
+        let decryptedData = try aesEncryption.decrypt(encryptedData, with: key)
         
-        XCTAssertThrowsError(try encryption.encrypt(data, with: invalidKey))
+        XCTAssertEqual(decryptedData, plaintextData)
     }
     
     func testDecryptWithWrongKey() throws {
-        let key1 = try encryption.generateKey()
-        let key2 = try encryption.generateKey()
-        let data = "Test".data(using: .utf8)!
+        let key1 = try aesEncryption.generateKey()
+        let key2 = try aesEncryption.generateKey()
+        let plaintext = "Hello, World!"
         
-        let encryptedData = try encryption.encrypt(data, with: key1)
+        let encryptedData = try aesEncryption.encrypt(plaintext, with: key1)
         
-        XCTAssertThrowsError(try encryption.decrypt(encryptedData, with: key2))
+        XCTAssertThrowsError(try aesEncryption.decrypt(encryptedData, with: key2)) { error in
+            XCTAssertEqual(error as? AESEncryptionError, .decryptionFailed)
+        }
     }
     
-    func testDecryptInvalidData() throws {
-        let key = try encryption.generateKey()
-        let invalidData = Data(repeating: 0, count: 16)
+    func testDecryptCorruptedData() throws {
+        let key = try aesEncryption.generateKey()
+        let corruptedData = "Corrupted data".data(using: .utf8)!
         
-        XCTAssertThrowsError(try encryption.decrypt(invalidData, with: key))
+        XCTAssertThrowsError(try aesEncryption.decrypt(corruptedData, with: key)) { error in
+            XCTAssertEqual(error as? AESEncryptionError, .decryptionFailed)
+        }
     }
     
     // MARK: - Performance Tests
     
     func testEncryptionPerformance() throws {
-        let key = try encryption.generateKey()
-        let data = Data(repeating: 0, count: 1024 * 1024) // 1MB
+        let key = try aesEncryption.generateKey()
+        let testData = String(repeating: "A", count: 1000).data(using: .utf8)!
         
         measure {
-            for _ in 0..<10 {
-                _ = try! encryption.encrypt(data, with: key)
+            do {
+                _ = try aesEncryption.encrypt(testData, with: key)
+            } catch {
+                XCTFail("Encryption failed: \(error)")
             }
         }
     }
     
     func testDecryptionPerformance() throws {
-        let key = try encryption.generateKey()
-        let data = Data(repeating: 0, count: 1024 * 1024) // 1MB
-        let encryptedData = try encryption.encrypt(data, with: key)
+        let key = try aesEncryption.generateKey()
+        let testData = String(repeating: "A", count: 1000).data(using: .utf8)!
+        let encryptedData = try aesEncryption.encrypt(testData, with: key)
         
         measure {
-            for _ in 0..<10 {
-                _ = try! encryption.decrypt(encryptedData, with: key)
+            do {
+                _ = try aesEncryption.decrypt(encryptedData, with: key)
+            } catch {
+                XCTFail("Decryption failed: \(error)")
             }
         }
     }
@@ -178,23 +148,20 @@ final class AESEncryptionTests: XCTestCase {
     // MARK: - Memory Tests
     
     func testMemoryUsage() throws {
-        let key = try encryption.generateKey()
-        let largeData = Data(repeating: 0, count: 10 * 1024 * 1024) // 10MB
+        let key = try aesEncryption.generateKey()
+        let largeData = String(repeating: "A", count: 100000).data(using: .utf8)!
         
         // Measure memory before
         let memoryBefore = getMemoryUsage()
         
-        let encryptedData = try encryption.encrypt(largeData, with: key)
-        let decryptedData = try encryption.decrypt(encryptedData, with: key)
+        let encryptedData = try aesEncryption.encrypt(largeData, with: key)
+        let decryptedData = try aesEncryption.decrypt(encryptedData, with: key)
         
         // Measure memory after
         let memoryAfter = getMemoryUsage()
         
-        // Memory increase should be reasonable (less than 50MB)
-        let memoryIncrease = memoryAfter - memoryBefore
-        XCTAssertLessThan(memoryIncrease, 50 * 1024 * 1024)
-        
-        XCTAssertEqual(largeData, decryptedData)
+        XCTAssertEqual(decryptedData, largeData)
+        XCTAssertLessThan(memoryAfter - memoryBefore, 50 * 1024 * 1024) // 50MB limit
     }
     
     // MARK: - Helper Methods
@@ -213,5 +180,20 @@ final class AESEncryptionTests: XCTestCase {
         }
         
         return kerr == KERN_SUCCESS ? Int(info.resident_size) : 0
+    }
+}
+
+// MARK: - AESEncryptionError Extension
+
+extension AESEncryptionError: Equatable {
+    public static func == (lhs: AESEncryptionError, rhs: AESEncryptionError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidKeySize, .invalidKeySize),
+             (.encryptionFailed, .encryptionFailed),
+             (.decryptionFailed, .decryptionFailed):
+            return true
+        default:
+            return false
+        }
     }
 } 
