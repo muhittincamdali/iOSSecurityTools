@@ -72,13 +72,13 @@ Add the following dependency to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-username/iOSSecurityTools.git", from: "1.0.0")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "1.0.0")
 ]
 ```
 
 Or add it directly in Xcode:
 1. File → Add Package Dependencies
-2. Enter: `https://github.com/your-username/iOSSecurityTools.git`
+2. Enter: `https://github.com/muhittincamdali/iOSSecurityTools.git`
 3. Select version: `1.0.0`
 
 ### CocoaPods
@@ -94,7 +94,7 @@ pod 'iOSSecurityTools', '~> 1.0.0'
 Add to your `Cartfile`:
 
 ```
-github "your-username/iOSSecurityTools" ~> 1.0.0
+github "muhittincamdali/iOSSecurityTools" ~> 1.0.0
 ```
 
 ## ⚡ Quick Start
@@ -373,8 +373,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/iOSSecurityTools/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/iOSSecurityTools/discussions)
+- **Issues**: [GitHub Issues](https://github.com/muhittincamdali/iOSSecurityTools/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/muhittincamdali/iOSSecurityTools/discussions)
 - **Documentation**: [Documentation](Documentation/)
 - **Examples**: [Examples](Examples/)
 
