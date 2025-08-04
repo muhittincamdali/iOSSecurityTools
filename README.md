@@ -293,7 +293,7 @@ Complete API documentation.
 Simple security implementation example.
 
 ### [Advanced Example](Examples/AdvancedExample/)
-Complex security features demonstration.
+Complex security features implementation.
 
 ### [Custom Example](Examples/CustomExample/)
 Custom security implementation.
@@ -364,6 +364,23 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**⭐ Star this repository if it helped you!**
+
+## 📊 Project Statistics
+
+<div align="center">
+
+[![GitHub stars](https://img.shields.io/github/stars/muhittincamdali/iOSSecurityTools?style=social)](https://github.com/muhittincamdali/iOSSecurityTools/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/muhittincamdali/iOSSecurityTools?style=social)](https://github.com/muhittincamdali/iOSSecurityTools/network)
+[![GitHub issues](https://img.shields.io/github/issues/muhittincamdali/iOSSecurityTools)](https://github.com/muhittincamdali/iOSSecurityTools/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/muhittincamdali/iOSSecurityTools)](https://github.com/muhittincamdali/iOSSecurityTools/pulls)
+
+</div>
+
+## 🌟 Stargazers
+
+[![Stargazers repo roster for @muhittincamdali/iOSSecurityTools](https://reporoster.com/stars/muhittincamdali/iOSSecurityTools)](https://github.com/muhittincamdali/iOSSecurityTools/stargazers)
 
 ## 🙏 Acknowledgments
 
