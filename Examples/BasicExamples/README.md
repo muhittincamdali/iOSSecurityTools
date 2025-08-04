@@ -1,12 +1,26 @@
 # Basic Examples
 
-This directory contains basic examples for iOS Security Tools.
+This directory contains basic examples demonstrating fundamental iOS Security Tools functionality.
 
 ## Examples
 
-- **SimpleAuthentication.swift** - Basic authentication example
-- **SimpleEncryption.swift** - Basic encryption example
-- **SimpleKeychain.swift** - Basic keychain example
+- **SimpleAuthentication.swift** - Basic biometric authentication
+- **SimpleEncryption.swift** - Basic data encryption
+- **SimpleKeychain.swift** - Basic keychain operations
+- **SimpleNetworkSecurity.swift** - Basic network security
+
+## Getting Started
+
+1. Open the example file you want to explore
+2. Follow the step-by-step comments
+3. Run the example in Xcode
+4. Observe the security features in action
+
+## Requirements
+
+- iOS 15.0+
+- Xcode 15.0+
+- Swift 5.9+
 
 ## Usage
 
@@ -14,16 +28,8 @@ This directory contains basic examples for iOS Security Tools.
 import iOSSecurityTools
 
 // Basic authentication example
-let authManager = AuthenticationManager()
-authManager.authenticateWithBiometrics { result in
-    // Handle result
+let auth = SimpleAuthentication()
+auth.authenticate { result in
+    // Handle authentication result
 }
 ```
-
-## Getting Started
-
-1. Import the framework
-2. Create security manager instances
-3. Configure security parameters
-4. Implement security features
-5. Handle results
