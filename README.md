@@ -1,4 +1,5 @@
 # 🔒 iOS Security Tools
+[![CI](https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml)
 
 <!-- TOC START -->
 ## Table of Contents
