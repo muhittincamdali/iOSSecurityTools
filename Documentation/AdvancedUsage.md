@@ -1,5 +1,32 @@
 # Advanced Usage Guide
 
+<!-- TOC START -->
+## Table of Contents
+- [Advanced Usage Guide](#advanced-usage-guide)
+- [Advanced Encryption](#advanced-encryption)
+  - [Custom Encryption Algorithms](#custom-encryption-algorithms)
+  - [Hybrid Encryption](#hybrid-encryption)
+- [Advanced Key Management](#advanced-key-management)
+  - [Key Rotation](#key-rotation)
+  - [Certificate Management](#certificate-management)
+- [Advanced Authentication](#advanced-authentication)
+  - [Multi-Factor Authentication](#multi-factor-authentication)
+  - [OAuth 2.0 Implementation](#oauth-20-implementation)
+- [Advanced Secure Storage](#advanced-secure-storage)
+  - [Encrypted Database](#encrypted-database)
+  - [File Encryption](#file-encryption)
+- [Advanced Security Monitoring](#advanced-security-monitoring)
+  - [Threat Detection](#threat-detection)
+  - [Compliance Checking](#compliance-checking)
+- [Performance Optimization](#performance-optimization)
+  - [Memory Management](#memory-management)
+  - [Caching Strategies](#caching-strategies)
+- [Best Practices](#best-practices)
+  - [Security Configuration](#security-configuration)
+  - [Error Handling](#error-handling)
+<!-- TOC END -->
+
+
 This guide covers advanced features and best practices for iOS Security Tools.
 
 ## Advanced Encryption

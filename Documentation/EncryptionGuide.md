@@ -1,5 +1,51 @@
 # Encryption Guide
 
+<!-- TOC START -->
+## Table of Contents
+- [Encryption Guide](#encryption-guide)
+- [Overview](#overview)
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Data Encryption](#data-encryption)
+  - [Basic Encryption Setup](#basic-encryption-setup)
+  - [Encrypting Data](#encrypting-data)
+  - [Decrypting Data](#decrypting-data)
+  - [Advanced Encryption Features](#advanced-encryption-features)
+- [Key Management](#key-management)
+  - [Key Generation](#key-generation)
+  - [Generating Encryption Keys](#generating-encryption-keys)
+  - [Key Rotation](#key-rotation)
+  - [Key Backup and Recovery](#key-backup-and-recovery)
+- [Network Encryption](#network-encryption)
+  - [SSL/TLS Configuration](#ssltls-configuration)
+  - [Certificate Pinning](#certificate-pinning)
+  - [End-to-End Encryption](#end-to-end-encryption)
+- [File Encryption](#file-encryption)
+  - [File Encryption Manager](#file-encryption-manager)
+  - [Encrypting Files](#encrypting-files)
+  - [Decrypting Files](#decrypting-files)
+  - [Directory Encryption](#directory-encryption)
+- [Database Encryption](#database-encryption)
+  - [Database Encryption Manager](#database-encryption-manager)
+  - [Encrypting Database Tables](#encrypting-database-tables)
+  - [Encrypting Database Columns](#encrypting-database-columns)
+  - [Secure Database Queries](#secure-database-queries)
+- [Best Practices](#best-practices)
+  - [1. Encryption Algorithms](#1-encryption-algorithms)
+  - [2. Key Management](#2-key-management)
+  - [3. Data Protection](#3-data-protection)
+  - [4. Network Security](#4-network-security)
+  - [5. File Security](#5-file-security)
+- [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Debugging](#debugging)
+  - [Support](#support)
+- [Conclusion](#conclusion)
+<!-- TOC END -->
+
+
 ## Overview
 
 The Encryption Guide provides comprehensive information about implementing secure encryption in iOS applications using the iOS Security Tools framework. This guide covers data encryption, key management, secure communication, and encryption best practices.

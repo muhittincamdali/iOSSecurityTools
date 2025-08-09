@@ -1,5 +1,45 @@
 # Getting Started with iOS Security Tools
 
+<!-- TOC START -->
+## Table of Contents
+- [Getting Started with iOS Security Tools](#getting-started-with-ios-security-tools)
+- [📋 Table of Contents](#-table-of-contents)
+- [🚀 Installation](#-installation)
+  - [Swift Package Manager](#swift-package-manager)
+  - [Manual Installation](#manual-installation)
+- [🔧 Basic Setup](#-basic-setup)
+  - [1. Import the Framework](#1-import-the-framework)
+  - [2. Initialize Security Tools](#2-initialize-security-tools)
+  - [3. Check Security Status](#3-check-security-status)
+- [⚡ Quick Examples](#-quick-examples)
+  - [Encryption](#encryption)
+  - [Secure Storage](#secure-storage)
+  - [Biometric Authentication](#biometric-authentication)
+  - [JWT Tokens](#jwt-tokens)
+  - [OTP Generation](#otp-generation)
+- [⚙️ Configuration](#-configuration)
+  - [Security Configuration](#security-configuration)
+  - [Keychain Configuration](#keychain-configuration)
+  - [Secure Storage Configuration](#secure-storage-configuration)
+- [🛡️ Best Practices](#-best-practices)
+  - [1. Key Management](#1-key-management)
+  - [2. Data Encryption](#2-data-encryption)
+  - [3. Authentication](#3-authentication)
+  - [4. Input Validation](#4-input-validation)
+  - [5. Error Handling](#5-error-handling)
+- [🔍 Troubleshooting](#-troubleshooting)
+  - [Common Issues](#common-issues)
+    - [1. Keychain Access Denied](#1-keychain-access-denied)
+    - [2. Biometric Authentication Fails](#2-biometric-authentication-fails)
+    - [3. Encryption Errors](#3-encryption-errors)
+    - [4. Performance Issues](#4-performance-issues)
+  - [Debug Mode](#debug-mode)
+  - [Performance Monitoring](#performance-monitoring)
+- [📚 Next Steps](#-next-steps)
+- [🆘 Support](#-support)
+<!-- TOC END -->
+
+
 This guide will help you get started with iOS Security Tools, a comprehensive security framework for iOS applications.
 
 ## 📋 Table of Contents

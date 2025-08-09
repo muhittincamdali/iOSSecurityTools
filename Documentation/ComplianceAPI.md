@@ -1,5 +1,15 @@
 # Compliance API
 
+<!-- TOC START -->
+## Table of Contents
+- [Compliance API](#compliance-api)
+- [Overview](#overview)
+- [Core Features](#core-features)
+- [Usage](#usage)
+- [Compliance Standards](#compliance-standards)
+<!-- TOC END -->
+
+
 ## Overview
 
 The Compliance API provides comprehensive compliance capabilities for iOS applications.

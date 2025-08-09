@@ -1,5 +1,45 @@
 # Authentication Guide
 
+<!-- TOC START -->
+## Table of Contents
+- [Authentication Guide](#authentication-guide)
+- [Overview](#overview)
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Biometric Authentication](#biometric-authentication)
+  - [Basic Biometric Setup](#basic-biometric-setup)
+  - [Biometric Availability Check](#biometric-availability-check)
+  - [Biometric Authentication](#biometric-authentication)
+  - [Advanced Biometric Features](#advanced-biometric-features)
+- [Multi-Factor Authentication](#multi-factor-authentication)
+  - [MFA Configuration](#mfa-configuration)
+  - [MFA Authentication Flow](#mfa-authentication-flow)
+  - [TOTP Implementation](#totp-implementation)
+- [Session Management](#session-management)
+  - [Session Configuration](#session-configuration)
+  - [Session Lifecycle](#session-lifecycle)
+  - [Session Security](#session-security)
+- [Token Authentication](#token-authentication)
+  - [JWT Token Management](#jwt-token-management)
+  - [OAuth2 Implementation](#oauth2-implementation)
+- [Certificate Authentication](#certificate-authentication)
+  - [Certificate Configuration](#certificate-configuration)
+  - [Certificate Validation](#certificate-validation)
+- [Best Practices](#best-practices)
+  - [1. Authentication Security](#1-authentication-security)
+  - [2. Token Security](#2-token-security)
+  - [3. Session Security](#3-session-security)
+  - [4. Certificate Security](#4-certificate-security)
+- [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Debugging](#debugging)
+  - [Support](#support)
+- [Conclusion](#conclusion)
+<!-- TOC END -->
+
+
 ## Overview
 
 The Authentication Guide provides comprehensive information about implementing secure authentication in iOS applications using the iOS Security Tools framework. This guide covers biometric authentication, multi-factor authentication, session management, and security best practices.

@@ -1,5 +1,19 @@
 # Network Security Examples
 
+<!-- TOC START -->
+## Table of Contents
+- [Network Security Examples](#network-security-examples)
+- [Examples](#examples)
+- [Network Security Features](#network-security-features)
+  - [SSL Pinning](#ssl-pinning)
+  - [Certificate Validation](#certificate-validation)
+  - [Network Security](#network-security)
+  - [API Security](#api-security)
+- [Requirements](#requirements)
+- [Usage](#usage)
+<!-- TOC END -->
+
+
 This directory contains comprehensive examples demonstrating iOS Security Tools network security features.
 
 ## Examples

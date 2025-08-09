@@ -1,5 +1,46 @@
 # Security Best Practices Guide
 
+<!-- TOC START -->
+## Table of Contents
+- [Security Best Practices Guide](#security-best-practices-guide)
+- [Overview](#overview)
+- [Table of Contents](#table-of-contents)
+- [Security Principles](#security-principles)
+  - [1. Defense in Depth](#1-defense-in-depth)
+  - [2. Principle of Least Privilege](#2-principle-of-least-privilege)
+  - [3. Secure by Default](#3-secure-by-default)
+- [Authentication Best Practices](#authentication-best-practices)
+  - [1. Strong Authentication Methods](#1-strong-authentication-methods)
+  - [2. Session Management](#2-session-management)
+  - [3. Password Security](#3-password-security)
+- [Encryption Best Practices](#encryption-best-practices)
+  - [1. Strong Encryption Algorithms](#1-strong-encryption-algorithms)
+  - [2. Key Management](#2-key-management)
+  - [3. Secure Random Generation](#3-secure-random-generation)
+- [Keychain Best Practices](#keychain-best-practices)
+  - [1. Secure Storage](#1-secure-storage)
+  - [2. Access Control](#2-access-control)
+  - [3. Backup Protection](#3-backup-protection)
+- [Network Security Best Practices](#network-security-best-practices)
+  - [1. SSL/TLS Configuration](#1-ssltls-configuration)
+  - [2. Certificate Pinning](#2-certificate-pinning)
+  - [3. Network Monitoring](#3-network-monitoring)
+- [Data Protection Best Practices](#data-protection-best-practices)
+  - [1. Data Classification](#1-data-classification)
+  - [2. Data Encryption](#2-data-encryption)
+  - [3. Data Sanitization](#3-data-sanitization)
+- [Code Security Best Practices](#code-security-best-practices)
+  - [1. Input Validation](#1-input-validation)
+  - [2. Code Obfuscation](#2-code-obfuscation)
+  - [3. Secure Coding Practices](#3-secure-coding-practices)
+- [Compliance and Standards](#compliance-and-standards)
+  - [1. Industry Standards](#1-industry-standards)
+  - [2. Compliance Implementation](#2-compliance-implementation)
+  - [3. Audit and Logging](#3-audit-and-logging)
+- [Conclusion](#conclusion)
+<!-- TOC END -->
+
+
 ## Overview
 
 The Security Best Practices Guide provides comprehensive guidelines for implementing secure iOS applications using the iOS Security Tools framework. This guide covers essential security principles, implementation patterns, and industry best practices.
