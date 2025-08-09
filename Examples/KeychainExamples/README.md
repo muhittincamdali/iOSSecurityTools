@@ -1,5 +1,19 @@
 # Keychain Examples
 
+<!-- TOC START -->
+## Table of Contents
+- [Keychain Examples](#keychain-examples)
+- [Examples](#examples)
+- [Keychain Features](#keychain-features)
+  - [Secure Storage](#secure-storage)
+  - [Key Generation](#key-generation)
+  - [Key Rotation](#key-rotation)
+  - [Access Control](#access-control)
+- [Requirements](#requirements)
+- [Usage](#usage)
+<!-- TOC END -->
+
+
 This directory contains comprehensive examples demonstrating iOS Security Tools keychain functionality.
 
 ## Examples

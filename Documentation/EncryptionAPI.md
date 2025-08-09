@@ -1,5 +1,25 @@
 # Encryption API
 
+<!-- TOC START -->
+## Table of Contents
+- [Encryption API](#encryption-api)
+- [Overview](#overview)
+- [Core Features](#core-features)
+- [Usage](#usage)
+- [Algorithms](#algorithms)
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Installation (SPM)](#installation-spm)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+- [Usage Examples](#usage-examples)
+- [Performance](#performance)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+<!-- TOC END -->
+
+
 ## Overview
 
 The Encryption API provides comprehensive encryption and decryption capabilities for iOS applications.

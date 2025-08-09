@@ -1,5 +1,25 @@
 # Authentication API
 
+<!-- TOC START -->
+## Table of Contents
+- [Authentication API](#authentication-api)
+- [Overview](#overview)
+- [Core Features](#core-features)
+- [Usage](#usage)
+- [Authentication Types](#authentication-types)
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Installation (SPM)](#installation-spm)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+- [Usage Examples](#usage-examples)
+- [Performance](#performance)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+<!-- TOC END -->
+
+
 ## Overview
 
 The Authentication API provides comprehensive authentication capabilities for iOS applications.

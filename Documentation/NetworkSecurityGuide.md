@@ -1,5 +1,49 @@
 # Network Security Guide
 
+<!-- TOC START -->
+## Table of Contents
+- [Network Security Guide](#network-security-guide)
+- [Overview](#overview)
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [SSL/TLS Configuration](#ssltls-configuration)
+  - [Basic SSL/TLS Setup](#basic-ssltls-setup)
+  - [Advanced SSL/TLS Configuration](#advanced-ssltls-configuration)
+  - [Custom Certificate Validation](#custom-certificate-validation)
+- [Certificate Pinning](#certificate-pinning)
+  - [Basic Certificate Pinning](#basic-certificate-pinning)
+  - [Adding Pinned Certificates](#adding-pinned-certificates)
+  - [Certificate Validation](#certificate-validation)
+  - [Certificate Backup and Recovery](#certificate-backup-and-recovery)
+- [Network Monitoring](#network-monitoring)
+  - [Basic Network Monitoring](#basic-network-monitoring)
+  - [Traffic Analysis](#traffic-analysis)
+  - [Threat Detection](#threat-detection)
+  - [Anomaly Detection](#anomaly-detection)
+- [API Security](#api-security)
+  - [API Authentication](#api-authentication)
+  - [Rate Limiting](#rate-limiting)
+  - [API Security Headers](#api-security-headers)
+- [VPN Integration](#vpn-integration)
+  - [VPN Configuration](#vpn-configuration)
+  - [VPN Connection Management](#vpn-connection-management)
+  - [VPN Status Monitoring](#vpn-status-monitoring)
+- [Best Practices](#best-practices)
+  - [1. SSL/TLS Configuration](#1-ssltls-configuration)
+  - [2. Certificate Management](#2-certificate-management)
+  - [3. Network Monitoring](#3-network-monitoring)
+  - [4. API Security](#4-api-security)
+  - [5. VPN Usage](#5-vpn-usage)
+- [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Debugging](#debugging)
+  - [Support](#support)
+- [Conclusion](#conclusion)
+<!-- TOC END -->
+
+
 ## Overview
 
 The Network Security Guide provides comprehensive information about implementing secure network communication in iOS applications using the iOS Security Tools framework. This guide covers SSL/TLS configuration, certificate pinning, network monitoring, and security best practices.

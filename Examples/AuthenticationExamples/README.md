@@ -1,5 +1,19 @@
 # Authentication Examples
 
+<!-- TOC START -->
+## Table of Contents
+- [Authentication Examples](#authentication-examples)
+- [Examples](#examples)
+- [Authentication Types](#authentication-types)
+  - [Biometric Authentication](#biometric-authentication)
+  - [Certificate Authentication](#certificate-authentication)
+  - [Token Authentication](#token-authentication)
+  - [Multi-Factor Authentication](#multi-factor-authentication)
+- [Requirements](#requirements)
+- [Usage](#usage)
+<!-- TOC END -->
+
+
 This directory contains comprehensive examples demonstrating iOS Security Tools authentication features.
 
 ## Examples

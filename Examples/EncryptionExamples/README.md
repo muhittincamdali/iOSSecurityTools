@@ -1,5 +1,19 @@
 # Encryption Examples
 
+<!-- TOC START -->
+## Table of Contents
+- [Encryption Examples](#encryption-examples)
+- [Examples](#examples)
+- [Encryption Types](#encryption-types)
+  - [Data Encryption](#data-encryption)
+  - [Network Encryption](#network-encryption)
+  - [Key Management](#key-management)
+  - [File Encryption](#file-encryption)
+- [Requirements](#requirements)
+- [Usage](#usage)
+<!-- TOC END -->
+
+
 This directory contains comprehensive examples demonstrating iOS Security Tools encryption capabilities.
 
 ## Examples
