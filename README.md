@@ -29,6 +29,12 @@
 
 ---
 
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=muhittincamdali/iOSSecurityTools&type=Date)](https://star-history.com/#muhittincamdali/iOSSecurityTools&Date)
+
+---
+
 ## 📋 Table of Contents
 
 <div align="center">
