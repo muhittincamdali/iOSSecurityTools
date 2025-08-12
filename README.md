@@ -816,8 +816,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### 🌟 Stargazers Community
 
-[![Stargazers repo roster for @muhittincamdali/iOSSecurityTools](https://starchart.cc/muhittincamdali/iOSSecurityTools.svg)](https://github.com/muhittincamdali/iOSSecurityTools/stargazers)
-
 **⭐ Star this repository if it helped you!**
 
 **💫 Join our amazing community of developers!**
@@ -826,4 +824,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🌟 Stargazers
 
-[![Stargazers repo roster for @muhittincamdali/iOSSecurityTools](https://starchart.cc/muhittincamdali/iOSSecurityTools.svg)](https://github.com/muhittincamdali/iOSSecurityTools/stargazers) 
