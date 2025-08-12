@@ -1,0 +1,382 @@
+[1/1] Compiling plugin SwiftLintCommandPlugin
+[2/2] Compiling plugin SwiftLintBuildToolPlugin
+[3/3] Compiling plugin GenerateManual
+[4/4] Compiling plugin GenerateDoccReference
+Building for debugging...
+[4/12] Write sources
+[11/12] Write swift-version--58304C5D6DBC2206.txt
+[13/33] Emitting module Encryption
+[14/33] Compiling Encryption AESEncryption.swift
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:96:21: error: cannot find 'CCKeyDerivationPBKDF' in scope
+ 94 |             salt.withUnsafeBytes { saltBytes in
+ 95 |                 passwordData.withUnsafeBytes { passwordBytes in
+ 96 |                     CCKeyDerivationPBKDF(
+    |                     `- error: cannot find 'CCKeyDerivationPBKDF' in scope
+ 97 |                         CCPBKDFAlgorithm(kCCPBKDF2),
+ 98 |                         passwordBytes.baseAddress,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:97:25: error: cannot find 'CCPBKDFAlgorithm' in scope
+ 95 |                 passwordData.withUnsafeBytes { passwordBytes in
+ 96 |                     CCKeyDerivationPBKDF(
+ 97 |                         CCPBKDFAlgorithm(kCCPBKDF2),
+    |                         `- error: cannot find 'CCPBKDFAlgorithm' in scope
+ 98 |                         passwordBytes.baseAddress,
+ 99 |                         passwordData.count,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:97:42: error: cannot find 'kCCPBKDF2' in scope
+ 95 |                 passwordData.withUnsafeBytes { passwordBytes in
+ 96 |                     CCKeyDerivationPBKDF(
+ 97 |                         CCPBKDFAlgorithm(kCCPBKDF2),
+    |                                          `- error: cannot find 'kCCPBKDF2' in scope
+ 98 |                         passwordBytes.baseAddress,
+ 99 |                         passwordData.count,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:102:25: error: cannot find 'CCPseudoRandomAlgorithm' in scope
+100 |                         saltBytes.baseAddress,
+101 |                         salt.count,
+102 |                         CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
+    |                         `- error: cannot find 'CCPseudoRandomAlgorithm' in scope
+103 |                         UInt32(rounds),
+104 |                         derivedKeyBytes.baseAddress,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:102:49: error: cannot find 'kCCPRFHmacAlgSHA256' in scope
+100 |                         saltBytes.baseAddress,
+101 |                         salt.count,
+102 |                         CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
+    |                                                 `- error: cannot find 'kCCPRFHmacAlgSHA256' in scope
+103 |                         UInt32(rounds),
+104 |                         derivedKeyBytes.baseAddress,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:111:25: error: cannot find 'kCCSuccess' in scope
+109 |         }
+110 |         
+111 |         guard result == kCCSuccess else {
+    |                         `- error: cannot find 'kCCSuccess' in scope
+112 |             throw EncryptionError.keyDerivationFailed
+113 |         }
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:135:26: warning: no calls to throwing functions occur within 'try' expression
+133 |     /// Generate RSA key pair
+134 |     public func generateKeyPair() throws -> RSAKeyPair {
+135 |         let privateKey = try P256.KeyAgreement.PrivateKey()
+    |                          `- warning: no calls to throwing functions occur within 'try' expression
+136 |         let publicKey = privateKey.publicKey
+137 |         
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:146:35: warning: no calls to throwing functions occur within 'try' expression
+144 |     /// Encrypt data with RSA public key
+145 |     public func encrypt(_ data: Data, with publicKey: P256.KeyAgreement.PublicKey) throws -> Data {
+146 |         let ephemeralPrivateKey = try P256.KeyAgreement.PrivateKey()
+    |                                   `- warning: no calls to throwing functions occur within 'try' expression
+147 |         let ephemeralPublicKey = ephemeralPrivateKey.publicKey
+148 |         
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:310:21: error: cannot find 'CCKeyDerivationPBKDF' in scope
+308 |             salt.withUnsafeBytes { saltBytes in
+309 |                 passwordData.withUnsafeBytes { passwordBytes in
+310 |                     CCKeyDerivationPBKDF(
+    |                     `- error: cannot find 'CCKeyDerivationPBKDF' in scope
+311 |                         CCPBKDFAlgorithm(kCCPBKDF2),
+312 |                         passwordBytes.baseAddress,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:311:25: error: cannot find 'CCPBKDFAlgorithm' in scope
+309 |                 passwordData.withUnsafeBytes { passwordBytes in
+310 |                     CCKeyDerivationPBKDF(
+311 |                         CCPBKDFAlgorithm(kCCPBKDF2),
+    |                         `- error: cannot find 'CCPBKDFAlgorithm' in scope
+312 |                         passwordBytes.baseAddress,
+313 |                         passwordData.count,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:311:42: error: cannot find 'kCCPBKDF2' in scope
+309 |                 passwordData.withUnsafeBytes { passwordBytes in
+310 |                     CCKeyDerivationPBKDF(
+311 |                         CCPBKDFAlgorithm(kCCPBKDF2),
+    |                                          `- error: cannot find 'kCCPBKDF2' in scope
+312 |                         passwordBytes.baseAddress,
+313 |                         passwordData.count,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:316:25: error: cannot find 'CCPseudoRandomAlgorithm' in scope
+314 |                         saltBytes.baseAddress,
+315 |                         salt.count,
+316 |                         CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
+    |                         `- error: cannot find 'CCPseudoRandomAlgorithm' in scope
+317 |                         UInt32(rounds),
+318 |                         derivedKeyBytes.baseAddress,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:316:49: error: cannot find 'kCCPRFHmacAlgSHA256' in scope
+314 |                         saltBytes.baseAddress,
+315 |                         salt.count,
+316 |                         CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
+    |                                                 `- error: cannot find 'kCCPRFHmacAlgSHA256' in scope
+317 |                         UInt32(rounds),
+318 |                         derivedKeyBytes.baseAddress,
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Encryption/AESEncryption.swift:325:25: error: cannot find 'kCCSuccess' in scope
+323 |         }
+324 |         
+325 |         guard result == kCCSuccess else {
+    |                         `- error: cannot find 'kCCSuccess' in scope
+326 |             throw EncryptionError.keyDerivationFailed
+327 |         }
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[15/33] Emitting module SecurityUtilities
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/SecurityUtilities.swift:12:32: error: cannot find 'KeyGenerator' in scope
+ 10 |     
+ 11 |     // MARK: - Private Properties
+ 12 |     private let keyGenerator = KeyGenerator.shared
+    |                                `- error: cannot find 'KeyGenerator' in scope
+ 13 |     
+ 14 |     // MARK: - Initialization
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:151:13: error: expected pattern
+149 |         // Remove dangerous protocols
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+    |             `- error: expected pattern
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+153 |         }
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:151:13: error: expected Sequence expression for for-each loop
+149 |         // Remove dangerous protocols
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+    |             `- error: expected Sequence expression for for-each loop
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+153 |         }
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:151:13: error: expected '{' to start the body of for-each loop
+149 |         // Remove dangerous protocols
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+    |             `- error: expected '{' to start the body of for-each loop
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+153 |         }
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:152:60: error: expected expression in list of expressions
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+    |                                                            `- error: expected expression in list of expressions
+153 |         }
+154 |         
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:152:68: error: expected identifier in protocol declaration
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+    |                                                                    `- error: expected identifier in protocol declaration
+153 |         }
+154 |         
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:151:13: error: expected pattern
+149 |         // Remove dangerous protocols
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+    |             `- error: expected pattern
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+153 |         }
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:151:13: error: expected Sequence expression for for-each loop
+149 |         // Remove dangerous protocols
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+    |             `- error: expected Sequence expression for for-each loop
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+153 |         }
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:151:13: error: expected '{' to start the body of for-each loop
+149 |         // Remove dangerous protocols
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+    |             `- error: expected '{' to start the body of for-each loop
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+153 |         }
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:152:60: error: expected expression in list of expressions
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+    |                                                            `- error: expected expression in list of expressions
+153 |         }
+154 |         
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecurityUtilities/ValidationTools.swift:152:68: error: expected identifier in protocol declaration
+150 |         let dangerousProtocols = ["javascript:", "vbscript:", "data:", "file:"]
+151 |         for protocol in dangerousProtocols {
+152 |             sanitized = sanitized.replacingOccurrences(of: protocol, with: "", options: .caseInsensitive)
+    |                                                                    `- error: expected identifier in protocol declaration
+153 |         }
+154 |         
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/KeyManagement/KeychainManager.swift:231:40: error: conditional downcast to CoreFoundation type 'SecCertificate' will always succeed
+229 |         
+230 |         guard status == errSecSuccess,
+231 |               let certificate = result as? SecCertificate else {
+    |                                        |- error: conditional downcast to CoreFoundation type 'SecCertificate' will always succeed
+    |                                        `- note: did you mean to explicitly compare the CFTypeIDs of 'result' and 'SecCertificate'?
+232 |             throw KeychainError.retrievalFailed(status)
+233 |         }
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[16/33] Emitting module SecureStorage
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/FileEncryption.swift:11:30: error: cannot find 'AESEncryption' in scope
+  9 |     
+ 10 |     // MARK: - Private Properties
+ 11 |     private let encryption = AESEncryption.shared
+    |                              `- error: cannot find 'AESEncryption' in scope
+ 12 |     private let keyGenerator = KeyGenerator.shared
+ 13 |     
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/FileEncryption.swift:12:32: error: cannot find 'KeyGenerator' in scope
+ 10 |     // MARK: - Private Properties
+ 11 |     private let encryption = AESEncryption.shared
+ 12 |     private let keyGenerator = KeyGenerator.shared
+    |                                `- error: cannot find 'KeyGenerator' in scope
+ 13 |     
+ 14 |     // MARK: - Initialization
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:12:35: error: cannot find 'KeychainManager' in scope
+ 10 |     
+ 11 |     // MARK: - Private Properties
+ 12 |     private let keychainManager = KeychainManager.shared
+    |                                   `- error: cannot find 'KeychainManager' in scope
+ 13 |     private let encryption = AESEncryption.shared
+ 14 |     private let keyGenerator = KeyGenerator.shared
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:13:30: error: cannot find 'AESEncryption' in scope
+ 11 |     // MARK: - Private Properties
+ 12 |     private let keychainManager = KeychainManager.shared
+ 13 |     private let encryption = AESEncryption.shared
+    |                              `- error: cannot find 'AESEncryption' in scope
+ 14 |     private let keyGenerator = KeyGenerator.shared
+ 15 |     
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:14:32: error: cannot find 'KeyGenerator' in scope
+ 12 |     private let keychainManager = KeychainManager.shared
+ 13 |     private let encryption = AESEncryption.shared
+ 14 |     private let keyGenerator = KeyGenerator.shared
+    |                                `- error: cannot find 'KeyGenerator' in scope
+ 15 |     
+ 16 |     // MARK: - Initialization
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:12:35: error: cannot find 'KeychainManager' in scope
+ 10 |     
+ 11 |     // MARK: - Private Properties
+ 12 |     private let keychainManager = KeychainManager.shared
+    |                                   `- error: cannot find 'KeychainManager' in scope
+ 13 |     private let encryption = AESEncryption.shared
+ 14 |     private let keyGenerator = KeyGenerator.shared
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:13:30: error: cannot find 'AESEncryption' in scope
+ 11 |     // MARK: - Private Properties
+ 12 |     private let keychainManager = KeychainManager.shared
+ 13 |     private let encryption = AESEncryption.shared
+    |                              `- error: cannot find 'AESEncryption' in scope
+ 14 |     private let keyGenerator = KeyGenerator.shared
+ 15 |     
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:14:32: error: cannot find 'KeyGenerator' in scope
+ 12 |     private let keychainManager = KeychainManager.shared
+ 13 |     private let encryption = AESEncryption.shared
+ 14 |     private let keyGenerator = KeyGenerator.shared
+    |                                `- error: cannot find 'KeyGenerator' in scope
+ 15 |     
+ 16 |     // MARK: - Initialization
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:27:70: error: no exact matches in call to initializer 
+ 25 |         
+ 26 |         // Store encryption key in Keychain
+ 27 |         try keychainManager.storeKey(encryptionKey.withUnsafeBytes { Data($0) }, forKey: "\(key)_key")
+    |                                                                      `- error: no exact matches in call to initializer 
+ 28 |         
+ 29 |         // Store encrypted data in UserDefaults
+
+Foundation.Data.init:2:19: note: incorrect labels for candidate (have: '(_:)', expected: '(capacity:)')
+1 | struct Data {
+2 | @inlinable public init(capacity: Int)}
+  |                   `- note: incorrect labels for candidate (have: '(_:)', expected: '(capacity:)')
+3 | 
+
+Foundation.Data.init:2:19: note: incorrect labels for candidate (have: '(_:)', expected: '(count:)')
+1 | struct Data {
+2 | @inlinable public init(count: Int)}
+  |                   `- note: incorrect labels for candidate (have: '(_:)', expected: '(count:)')
+3 | 
+
+Foundation.Data.init:2:8: note: incorrect labels for candidate (have: '(_:)', expected: '(from:)')
+1 | struct Data {
+2 | public init(from decoder: any Decoder) throws}
+  |        `- note: incorrect labels for candidate (have: '(_:)', expected: '(from:)')
+3 | 
+
+Foundation.Data.init:2:8: note: incorrect labels for candidate (have: '(_:)', expected: '(referencing:)')
+1 | struct Data {
+2 | public init(referencing reference: __shared NSData)}
+  |        `- note: incorrect labels for candidate (have: '(_:)', expected: '(referencing:)')
+3 | 
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:103:29: error: cannot find 'BiometricAuth' in scope
+101 |     /// Store data with biometric protection
+102 |     public func storeWithBiometric(_ data: Data, forKey key: String) throws {
+103 |         let biometricAuth = BiometricAuth.shared
+    |                             `- error: cannot find 'BiometricAuth' in scope
+104 |         
+105 |         guard biometricAuth.isBiometricAvailable() else {
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:113:70: error: no exact matches in call to initializer 
+111 |         
+112 |         // Store encryption key with biometric protection
+113 |         try keychainManager.storeKey(encryptionKey.withUnsafeBytes { Data($0) }, forKey: "\(key)_biometric_key")
+    |                                                                      `- error: no exact matches in call to initializer 
+114 |         
+115 |         UserDefaults.standard.set(encryptedData, forKey: key)
+
+Foundation.Data.init:2:19: note: incorrect labels for candidate (have: '(_:)', expected: '(capacity:)')
+1 | struct Data {
+2 | @inlinable public init(capacity: Int)}
+  |                   `- note: incorrect labels for candidate (have: '(_:)', expected: '(capacity:)')
+3 | 
+
+Foundation.Data.init:2:19: note: incorrect labels for candidate (have: '(_:)', expected: '(count:)')
+1 | struct Data {
+2 | @inlinable public init(count: Int)}
+  |                   `- note: incorrect labels for candidate (have: '(_:)', expected: '(count:)')
+3 | 
+
+Foundation.Data.init:2:8: note: incorrect labels for candidate (have: '(_:)', expected: '(from:)')
+1 | struct Data {
+2 | public init(from decoder: any Decoder) throws}
+  |        `- note: incorrect labels for candidate (have: '(_:)', expected: '(from:)')
+3 | 
+
+Foundation.Data.init:2:8: note: incorrect labels for candidate (have: '(_:)', expected: '(referencing:)')
+1 | struct Data {
+2 | public init(referencing reference: __shared NSData)}
+  |        `- note: incorrect labels for candidate (have: '(_:)', expected: '(referencing:)')
+3 | 
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/SecureStorage/SecureStorage.swift:120:29: error: cannot find 'BiometricAuth' in scope
+118 |     /// Retrieve data with biometric protection
+119 |     public func retrieveWithBiometric(forKey key: String) throws -> Data {
+120 |         let biometricAuth = BiometricAuth.shared
+    |                             `- error: cannot find 'BiometricAuth' in scope
+121 |         
+122 |         guard biometricAuth.isBiometricAvailable() else {
+[17/33] Emitting module SecurityMonitoring
+[18/33] Emitting module Authentication
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Authentication/OAuthManager.swift:119:24: error: cannot assign to property: 'bodyComponents' is a 'let' constant
+116 |         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+117 |         
+118 |         let bodyComponents = URLComponents()
+    |         `- note: change 'let' to 'var' to make it mutable
+119 |         bodyComponents.queryItems = [
+    |                        `- error: cannot assign to property: 'bodyComponents' is a 'let' constant
+120 |             URLQueryItem(name: "client_id", value: clientID),
+121 |             URLQueryItem(name: "client_secret", value: clientSecret),
+
+/Users/muhittincamdali/Desktop/Cursor Projects/GitHub/iOSSecurityTools/Sources/Authentication/OAuthManager.swift:146:24: error: cannot assign to property: 'bodyComponents' is a 'let' constant
+143 |         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+144 |         
+145 |         let bodyComponents = URLComponents()
+    |         `- note: change 'let' to 'var' to make it mutable
+146 |         bodyComponents.queryItems = [
+    |                        `- error: cannot assign to property: 'bodyComponents' is a 'let' constant
+147 |             URLQueryItem(name: "token", value: token)
+148 |         ]
