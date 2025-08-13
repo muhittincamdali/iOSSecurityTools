@@ -22,10 +22,10 @@ public class iOSSecurityTools {
     // MARK: - Public Methods
     
     /// Initialize security tools
-    public func initialize() {
+    public func initialize() throws {
         // Initialize security components
         setupSecurityDefaults()
-        validateSecurityConfiguration()
+        try validateSecurityConfiguration()
     }
     
     /// Get security status
@@ -87,12 +87,12 @@ public class iOSSecurityTools {
     
     /// Generate secure token
     public func generateSecureToken(payload: [String: Any], expiresIn: TimeInterval = 3600) throws -> String {
-        return try jwtManager.createJWT(payload: payload, secret: getSecureSecret(), expiresIn: expiresIn)
+        return try jwtManager.createJWT(payload: payload, secret: try getSecureSecret(), expiresIn: expiresIn)
     }
     
     /// Verify secure token
     public func verifySecureToken(_ token: String) throws -> Bool {
-        return try jwtManager.verifyJWT(token, secret: getSecureSecret())
+        return try jwtManager.verifyJWT(token, secret: try getSecureSecret())
     }
     
     /// Generate OTP
@@ -226,22 +226,28 @@ public class iOSSecurityTools {
         updateSecurityConfiguration(defaultConfig)
     }
     
-    private func validateSecurityConfiguration() {
+    private func validateSecurityConfiguration() throws {
         // Validate security configuration
         let config = getSecurityConfiguration()
         
-        guard config.keySize >= 256 else {
-            fatalError("Security configuration invalid: key size must be at least 256 bits")
+        if config.keySize < 256 {
+            throw SecurityConfigurationError.invalidKeySize
         }
         
-        guard config.tokenExpiration > 0 else {
-            fatalError("Security configuration invalid: token expiration must be positive")
+        if config.tokenExpiration <= 0 {
+            throw SecurityConfigurationError.invalidTokenExpiration
         }
     }
     
-    private func getSecureSecret() -> String {
-        // In production, this should be stored securely
-        return "your-secure-secret-key"
+    private func getSecureSecret() throws -> String {
+        // Resolve secret from secure storage or environment
+        if let stored: String = try? keychainManager.get("jwt_secret"), !stored.isEmpty {
+            return stored
+        }
+        if let env = ProcessInfo.processInfo.environment["JWT_SECRET"], !env.isEmpty {
+            return env
+        }
+        throw SecurityConfigurationError.missingSecret
     }
     
     private func generateRecommendations(from vulnerabilities: [SecurityVulnerability]) -> [String] {
@@ -364,3 +370,9 @@ public enum RiskLevel {
     case high
     case critical
 } 
+
+public enum SecurityConfigurationError: Error, Equatable {
+    case invalidKeySize
+    case invalidTokenExpiration
+    case missingSecret
+}

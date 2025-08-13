@@ -9,7 +9,7 @@ class BasicExampleApp: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
         // Initialize security tools
-        iOSSecurityTools.shared.initialize()
+        try? iOSSecurityTools.shared.initialize()
         
         // Setup window
         window = UIWindow(frame: UIScreen.main.bounds)
