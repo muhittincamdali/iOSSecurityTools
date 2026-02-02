@@ -477,8 +477,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 **Muhittin Camdali**
 
 [![GitHub](https://img.shields.io/badge/GitHub-@muhittincamdali-181717?style=flat&logo=github)](https://github.com/muhittincamdali)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-muhittincamdali-0A66C2?style=flat&logo=linkedin)](https://linkedin.com/in/muhittincamdali)
-
+[![CI](https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/muhittincamdali/iOSSecurityTools/actions)[![LinkedIn](https://img.shields.io/badge/LinkedIn-muhittincamdali-0A66C2?style=flat&logo=linkedin)](https://linkedin.com/in/muhittincamdali)
+[![CI](https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/muhittincamdali/iOSSecurityTools/actions)
 ---
 
 <p align="center">
