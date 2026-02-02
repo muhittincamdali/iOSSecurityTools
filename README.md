@@ -1,27 +1,89 @@
-# iOS Security Tools
+```
+███████╗███████╗ ██████╗██╗   ██╗██████╗ ██╗████████╗██╗   ██╗
+██╔════╝██╔════╝██╔════╝██║   ██║██╔══██╗██║╚══██╔══╝╚██╗ ██╔╝
+███████╗█████╗  ██║     ██║   ██║██████╔╝██║   ██║    ╚████╔╝ 
+╚════██║██╔══╝  ██║     ██║   ██║██╔══██╗██║   ██║     ╚██╔╝  
+███████║███████╗╚██████╗╚██████╔╝██║  ██║██║   ██║      ██║   
+╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝   ╚═╝      ╚═╝   
+                    iOS Security Tools
+```
 
 <p align="center">
-  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9+-F05138?style=flat&logo=swift&logoColor=white" alt="Swift"></a>
-  <a href="https://developer.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-15.0+-000000?style=flat&logo=apple&logoColor=white" alt="iOS"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9+-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 5.9+"></a>
+  <a href="https://developer.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-15.0+-000000?style=for-the-badge&logo=apple&logoColor=white" alt="iOS 15+"></a>
+  <a href="https://swift.org/package-manager/"><img src="https://img.shields.io/badge/SPM-Compatible-blue?style=for-the-badge&logo=swift&logoColor=white" alt="SPM"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License"></a>
 </p>
 
 <p align="center">
-  <b>Security utilities for iOS: encryption, keychain, biometrics, and secure storage.</b>
+  <b>Production-ready security toolkit for iOS applications</b><br>
+  <sub>Encryption • Keychain • Biometrics • Certificate Pinning • Secure Enclave</sub>
 </p>
 
 ---
 
-## Features
+## 🛡️ Security Features Matrix
 
-- **Encryption** — AES-256, RSA, and hashing (SHA-256, MD5)
-- **Keychain** — Secure credential storage
-- **Biometrics** — Face ID and Touch ID authentication
-- **Secure Storage** — Encrypted file storage
-- **Jailbreak Detection** — Device integrity checks
-- **SSL Pinning** — Certificate pinning for network security
+| Feature | Description | iOS Version | Security Level |
+|---------|-------------|:-----------:|:--------------:|
+| **Keychain Services** | Secure credential & secret storage | iOS 2.0+ | 🔐 Hardware |
+| **Biometric Auth** | Face ID / Touch ID integration | iOS 8.0+ | 🔐 Hardware |
+| **AES-256 Encryption** | Symmetric encryption for data at rest | iOS 2.0+ | ⚡ Software |
+| **RSA Encryption** | Asymmetric encryption for key exchange | iOS 2.0+ | ⚡ Software |
+| **Certificate Pinning** | SSL/TLS man-in-the-middle protection | iOS 7.0+ | 🌐 Network |
+| **Secure Enclave** | Hardware-isolated key operations | iOS 9.0+ | 🔒 Hardware |
+| **JWT Handling** | Token generation & validation | iOS 13.0+ | 🎫 Token |
+| **TOTP/HOTP** | Two-factor authentication codes | iOS 13.0+ | 🔑 2FA |
 
-## Installation
+---
+
+## 🔐 Security Architecture
+
+```mermaid
+graph TD
+    subgraph User Layer
+        A[👤 User Data]
+        B[🔑 Credentials]
+    end
+    
+    subgraph Security Layer
+        C{AES-256<br/>Encryption}
+        D[🔒 Keychain<br/>Services]
+        E{Biometric<br/>Gate}
+    end
+    
+    subgraph Hardware Layer
+        F[💎 Secure<br/>Enclave]
+        G[✅ Authorized<br/>Access]
+        H[🚫 Access<br/>Denied]
+    end
+    
+    A --> C
+    B --> C
+    C -->|Encrypted| D
+    D --> E
+    E -->|Face ID ✓| F
+    E -->|Touch ID ✓| F
+    E -->|Failed| H
+    F --> G
+    
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style C fill:#fff3e0
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+    style F fill:#f3e5f5
+    style G fill:#c8e6c9
+    style H fill:#ffcdd2
+```
+
+---
+
+## 📦 Installation
+
+### Swift Package Manager
+
+Add to your `Package.swift`:
 
 ```swift
 dependencies: [
@@ -29,249 +91,396 @@ dependencies: [
 ]
 ```
 
-## Quick Start
+Or in Xcode: **File → Add Package Dependencies** → paste the URL.
 
-### AES Encryption
+---
+
+## 🚀 Quick Start
 
 ```swift
 import iOSSecurityTools
 
-let crypto = AESCrypto()
+// Initialize
+let security = iOSSecurityTools.shared
+security.initialize()
 
-// Generate key
-let key = crypto.generateKey()
-
-// Encrypt
-let plaintext = "Sensitive data"
-let encrypted = try crypto.encrypt(plaintext, key: key)
-
-// Decrypt
-let decrypted = try crypto.decrypt(encrypted, key: key)
-print(decrypted) // "Sensitive data"
+// Check security status
+let status = security.getSecurityStatus()
+print("Biometrics available: \(status.biometricAvailable)")
+print("Keychain ready: \(status.keychainAvailable)")
 ```
 
-### Hashing
+---
+
+## 📚 Features & Examples
+
+### 🔒 Keychain Services
+
+Store sensitive data securely in the iOS Keychain with hardware-backed encryption.
 
 ```swift
-let hasher = Hasher()
+let keychain = KeychainManager.shared
 
-// SHA-256
-let hash = hasher.sha256("password")
-print(hash) // "5e884898da28047d..."
+// Save with automatic encryption
+try keychain.save("api_secret_token_xyz", forKey: "apiToken")
 
-// SHA-512
-let hash512 = hasher.sha512("password")
-
-// MD5 (not recommended for security)
-let md5 = hasher.md5("data")
-
-// Password hashing with salt
-let salt = hasher.generateSalt()
-let passwordHash = hasher.hashPassword("myPassword", salt: salt)
-```
-
-### Keychain
-
-```swift
-let keychain = SecureKeychain()
-
-// Save credentials
-try keychain.save(
-    "user_token_123",
-    forKey: "authToken",
-    accessibility: .whenUnlocked
-)
-
-// Read credentials
-let token: String? = try keychain.read(forKey: "authToken")
-
-// Delete
-try keychain.delete(forKey: "authToken")
+// Retrieve securely
+if let token: String = try keychain.get(forKey: "apiToken") {
+    print("Token retrieved")
+}
 
 // Save with biometric protection
 try keychain.save(
-    "sensitive_data",
-    forKey: "protectedData",
+    sensitiveData,
+    forKey: "protectedSecret",
     accessibility: .whenPasscodeSetThisDeviceOnly,
-    requireBiometrics: true
+    flags: [.biometryCurrentSet]
 )
+
+// Delete when done
+try keychain.delete(forKey: "apiToken")
 ```
 
-### Biometric Authentication
+### 🔐 AES-256 Encryption
+
+Military-grade symmetric encryption for data at rest.
 
 ```swift
-let biometrics = BiometricAuth()
+let aes = AESEncryption.shared
 
-// Check availability
-switch biometrics.availableType {
+// Generate a secure 256-bit key
+let key = aes.generateKey(bits: 256)
+
+// Encrypt sensitive data
+let plaintext = "Social Security: 123-45-6789"
+let encrypted = try aes.encrypt(plaintext.data(using: .utf8)!, with: key)
+
+// Decrypt when needed
+let decrypted = try aes.decrypt(encrypted, with: key)
+let original = String(data: decrypted, encoding: .utf8)
+```
+
+### 👆 Biometric Authentication
+
+Seamless Face ID and Touch ID integration.
+
+```swift
+let biometrics = BiometricAuth.shared
+
+// Check what's available
+switch biometrics.biometricType {
 case .faceID:
-    print("Face ID available")
+    print("Face ID ready")
 case .touchID:
-    print("Touch ID available")
+    print("Touch ID ready")
 case .none:
-    print("No biometrics available")
+    print("Fallback to passcode")
 }
 
-// Authenticate
-biometrics.authenticate(reason: "Access your account") { result in
+// Authenticate user
+biometrics.authenticate(reason: "Access your vault") { result in
     switch result {
     case .success:
-        print("Authenticated!")
+        self.unlockSensitiveContent()
     case .failure(let error):
-        switch error {
-        case .userCancel:
-            print("User cancelled")
-        case .biometryNotAvailable:
-            print("Biometrics not available")
-        case .biometryLockout:
-            print("Too many failed attempts")
-        default:
-            print("Authentication failed")
-        }
+        self.handleAuthError(error)
     }
 }
 
-// Async version
-let authenticated = try await biometrics.authenticate(reason: "Verify identity")
-```
-
-### Secure File Storage
-
-```swift
-let secureStorage = SecureFileStorage()
-
-// Save encrypted file
-let data = "Secret document".data(using: .utf8)!
-try secureStorage.save(data, filename: "secret.txt")
-
-// Read encrypted file
-let decryptedData = try secureStorage.read(filename: "secret.txt")
-
-// Delete
-try secureStorage.delete(filename: "secret.txt")
-
-// List all secure files
-let files = secureStorage.listFiles()
-```
-
-### Jailbreak Detection
-
-```swift
-let security = DeviceSecurity()
-
-if security.isJailbroken {
-    // Handle jailbroken device
-    print("Device is compromised")
-    // Optionally restrict functionality
+// Modern async/await
+func authenticateUser() async throws -> Bool {
+    return try await biometrics.authenticate(reason: "Verify your identity")
 }
-
-// Check specific indicators
-let checks = security.runSecurityChecks()
-print("Cydia installed: \(checks.cydiaInstalled)")
-print("Suspicious files: \(checks.suspiciousFilesFound)")
-print("Sandbox intact: \(checks.sandboxIntact)")
 ```
 
-### SSL Certificate Pinning
+### 🌐 Certificate Pinning
+
+Protect against man-in-the-middle attacks.
 
 ```swift
-let pinnedCertificates = [
-    "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-    "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
-]
-
-let session = URLSession(
-    configuration: .default,
-    delegate: SSLPinningDelegate(pins: pinnedCertificates),
-    delegateQueue: nil
+// Configure pinned certificates
+let pins = CertificatePins(
+    domain: "api.yourapp.com",
+    hashes: [
+        "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+    ]
 )
 
-// Use session for secure requests
-let (data, _) = try await session.data(from: url)
+// Create pinned session
+let session = PinnedURLSession(pins: [pins])
+
+// All requests are now protected
+let (data, response) = try await session.data(from: apiURL)
 ```
 
-### Secure Random Generation
+### 🎫 JWT Token Management
+
+Generate and validate JSON Web Tokens.
 
 ```swift
-let random = SecureRandom()
+let jwt = JWTManager.shared
 
-// Random bytes
-let bytes = random.generateBytes(count: 32)
+// Create a signed token
+let payload = JWTPayload(
+    sub: "user_12345",
+    exp: Date().addingTimeInterval(3600),
+    customClaims: ["role": "admin"]
+)
+let token = try jwt.sign(payload, algorithm: .hs256, secret: signingKey)
 
-// Random string
-let token = random.generateString(length: 64) // Hex string
-
-// Random number
-let number = random.generateNumber(in: 1000...9999)
-
-// UUID
-let uuid = random.generateUUID()
+// Validate incoming tokens
+let verified = try jwt.verify(incomingToken, secret: signingKey)
+if verified.isExpired {
+    throw AuthError.tokenExpired
+}
 ```
 
-### Data Protection
+### 🔑 TOTP Two-Factor Authentication
+
+Generate time-based one-time passwords compatible with Google Authenticator.
 
 ```swift
-// Save with data protection
-let url = documentsDirectory.appendingPathComponent("sensitive.dat")
-try data.write(to: url, options: .completeFileProtection)
+let otp = OTPGenerator.shared
 
-// Check protection level
-let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-let protection = attributes[.protectionKey] as? FileProtectionType
+// Generate secret for new user
+let secret = otp.generateSecret()
+// Store this in Keychain, show QR code to user
+
+// Generate current TOTP code
+let code = otp.generateTOTP(secret: secret)
+print("Current code: \(code)") // "847293"
+
+// Verify user-entered code
+let isValid = otp.verify(code: userInput, secret: secret)
 ```
 
-## Project Structure
+### 🔒 Secure Enclave
+
+Hardware-isolated cryptographic operations (iPhone 5s+).
+
+```swift
+let enclave = SecureEnclaveManager.shared
+
+// Generate key pair inside Secure Enclave
+// Private key NEVER leaves the hardware
+let keyPair = try enclave.generateKeyPair(
+    tag: "com.app.signing",
+    accessControl: .biometryAny
+)
+
+// Sign data with hardware-protected key
+let signature = try enclave.sign(
+    data: documentHash,
+    keyTag: "com.app.signing"
+)
+
+// Verify signature
+let isValid = try enclave.verify(
+    signature: signature,
+    for: documentHash,
+    keyTag: "com.app.signing"
+)
+```
+
+### 📁 Secure File Storage
+
+Encrypted file storage with automatic key management.
+
+```swift
+let storage = SecureStorage.shared
+
+// Save encrypted file
+let document = sensitiveDocument.data(using: .utf8)!
+try storage.save(document, filename: "medical_records.enc")
+
+// Read and decrypt
+let decrypted = try storage.load(filename: "medical_records.enc")
+
+// Secure delete (overwrites before deletion)
+try storage.secureDelete(filename: "medical_records.enc")
+```
+
+### 🔍 Security Audit
+
+Runtime security scanning and jailbreak detection.
+
+```swift
+let scanner = SecurityScanner.shared
+
+// Run comprehensive audit
+let audit = try await scanner.performAudit()
+
+// Check results
+if audit.isJailbroken {
+    // Device compromised - restrict sensitive features
+    disableSensitiveOperations()
+}
+
+if audit.debuggerAttached {
+    // Potential reverse engineering attempt
+    logSecurityEvent(.debuggerDetected)
+}
+
+// Check all vulnerabilities
+for vulnerability in audit.vulnerabilities {
+    print("⚠️ \(vulnerability.severity): \(vulnerability.description)")
+}
+```
+
+---
+
+## 🏗️ Architecture
 
 ```
 iOSSecurityTools/
 ├── Sources/
+│   ├── Authentication/
+│   │   ├── BiometricAuth.swift      # Face ID / Touch ID
+│   │   ├── JWTManager.swift         # JWT handling
+│   │   ├── OTPGenerator.swift       # TOTP/HOTP codes
+│   │   └── OAuthManager.swift       # OAuth 2.0 flows
 │   ├── Encryption/
-│   │   ├── AESCrypto.swift
-│   │   ├── RSACrypto.swift
-│   │   └── Hasher.swift
-│   ├── Keychain/
-│   │   └── SecureKeychain.swift
-│   ├── Biometrics/
-│   │   └── BiometricAuth.swift
-│   ├── Storage/
-│   │   └── SecureFileStorage.swift
-│   ├── Detection/
-│   │   └── JailbreakDetection.swift
-│   └── Network/
-│       └── SSLPinning.swift
+│   │   └── AESEncryption.swift      # AES-256-GCM
+│   ├── KeyManagement/
+│   │   ├── KeychainManager.swift    # Keychain wrapper
+│   │   ├── KeyGenerator.swift       # Secure key generation
+│   │   ├── KeyRotation.swift        # Automatic rotation
+│   │   └── CertificateManager.swift # Cert pinning
+│   ├── SecureStorage/
+│   │   ├── SecureStorage.swift      # Encrypted files
+│   │   └── FileEncryption.swift     # File-level crypto
+│   ├── SecurityMonitoring/
+│   │   ├── SecurityScanner.swift    # Jailbreak detection
+│   │   └── AuditLogger.swift        # Security logging
+│   └── Core/
+│       └── iOSSecurityTools.swift   # Main interface
 ├── Examples/
-└── Tests/
+│   └── SecurityDemo/                # Sample app
+├── Tests/
+│   └── iOSSecurityToolsTests/       # Unit tests
+└── Documentation/                   # DocC docs
 ```
 
-## Security Best Practices
+---
 
-1. **Never hardcode secrets** — Use Keychain or environment variables
-2. **Use strong encryption** — AES-256 for symmetric, RSA-2048+ for asymmetric
-3. **Salt passwords** — Always use unique salts for password hashing
-4. **Enable data protection** — Use `.completeFileProtection` for sensitive files
-5. **Validate certificates** — Implement SSL pinning for API calls
-6. **Check device integrity** — Detect jailbroken devices
+## ✅ Security Best Practices
 
-## Requirements
+### Do's ✓
 
-- iOS 15.0+
-- Xcode 15.0+
-- Swift 5.9+
+| Practice | Implementation |
+|----------|----------------|
+| **Store secrets in Keychain** | Never use `UserDefaults` for sensitive data |
+| **Use Secure Enclave** | Hardware-protect signing keys on supported devices |
+| **Implement cert pinning** | Prevent MITM attacks on API calls |
+| **Enable data protection** | Use `.completeFileProtection` for sensitive files |
+| **Salt password hashes** | Use unique salts with bcrypt/Argon2 |
+| **Rotate keys periodically** | Implement automatic key rotation |
+| **Log security events** | Audit trail for compliance |
 
-## Contributing
+### Don'ts ✗
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+| Anti-Pattern | Risk |
+|--------------|------|
+| ❌ Hardcoded API keys | Extracted via reverse engineering |
+| ❌ HTTP for sensitive data | Traffic interception |
+| ❌ MD5/SHA1 for passwords | Rainbow table attacks |
+| ❌ Ignoring jailbreak status | Bypassed security controls |
+| ❌ Long-lived tokens | Extended attack window |
+| ❌ Disabled ATS | No transport security |
 
-## License
+---
 
-MIT License. See [LICENSE](LICENSE).
+## 🔒 Data Flow
 
-## Author
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as App
+    participant K as Keychain
+    participant E as Secure Enclave
+    participant S as Server
+    
+    U->>A: Login Request
+    A->>K: Retrieve stored credentials
+    K-->>A: Encrypted credentials
+    A->>E: Decrypt with biometrics
+    E->>U: Face ID prompt
+    U-->>E: Biometric verified
+    E-->>A: Decrypted credentials
+    A->>S: Authenticate (TLS + Pinning)
+    S-->>A: JWT Token
+    A->>K: Store token securely
+    A-->>U: Login successful
+```
 
-**Muhittin Camdali** — [@muhittincamdali](https://github.com/muhittincamdali)
+---
+
+## 📋 Requirements
+
+| Requirement | Minimum |
+|-------------|---------|
+| iOS | 15.0+ |
+| Xcode | 15.0+ |
+| Swift | 5.9+ |
+| Secure Enclave | iPhone 5s+ (A7 chip) |
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+swift test
+
+# Run with coverage
+swift test --enable-code-coverage
+
+# Test specific module
+swift test --filter KeychainTests
+```
+
+---
+
+## 📖 Documentation
+
+Full documentation available in the `Documentation/` folder:
+
+- [Encryption Guide](Documentation/EncryptionGuide.md)
+- [Keychain Best Practices](Documentation/KeychainGuide.md)
+- [Biometric Integration](Documentation/BiometricGuide.md)
+- [Certificate Pinning Setup](Documentation/CertPinningGuide.md)
+- [Security Audit Guide](Documentation/SecurityAuditGuide.md)
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## 👨‍💻 Author
+
+**Muhittin Camdali**
+
+[![GitHub](https://img.shields.io/badge/GitHub-@muhittincamdali-181717?style=flat&logo=github)](https://github.com/muhittincamdali)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-muhittincamdali-0A66C2?style=flat&logo=linkedin)](https://linkedin.com/in/muhittincamdali)
 
 ---
 
 <p align="center">
-  <sub>Secure your iOS apps ❤️</sub>
+  <sub>Built with security in mind 🛡️</sub>
 </p>
