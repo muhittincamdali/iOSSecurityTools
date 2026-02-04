@@ -22,6 +22,19 @@
 
 ---
 
+## 📋 Table of Contents
+
+- [Security Features Matrix](#-security-features-matrix)
+- [Security Architecture](#-security-architecture)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Star History](#-star-history)
+
+---
+
 ## 🛡️ Security Features Matrix
 
 | Feature | Description | iOS Version | Security Level |
