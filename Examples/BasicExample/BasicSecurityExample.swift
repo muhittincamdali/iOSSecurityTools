@@ -225,7 +225,7 @@ class BasicSecurityExampleViewController: UIViewController {
     
     private func setupSecurityTools() {
         // Initialize security tools
-        SecurityTools.initialize()
+        try? SecurityTools.initialize()
     }
     
     // MARK: - Security Demonstrations

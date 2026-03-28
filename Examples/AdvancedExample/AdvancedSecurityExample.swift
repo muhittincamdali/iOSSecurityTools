@@ -225,7 +225,7 @@ class AdvancedSecurityExampleViewController: UIViewController {
     
     private func setupAdvancedSecurityFeatures() {
         // Initialize advanced security features
-        SecurityTools.initialize()
+        try? SecurityTools.initialize()
     }
     
     // MARK: - Advanced Demonstrations
