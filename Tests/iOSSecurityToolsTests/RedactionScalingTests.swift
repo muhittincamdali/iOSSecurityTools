@@ -54,6 +54,9 @@ struct RedactionScalingTests {
         RepeatedText(unit: "%5Bpassword%5D"),
         RepeatedText(unit: "<password>"),
         RepeatedText(prefix: "<password>", unit: "\n"),
+        RepeatedText(unit: "<password a=\"b\" "),
+        RepeatedText(unit: "<ns:password "),
+        RepeatedText(prefix: "<password ", unit: "a=\"b>"),
         RepeatedText(unit: "password%3"),
     ]
 

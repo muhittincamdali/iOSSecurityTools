@@ -173,13 +173,11 @@ extension NormalizedText {
         return code == UInt8(ascii: "a") || code == UInt8(ascii: "d") ? i + 3 : nil
     }
 
-    /// The content of an XML element named like a secret, `<password>value</password>`: up to the
-    /// next `<`, or to the end of the line when no `<` follows.
+    /// The content of an XML element named like a secret, `<password>value</password>`, also with
+    /// attributes or a namespace prefix (`<wsse:Password Type="…">`): up to the next `<`, or to
+    /// the end of the line when no `<` follows.
     private func elementContent(after name: Range<Int>) -> Range<Int>? {
-        guard name.lowerBound > 0, bytes[name.lowerBound - 1] == UInt8(ascii: "<"),
-              name.upperBound < count, bytes[name.upperBound] == UInt8(ascii: ">")
-        else { return nil }
-        let start = name.upperBound + 1
+        guard isElementName(name), let start = indexAfterStartTag(from: name.upperBound) else { return nil }
         var end = start
         var lineEnd: Int?
         while end < count, bytes[end] != UInt8(ascii: "<") {
@@ -188,6 +186,38 @@ extension NormalizedText {
         }
         if end == count, let lineEnd { end = lineEnd }
         return end > start ? start..<end : nil
+    }
+
+    /// Whether `name` is the name in a start tag: right after `<`, or after a prefix such as `<ns:`.
+    private func isElementName(_ name: Range<Int>) -> Bool {
+        let i = name.lowerBound
+        guard i > 0 else { return false }
+        if bytes[i - 1] == UInt8(ascii: "<") { return true }
+        guard bytes[i - 1] == UInt8(ascii: ":") else { return false }
+        var prefixStart = i - 1
+        while prefixStart > 0, isIdentifierCharacter(prefixStart - 1) { prefixStart -= 1 }
+        return prefixStart < i - 1 && prefixStart > 0 && bytes[prefixStart - 1] == UInt8(ascii: "<")
+    }
+
+    /// Where the content starts after the rest of a start tag at `i`: a `>` right away, or space,
+    /// attributes and then `>`. Nil for an empty tag (`<password/>`) and for a tag that a `<` or
+    /// the end of the text cuts short; a `>` inside a quoted attribute value does not end the tag.
+    private func indexAfterStartTag(from i: Int) -> Int? {
+        guard i < count else { return nil }
+        if bytes[i] == UInt8(ascii: ">") { return i + 1 }
+        guard isSpace(i) || bytes[i] == UInt8(ascii: "\n") || bytes[i] == UInt8(ascii: "\r") else { return nil }
+        var quote: UInt8?
+        for j in i..<count {
+            if bytes[j] == UInt8(ascii: "<") { return nil }
+            if let open = quote {
+                if bytes[j] == open { quote = nil }
+            } else if isQuote(j) {
+                quote = bytes[j]
+            } else if bytes[j] == UInt8(ascii: ">") {
+                return bytes[j - 1] == UInt8(ascii: "/") ? nil : j + 1
+            }
+        }
+        return nil
     }
 
     private func isQuote(_ i: Int) -> Bool { bytes[i] == UInt8(ascii: "\"") || bytes[i] == UInt8(ascii: "'") }
