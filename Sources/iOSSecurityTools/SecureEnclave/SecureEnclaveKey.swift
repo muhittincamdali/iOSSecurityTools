@@ -18,8 +18,9 @@ import LocalAuthentication
 /// let signature = try key.signature(for: challenge)   // DER-encoded ECDSA (SHA-256)
 /// ```
 ///
-/// The Secure Enclave exists on iPhone, iPad, Apple silicon Macs, Apple Watch and Apple Vision
-/// Pro, but not in the simulator; check ``isAvailable`` and fall back to another sign-in method.
+/// The Secure Enclave exists on iPhone, iPad, Apple Watch, Apple Vision Pro and Macs with Apple
+/// silicon or a T2 chip. Check ``isAvailable`` and fall back to another sign-in method where it is
+/// missing.
 public struct SecureEnclaveKey: Sendable, Hashable {
     /// Whether this device has a Secure Enclave the app can use.
     public static var isAvailable: Bool { SecureEnclave.isAvailable }
@@ -115,7 +116,7 @@ public struct SecureEnclaveKey: Sendable, Hashable {
 
 /// An error from ``SecureEnclaveKey``.
 public enum SecureEnclaveError: Error, Sendable, Hashable, LocalizedError {
-    /// The device has no Secure Enclave (for example, the simulator).
+    /// The device has no Secure Enclave (for example, an Intel Mac without a T2 chip).
     case unavailable
     /// The key could not be created.
     case keyCreationFailed(String)
