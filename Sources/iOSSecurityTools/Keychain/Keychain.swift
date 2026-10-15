@@ -4,6 +4,10 @@ import Security
 import LocalAuthentication
 #endif
 
+#if os(macOS)
+private let loginKeychainLock = NSLock()
+#endif
+
 /// Stores small secrets — tokens, passwords, keys — as generic-password items in the keychain.
 ///
 /// Each value is stored under a key inside a service, so one app can keep several independent
@@ -89,7 +93,7 @@ public struct Keychain: Sendable {
             attributes[kSecAttrAccessible as String] = accessibility.secValue
         }
 
-        let status = SecItemAdd(attributes as CFDictionary, nil)
+        let status = serialized { SecItemAdd(attributes as CFDictionary, nil) }
         guard status == errSecDuplicateItem else {
             try check(status)
             return
@@ -102,7 +106,7 @@ public struct Keychain: Sendable {
                 kSecValueData as String: data,
                 kSecAttrAccessible as String: accessibility.secValue,
             ]
-            let updateStatus = SecItemUpdate(match as CFDictionary, changes as CFDictionary)
+            let updateStatus = serialized { SecItemUpdate(match as CFDictionary, changes as CFDictionary) }
             // An existing protected item cannot be changed without authenticating; replacing it
             // does not need authentication, and the caller asked for an unprotected value.
             guard updateStatus == errSecInteractionNotAllowed || updateStatus == errSecAuthFailed else {
@@ -111,7 +115,7 @@ public struct Keychain: Sendable {
             }
         }
         try removeValue(forKey: key)
-        try check(SecItemAdd(attributes as CFDictionary, nil))
+        try check(serialized { SecItemAdd(attributes as CFDictionary, nil) })
     }
 
     /// Returns the data stored under a key, or `nil` if there is none.
@@ -137,11 +141,23 @@ public struct Keychain: Sendable {
         #endif
 
         var result: CFTypeRef?
-        let status = SecItemCopyMatching(match as CFDictionary, &result)
+        let status = serialized { SecItemCopyMatching(match as CFDictionary, &result) }
         if status == errSecItemNotFound { return nil }
         try check(status)
         guard let data = result as? Data else { throw .unexpectedData }
         return data
+    }
+
+    /// Stores data only if the key has no value yet. Returns `false` when a value exists.
+    func add(_ data: Data, forKey key: String) throws(KeychainError) -> Bool {
+        try validate(key: key)
+        var attributes = try query(forKey: key)
+        attributes[kSecValueData as String] = data
+        attributes[kSecAttrAccessible as String] = accessibility.secValue
+        let status = serialized { SecItemAdd(attributes as CFDictionary, nil) }
+        if status == errSecDuplicateItem { return false }
+        try check(status)
+        return true
     }
 
     // MARK: - Strings and Codable values
@@ -193,7 +209,7 @@ public struct Keychain: Sendable {
         match[kSecMatchLimit as String] = kSecMatchLimitOne
         disallowInteraction(in: &match)
         var result: CFTypeRef?
-        let status = SecItemCopyMatching(match as CFDictionary, &result)
+        let status = serialized { SecItemCopyMatching(match as CFDictionary, &result) }
         switch status {
         case errSecSuccess, errSecInteractionNotAllowed:
             return true
@@ -212,7 +228,7 @@ public struct Keychain: Sendable {
         match[kSecMatchLimit as String] = kSecMatchLimitAll
         disallowInteraction(in: &match)
         var result: CFTypeRef?
-        let status = SecItemCopyMatching(match as CFDictionary, &result)
+        let status = serialized { SecItemCopyMatching(match as CFDictionary, &result) }
         if status == errSecItemNotFound { return [] }
         try check(status)
         guard let items = result as? [[String: Any]] else { throw .unexpectedData }
@@ -222,7 +238,8 @@ public struct Keychain: Sendable {
     /// Removes the value stored under a key. Removing a key that has no value is not an error.
     public func removeValue(forKey key: String) throws(KeychainError) {
         try validate(key: key)
-        let status = SecItemDelete(try query(forKey: key) as CFDictionary)
+        let match = try query(forKey: key)
+        let status = serialized { SecItemDelete(match as CFDictionary) }
         guard status != errSecItemNotFound else { return }
         try check(status)
     }
@@ -285,6 +302,21 @@ public struct Keychain: Sendable {
             throw .invalidConfiguration("The access control could not be created: \(description)")
         }
         return control
+    }
+
+    /// Runs a Security framework call, one at a time when it goes to the macOS login keychain.
+    ///
+    /// Concurrent calls into the login keychain from one process can deadlock inside the
+    /// Security framework; the data protection keychain has no such problem.
+    private func serialized(_ call: () -> OSStatus) -> OSStatus {
+        #if os(macOS)
+        if !usesDataProtectionKeychain {
+            loginKeychainLock.lock()
+            defer { loginKeychainLock.unlock() }
+            return call()
+        }
+        #endif
+        return call()
     }
 
     private func check(_ status: OSStatus) throws(KeychainError) {

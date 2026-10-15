@@ -187,3 +187,37 @@ struct KeychainValidationTests {
         #expect(levels.count == 4)
     }
 }
+
+@Suite("Keychain symmetric keys", .enabled(if: KeychainTestSupport.isAvailable, "No writable keychain in this test process"))
+struct KeychainSymmetricKeyTests {
+    @Test("creates a key once and returns the same key afterwards")
+    func createsOnce() throws {
+        let keychain = KeychainTestSupport.makeKeychain()
+        defer { try? keychain.removeAll() }
+        let first = try keychain.symmetricKey(forKey: "master")
+        let second = try keychain.symmetricKey(forKey: "master")
+        #expect(first == second)
+        #expect(first.bitCount == 256)
+    }
+
+    @Test("concurrent first calls agree on one key")
+    func concurrentCreation() async throws {
+        let keychain = KeychainTestSupport.makeKeychain()
+        defer { try? keychain.removeAll() }
+        let keys = try await withThrowingTaskGroup(of: Data.self) { group in
+            for _ in 0..<8 {
+                group.addTask { try keychain.symmetricKey(forKey: "shared").withUnsafeBytes { Data($0) } }
+            }
+            return try await group.reduce(into: Set<Data>()) { $0.insert($1) }
+        }
+        #expect(keys.count == 1)
+    }
+
+    @Test("a stored value of the wrong size is not used as a key")
+    func wrongSize() throws {
+        let keychain = KeychainTestSupport.makeKeychain()
+        defer { try? keychain.removeAll() }
+        try keychain.set(Data(count: 16), forKey: "short")
+        #expect(throws: KeychainError.unexpectedData) { try keychain.symmetricKey(forKey: "short") }
+    }
+}
