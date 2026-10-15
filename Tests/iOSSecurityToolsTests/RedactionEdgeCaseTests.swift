@@ -76,6 +76,15 @@ struct RedactionEdgeCaseTests {
         ("password=>hunter2", "password=>[redacted]"),
         ("password == \"hunter2\"", "password == \"[redacted]\""),
         ("token!=abc123", "token!=[redacted]"),
+        ("password === hunter2", "password === [redacted]"),
+        ("password === \"hunter2\"", "password === \"[redacted]\""),
+        ("password=== hunter2", "password=== [redacted]"),
+        ("password!==hunter2", "password!==[redacted]"),
+        ("password :== hunter2", "password :== [redacted]"),
+        ("password ::= hunter2", "password ::= [redacted]"),
+        ("password = = hunter2", "password = = [redacted]"),
+        ("password%3D%3Dhunter2", "password%3D%3D[redacted]"),
+        ("password == hunter2 && token === abc123", "password == [redacted] && token === [redacted]"),
     ])
     func assignmentOperators(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

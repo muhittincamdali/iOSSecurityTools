@@ -102,16 +102,19 @@ extension NormalizedText {
         } else if j < count, isQuote(j) {
             j += 1
         }
-        while j < count, isSpace(j) { j += 1 }
+        j = indexAfterSpaces(from: j)
         // `?=` and `+=` in a Makefile and `!=`: the first character belongs to the separator.
         if j + 1 < count, [UInt8(ascii: "?"), UInt8(ascii: "+"), UInt8(ascii: "!")].contains(bytes[j]), bytes[j + 1] == UInt8(ascii: "=") {
             j += 1
         }
         guard let afterSeparator = indexAfterSeparator(at: j) else { return nil }
         j = afterSeparator
-        // `=>`, `:=` in Make, Go and Pascal, and `==` in code: the `>` or `=` belongs to the separator.
-        if j < count, bytes[j] == UInt8(ascii: ">") || bytes[j] == UInt8(ascii: "=") { j += 1 }
-        while j < count, isSpace(j) { j += 1 }
+        // `=>`: the `>` belongs to the separator.
+        if j < count, bytes[j] == UInt8(ascii: ">") { j += 1 }
+        // `:=` in Make, Go and Pascal, `==` and `===` in code, `::=` and `= =`: every `=` or `:`
+        // that follows, with or without spaces between, belongs to the separator too.
+        j = indexAfterSpaces(from: j)
+        while let next = indexAfterSeparator(at: j) { j = indexAfterSpaces(from: next) }
         guard j < count else { return nil }
 
         if isEscapedQuote(j) { return escapedQuotedValue(from: j + 2, quote: bytes[j + 1]) }
@@ -159,6 +162,12 @@ extension NormalizedText {
         let isEncoded = i + 2 < count && bytes[i] == UInt8(ascii: "%") && bytes[i + 1] == UInt8(ascii: "5")
             && lowercased(i + 2) == (closing ? UInt8(ascii: "d") : UInt8(ascii: "b"))
         return isEncoded ? 3 : 0
+    }
+
+    private func indexAfterSpaces(from i: Int) -> Int {
+        var j = i
+        while j < count, isSpace(j) { j += 1 }
+        return j
     }
 
     /// Where the value starts after a `:` or `=` at `i`, also written as `%3A` or `%3D`.
