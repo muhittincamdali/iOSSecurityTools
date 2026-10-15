@@ -90,6 +90,16 @@ struct RedactionEdgeCaseTests {
         #expect(redactor.redact(input) == expected)
     }
 
+    @Test("reads every Unicode space as a space", arguments: [
+        "\u{A0}", "\u{1680}", "\u{2000}", "\u{2001}", "\u{2002}", "\u{2003}", "\u{2004}", "\u{2005}",
+        "\u{2006}", "\u{2007}", "\u{2008}", "\u{2009}", "\u{200A}", "\u{202F}", "\u{205F}", "\u{3000}",
+    ])
+    func unicodeSpaces(space: String) {
+        #expect(redactor.redact("password\(space)=\(space)hunter2") == "password\(space)=\(space)[redacted]")
+        #expect(redactor.redact("Bearer\(space)abc.DEF-123") == "Bearer\(space)[redacted]")
+        #expect(redactor.redact(["4242", "4242", "4242", "4242"].joined(separator: space)) == "•••• 4242")
+    }
+
     @Test("pass and session names hold secrets", arguments: [
         ("pass=hunter2", "pass=[redacted]"),
         ("DB_PASS=hunter2", "DB_PASS=[redacted]"),

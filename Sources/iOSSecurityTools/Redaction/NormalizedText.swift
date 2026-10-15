@@ -35,7 +35,8 @@ struct NormalizedText {
         if (0xFF01...0xFF5E).contains(value) { return UInt8(value - 0xFEE0) }
         if let digit = ScalarClass.decimalDigit(scalar) { return UInt8(ascii: "0") + digit }
         switch value {
-        case 0x00A0, 0x2007, 0x2009, 0x202F, 0x3000: return UInt8(ascii: " ")
+        // Every space separator of Unicode (category Zs) except the ASCII space handled above.
+        case 0x00A0, 0x1680, 0x2000...0x200A, 0x202F, 0x205F, 0x3000: return UInt8(ascii: " ")
         default: return 0xFF
         }
     }
