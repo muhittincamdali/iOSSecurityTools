@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-15
+
+### Fixed
+
+- `SensitiveDataRedactor` no longer shows part of a card number that a secret value, bearer token
+  or JSON Web Token runs into: `token=abc_4111 1111 1111 1111` became
+  `token=[redacted] 1111 1111 1111`. Findings that partly overlap are now replaced together, and
+  such a joined `Match` reports every kind it covers.
+- `SensitiveDataRedactor.redact(_:)` took time quadratic in the number of findings (22 s for
+  1.6 million characters of `pwd=x `); it now builds the output once and runs in linear time, as
+  2.0.0 stated. A scaling test replaces the old timing test, which could not fail.
+- `SensitiveDataRedactor` now finds secret values in form fields (`password[]=`,
+  `user[password]=`), XML elements (`<password>…</password>`) and after a percent-encoded `=` or
+  `:` (`password%3D…`), and treats `pass`, `session_id`, `session_key` and a field named exactly
+  `session` as secret names.
+- `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
+  throwing `CipherError.invalidParameter`; a malformed hash still throws.
+
+### Changed
+
+- CI uses the shared workflows of muhittincamdali/.github v1.1.0.
+
 ## [2.0.0] - 2026-10-15
 
 A new library. In June 2026 the 1.0.0 sources were replaced with placeholder code; this release
@@ -66,6 +88,7 @@ No 1.0.0 API remains.
 First tagged release: encryption, keychain, authentication and monitoring managers. Replaced by
 2.0.0.
 
-[Unreleased]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/muhittincamdali/iOSSecurityTools/releases/tag/v1.0.0
