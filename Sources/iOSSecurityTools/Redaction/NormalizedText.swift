@@ -28,7 +28,7 @@ struct NormalizedText {
     }
 
     /// Byte used for matching: ASCII as is, full-width forms and other digits as ASCII, spaces as
-    /// a space, anything else as 0xFF (never matches).
+    /// a space, look-alikes of `=` and `:` as those, anything else as 0xFF (never matches).
     private static func ascii(_ scalar: Unicode.Scalar) -> UInt8 {
         let value = scalar.value
         if value < 0x80 { return UInt8(value) }
@@ -37,6 +37,9 @@ struct NormalizedText {
         switch value {
         // Every space separator of Unicode (category Zs) except the ASCII space handled above.
         case 0x00A0, 0x1680, 0x2000...0x200A, 0x202F, 0x205F, 0x3000: return UInt8(ascii: " ")
+        // Single characters drawn as `:=`, `::=`, `==`, `===` and small or ratio forms of `=` and `:`.
+        case 0x2254, 0x2A74, 0x2A75, 0x2A76, 0xFE66: return UInt8(ascii: "=")
+        case 0x2236, 0xFE55: return UInt8(ascii: ":")
         default: return 0xFF
         }
     }
