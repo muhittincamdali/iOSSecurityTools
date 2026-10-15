@@ -176,6 +176,7 @@ extension NormalizedText {
 
         if isEscapedQuote(j) { return escapedQuotedValue(from: j + 2, quote: bytes[j + 1]) }
         if isQuote(j) { return quotedValue(from: j + 1, quote: bytes[j]) }
+        if bytes[j] == UInt8(ascii: "[") || bytes[j] == UInt8(ascii: "{") { return structuredValue(from: j) }
         // `password: <hunter2>`: the value inside angle brackets, or after a `<` that is not closed.
         if bytes[j] == UInt8(ascii: "<") {
             if let value = angleBracketedValue(from: j + 1) { return value }
@@ -329,6 +330,34 @@ extension NormalizedText {
             end += 2
         }
         return end > start ? start..<end : nil
+    }
+
+    /// An array or object value, `["hunter2"]` or `{"v": "hunter2"}`, up to and including the
+    /// bracket that closes it, across lines and over brackets inside quoted strings. A value that
+    /// is never closed runs to the end of the text: what follows may still be part of it.
+    private func structuredValue(from start: Int) -> Range<Int> {
+        var depth = 0
+        var quote: UInt8?
+        var j = start
+        while j < count {
+            let byte = bytes[j]
+            if byte == UInt8(ascii: "\\") {
+                j += 2
+                continue
+            }
+            if let open = quote {
+                if byte == open { quote = nil }
+            } else if isQuote(j) {
+                quote = byte
+            } else if byte == UInt8(ascii: "[") || byte == UInt8(ascii: "{") {
+                depth += 1
+            } else if byte == UInt8(ascii: "]") || byte == UInt8(ascii: "}") {
+                depth -= 1
+                if depth == 0 { return start..<(j + 1) }
+            }
+            j += 1
+        }
+        return start..<count
     }
 
     /// A value up to the `>` that closes it on the same line; nil when a `<` or the end of the line

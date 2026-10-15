@@ -112,4 +112,23 @@ struct RedactionObfuscationTests {
     func dottedAndSpacedNonSecrets(input: String) {
         #expect(redactor.redact(input) == input)
     }
+
+    @Test("hides an array or object value whole", arguments: [
+        ("{\"password\":[\"hunter2\"]}", "{\"password\":[redacted]}"),
+        ("{\"password\":{\"v\":\"hunter2\"}}", "{\"password\":[redacted]}"),
+        ("{\"token\":[\"a]\",{\"b\":[\"hunter2\"]}],\"user\":\"bob\"}", "{\"token\":[redacted],\"user\":\"bob\"}"),
+        ("{\"password\": [\n  \"hunter2\"\n], \"user\": \"bob\"}", "{\"password\": [redacted], \"user\": \"bob\"}"),
+        ("password=[hunter2] next", "password=[redacted] next"),
+        ("password={hunter2} next", "password=[redacted] next"),
+        ("{\\\"password\\\":[\\\"hunter2\\\"]}", "{\\\"password\\\":[redacted]}"),
+        ("password=[redacted] next", "password=[redacted] next"),
+    ])
+    func structuredValues(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("an array or object that is never closed is hidden to the end of the text")
+    func unclosedStructuredValue() {
+        #expect(redactor.redact("{\"password\":[\"hunter2\",\n\"more\"") == "{\"password\":[redacted]")
+    }
 }
