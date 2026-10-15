@@ -13,8 +13,15 @@ extension NormalizedText {
             }
             var end = i
             while end < count, isIdentifierCharacter(end) { end += 1 }
-            guard namesSecret(i..<end), let value = valueRange(after: i..<end) ?? elementContent(after: i..<end) else {
+            guard namesSecret(i..<end) else {
                 i = end
+                continue
+            }
+            let afterBrackets = indexAfterBrackets(of: i..<end)
+            guard let value = valueRange(from: afterBrackets) ?? elementContent(after: i..<end) else {
+                // A name inside the brackets that follow has no value either: its brackets end at
+                // the same place. Going on from there keeps `[password][password]…` linear.
+                i = max(end, afterBrackets)
                 continue
             }
             spans.append(span(value, .secretFields, SensitiveDataRedactor.replacement))
@@ -83,9 +90,9 @@ extension NormalizedText {
     /// The value after a field name: `name: value`, `name=value`, `"name": "value"`,
     /// `\"name\":\"value\"` in JSON escaped inside another string, form fields such as
     /// `password[]=value` and `user[password]=value`, and `name%3Dvalue` with the `=` or `:`
-    /// percent-encoded.
-    private func valueRange(after name: Range<Int>) -> Range<Int>? {
-        var j = indexAfterBrackets(of: name)
+    /// percent-encoded. `afterName` is where the text continues after the name and its brackets.
+    private func valueRange(from afterName: Int) -> Range<Int>? {
+        var j = afterName
         if isEscapedQuote(j) {
             j += 2
         } else if j < count, isQuote(j) {
