@@ -1,0 +1,533 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1109B47CB83D149BF62453EB /* PinningScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F66701E2986EA4640A62A6DB /* PinningScreen.swift */; };
+		362DB5B12297B4C91D54C7FB /* IntegrityScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE95F14CBAD71B10E201C44D /* IntegrityScreen.swift */; };
+		4A8D18B90AA25A43C4066BA7 /* ReadmeSamples.swift in Sources */ = {isa = PBXBuildFile; fileRef = 593994CC86B1AA9637E8787E /* ReadmeSamples.swift */; };
+		5F02CAB3E0AED709744C9BAE /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72B5247FB924E170C25B755 /* KeychainTests.swift */; };
+		60A1DA71B0F3FF72321DD9B5 /* PrivacyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309DD292D72480DAEAFA0B80 /* PrivacyScreen.swift */; };
+		89AA86E910419AE60E3DCAB4 /* CodesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D14ECD5969104D6C2BCC03D /* CodesScreen.swift */; };
+		96BBF300F05399F468D6706E /* RedactionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98E1AB579E96C56545A36B82 /* RedactionScreen.swift */; };
+		9BB5EE91A5C521F14241C8D3 /* VaultScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D87B099A2D987BF24E9EC660 /* VaultScreen.swift */; };
+		9E5A3C07FB2B58CB259482E2 /* AppKeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EA6AC09221C4955FDDE908 /* AppKeychainTests.swift */; };
+		ADEECC24B1DB62222D3223D2 /* SecurityLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1045EC3C397EB629E348341 /* SecurityLabApp.swift */; };
+		BFD6FE89FF275C002D1C652F /* iOSSecurityTools in Frameworks */ = {isa = PBXBuildFile; productRef = 30A4865E75AACF1A61238FC9 /* iOSSecurityTools */; };
+		D5003CAA001E22F2F4F9B64C /* SecureEnclaveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D340645347864A2B6EE166D /* SecureEnclaveTests.swift */; };
+		DBFE5BF0BBDEBF6B6F4BB28D /* iOSSecurityTools in Frameworks */ = {isa = PBXBuildFile; productRef = 9C2E4E5132DFD588604F6DB0 /* iOSSecurityTools */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		861AE54D4EF2C84198577C3A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C81467266CF8BB571DBCD66D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 45593E7384B923A05EE57C17;
+			remoteInfo = SecurityLab;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0D14ECD5969104D6C2BCC03D /* CodesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodesScreen.swift; sourceTree = "<group>"; };
+		2442AC1A01D3A3B70A2CC0BB /* SecurityLab.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SecurityLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		309DD292D72480DAEAFA0B80 /* PrivacyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyScreen.swift; sourceTree = "<group>"; };
+		31EA6AC09221C4955FDDE908 /* AppKeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKeychainTests.swift; sourceTree = "<group>"; };
+		4D55D77E8E346E6D3C8173D9 /* iOSSecurityTools */ = {isa = PBXFileReference; lastKnownFileType = folder; name = iOSSecurityTools; path = ../..; sourceTree = SOURCE_ROOT; };
+		593994CC86B1AA9637E8787E /* ReadmeSamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadmeSamples.swift; sourceTree = "<group>"; };
+		8D340645347864A2B6EE166D /* SecureEnclaveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveTests.swift; sourceTree = "<group>"; };
+		98E1AB579E96C56545A36B82 /* RedactionScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionScreen.swift; sourceTree = "<group>"; };
+		D1045EC3C397EB629E348341 /* SecurityLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityLabApp.swift; sourceTree = "<group>"; };
+		D72B5247FB924E170C25B755 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
+		D87B099A2D987BF24E9EC660 /* VaultScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultScreen.swift; sourceTree = "<group>"; };
+		EE95F14CBAD71B10E201C44D /* IntegrityScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrityScreen.swift; sourceTree = "<group>"; };
+		F66701E2986EA4640A62A6DB /* PinningScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinningScreen.swift; sourceTree = "<group>"; };
+		F8815728D40382A74E4D5568 /* SecurityLabTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SecurityLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		906D087D9ADF19AD4BDC8A85 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFD6FE89FF275C002D1C652F /* iOSSecurityTools in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B56C61B64068146B70DA1D18 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DBFE5BF0BBDEBF6B6F4BB28D /* iOSSecurityTools in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3952E0427F20BEC3563AC0FE = {
+			isa = PBXGroup;
+			children = (
+				9D87F7C10DE3C34447778B5A /* iOSSecurityToolsTests */,
+				9E55ACACBAD1197792F89961 /* Packages */,
+				ED02F0B8B54D767C689D7F2A /* SecurityLab */,
+				81EEE2111AE3A48EF060E118 /* SecurityLabTests */,
+				5470DB9A466072E78B7B9313 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5470DB9A466072E78B7B9313 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2442AC1A01D3A3B70A2CC0BB /* SecurityLab.app */,
+				F8815728D40382A74E4D5568 /* SecurityLabTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		81EEE2111AE3A48EF060E118 /* SecurityLabTests */ = {
+			isa = PBXGroup;
+			children = (
+				31EA6AC09221C4955FDDE908 /* AppKeychainTests.swift */,
+			);
+			path = SecurityLabTests;
+			sourceTree = "<group>";
+		};
+		9D87F7C10DE3C34447778B5A /* iOSSecurityToolsTests */ = {
+			isa = PBXGroup;
+			children = (
+				D72B5247FB924E170C25B755 /* KeychainTests.swift */,
+				8D340645347864A2B6EE166D /* SecureEnclaveTests.swift */,
+			);
+			name = iOSSecurityToolsTests;
+			path = ../../Tests/iOSSecurityToolsTests;
+			sourceTree = "<group>";
+		};
+		9E55ACACBAD1197792F89961 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				4D55D77E8E346E6D3C8173D9 /* iOSSecurityTools */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		ED02F0B8B54D767C689D7F2A /* SecurityLab */ = {
+			isa = PBXGroup;
+			children = (
+				0D14ECD5969104D6C2BCC03D /* CodesScreen.swift */,
+				EE95F14CBAD71B10E201C44D /* IntegrityScreen.swift */,
+				F66701E2986EA4640A62A6DB /* PinningScreen.swift */,
+				309DD292D72480DAEAFA0B80 /* PrivacyScreen.swift */,
+				593994CC86B1AA9637E8787E /* ReadmeSamples.swift */,
+				98E1AB579E96C56545A36B82 /* RedactionScreen.swift */,
+				D1045EC3C397EB629E348341 /* SecurityLabApp.swift */,
+				D87B099A2D987BF24E9EC660 /* VaultScreen.swift */,
+			);
+			path = SecurityLab;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		45593E7384B923A05EE57C17 /* SecurityLab */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0EC448B8F7BCD4487267FD68 /* Build configuration list for PBXNativeTarget "SecurityLab" */;
+			buildPhases = (
+				671AC1D9425B88097F6837AB /* Sources */,
+				906D087D9ADF19AD4BDC8A85 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SecurityLab;
+			packageProductDependencies = (
+				30A4865E75AACF1A61238FC9 /* iOSSecurityTools */,
+			);
+			productName = SecurityLab;
+			productReference = 2442AC1A01D3A3B70A2CC0BB /* SecurityLab.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4AA5D9A0D98FCAF836F2C5DA /* SecurityLabTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC1D495A93FB7E588147AD95 /* Build configuration list for PBXNativeTarget "SecurityLabTests" */;
+			buildPhases = (
+				42989AFE3B05F926950E1CA8 /* Sources */,
+				B56C61B64068146B70DA1D18 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5A121718C13D6599E36CDC41 /* PBXTargetDependency */,
+			);
+			name = SecurityLabTests;
+			packageProductDependencies = (
+				9C2E4E5132DFD588604F6DB0 /* iOSSecurityTools */,
+			);
+			productName = SecurityLabTests;
+			productReference = F8815728D40382A74E4D5568 /* SecurityLabTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C81467266CF8BB571DBCD66D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					45593E7384B923A05EE57C17 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = E42FD4EBB9CC803C0E03FC08 /* Build configuration list for PBXProject "SecurityLab" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3952E0427F20BEC3563AC0FE;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E4196847F125A6D1BE033EB8 /* XCLocalSwiftPackageReference "../.." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5470DB9A466072E78B7B9313 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				45593E7384B923A05EE57C17 /* SecurityLab */,
+				4AA5D9A0D98FCAF836F2C5DA /* SecurityLabTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		42989AFE3B05F926950E1CA8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9E5A3C07FB2B58CB259482E2 /* AppKeychainTests.swift in Sources */,
+				5F02CAB3E0AED709744C9BAE /* KeychainTests.swift in Sources */,
+				D5003CAA001E22F2F4F9B64C /* SecureEnclaveTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		671AC1D9425B88097F6837AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				89AA86E910419AE60E3DCAB4 /* CodesScreen.swift in Sources */,
+				362DB5B12297B4C91D54C7FB /* IntegrityScreen.swift in Sources */,
+				1109B47CB83D149BF62453EB /* PinningScreen.swift in Sources */,
+				60A1DA71B0F3FF72321DD9B5 /* PrivacyScreen.swift in Sources */,
+				4A8D18B90AA25A43C4066BA7 /* ReadmeSamples.swift in Sources */,
+				96BBF300F05399F468D6706E /* RedactionScreen.swift in Sources */,
+				ADEECC24B1DB62222D3223D2 /* SecurityLabApp.swift in Sources */,
+				9BB5EE91A5C521F14241C8D3 /* VaultScreen.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5A121718C13D6599E36CDC41 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 45593E7384B923A05EE57C17 /* SecurityLab */;
+			targetProxy = 861AE54D4EF2C84198577C3A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		585E5C7E620192A134EC983A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Security Lab";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Security Lab asks for Face ID to show protected values.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.muhittincamdali.SecurityLab;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7022ECD5258402ECAB359A7E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.muhittincamdali.SecurityLabTests;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SecurityLab.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SecurityLab";
+			};
+			name = Debug;
+		};
+		9549965DB657DEDCEF0E8775 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A42B3393C01EDA11AEECF42B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B4216B2FC00FB424E5B0CCBA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Security Lab";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Security Lab asks for Face ID to show protected values.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.muhittincamdali.SecurityLab;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EBB5A27626351BE84916727E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.muhittincamdali.SecurityLabTests;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SecurityLab.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SecurityLab";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0EC448B8F7BCD4487267FD68 /* Build configuration list for PBXNativeTarget "SecurityLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4216B2FC00FB424E5B0CCBA /* Debug */,
+				585E5C7E620192A134EC983A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BC1D495A93FB7E588147AD95 /* Build configuration list for PBXNativeTarget "SecurityLabTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7022ECD5258402ECAB359A7E /* Debug */,
+				EBB5A27626351BE84916727E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E42FD4EBB9CC803C0E03FC08 /* Build configuration list for PBXProject "SecurityLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9549965DB657DEDCEF0E8775 /* Debug */,
+				A42B3393C01EDA11AEECF42B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E4196847F125A6D1BE033EB8 /* XCLocalSwiftPackageReference "../.." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		30A4865E75AACF1A61238FC9 /* iOSSecurityTools */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = iOSSecurityTools;
+		};
+		9C2E4E5132DFD588604F6DB0 /* iOSSecurityTools */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = iOSSecurityTools;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C81467266CF8BB571DBCD66D /* Project object */;
+}
