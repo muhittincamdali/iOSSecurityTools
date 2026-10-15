@@ -78,8 +78,10 @@ public struct SensitiveDataRedactor: Sendable {
     ].map { Array($0.utf8) }
 
     /// Field names that hold a secret only when they are the whole name: a `session` cookie holds
-    /// the session, while `session_start` or `sessionCount` describe it.
-    static let wholeSecretFieldNames: Set<[UInt8]> = [Array("session".utf8)]
+    /// the session, while `session_start` or `sessionCount` describe it. `PHPSESSID` and
+    /// `JSESSIONID` are the session cookies of PHP and Java servers, whose secret word is not a
+    /// word of its own.
+    static let wholeSecretFieldNames: Set<[UInt8]> = Set(["session", "phpsessid", "jsessionid"].map { Array($0.utf8) })
 
     /// Words that, right after a secret word, make the field describe the secret instead of
     /// holding it: `passwordHint`, `token_type`, `token_expires_in`.

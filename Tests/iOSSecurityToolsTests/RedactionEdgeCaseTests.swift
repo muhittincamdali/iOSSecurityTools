@@ -87,6 +87,10 @@ struct RedactionEdgeCaseTests {
         ("Session: abc123", "Session: [redacted]"),
         ("sessionId=abc123", "sessionId=[redacted]"),
         ("SESSION_KEY=abc123", "SESSION_KEY=[redacted]"),
+        ("Cookie: PHPSESSID=abc123; lang=en", "Cookie: PHPSESSID=[redacted]; lang=en"),
+        ("Set-Cookie: JSESSIONID=abc123; Path=/", "Set-Cookie: JSESSIONID=[redacted]; Path=/"),
+        ("jsessionid=abc123", "jsessionid=[redacted]"),
+        ("ASP.NET_SessionId=abc123", "ASP.NET_SessionId=[redacted]"),
     ])
     func passAndSessionNames(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -100,6 +104,7 @@ struct RedactionEdgeCaseTests {
         "pass_count=3",
         "session_start=2026-10-15",
         "sessionCount: 3",
+        "PHPSESSID_NAME=x",
         "<passwordHint>dog</passwordHint>",
         "</password>",
         "<password/>",
