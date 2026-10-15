@@ -79,11 +79,6 @@ struct NormalizedText {
         return isUppercase[i] && isLetter(i - 1) && !isUppercase[i - 1]
     }
 
-    func isWordEnd(_ i: Int) -> Bool {
-        guard i < count else { return true }
-        return !isAlphanumeric(i) && bytes[i] != UInt8(ascii: "_") && bytes[i] != UInt8(ascii: "-")
-    }
-
     func matches(_ word: [UInt8], at i: Int) -> Bool {
         guard i + word.count <= count else { return false }
         for (k, byte) in word.enumerated() where lowercased(i + k) != byte {

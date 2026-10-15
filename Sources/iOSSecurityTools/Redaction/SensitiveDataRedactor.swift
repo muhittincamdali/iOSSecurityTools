@@ -16,9 +16,13 @@ import Foundation
 /// - **Email addresses**: shown with ``Mask/email(_:)``.
 /// - **JSON Web Tokens**: `eyJ…​.…​.…` — replaced completely.
 /// - **Bearer tokens**: the token after `Bearer `.
-/// - **Secret fields**: the value after `password`, `token`, `secret`, `api_key`, `authorization`
-///   and similar names followed by `:` or `=`, in JSON, query strings, headers and `key: value`
-///   text, including `camelCase` and `snake_case` forms such as `accessToken` or `client_secret`.
+/// - **Secret fields**: the value after a field name followed by `:` or `=` whose words include
+///   `password`, `token`, `secret`, `api_key`, `authorization` or a similar word, in JSON (also
+///   JSON escaped inside another string), query strings, headers and `key: value` text. Names in
+///   `camelCase`, `snake_case`, `kebab-case` and upper case count, with other words around the
+///   secret one: `accessToken`, `client_secret`, `SECRET_KEY`, `aws_secret_access_key`,
+///   `passwordConfirm`, `password2`. Names that only describe a secret, such as `passwordHint`,
+///   `token_type` or `token_expires_in`, are left alone.
 ///
 /// Text written to get past a filter is normalized before matching: zero-width and other
 /// invisible characters, combining marks, full-width letters (`ｐａｓｓｗｏｒｄ`) and digits from
@@ -58,11 +62,19 @@ public struct SensitiveDataRedactor: Sendable {
     /// The text that replaces tokens and secret values.
     public static let replacement = "[redacted]"
 
-    /// The field names whose values ``Kinds/secretFields`` hides, longest first.
+    /// The words that make a field name secret, in lowercase without `_` or `-`; ``Kinds/secretFields``
+    /// also matches them across those separators and camel-case humps (`api_key`, `accessToken`).
     static let secretFieldNames: [[UInt8]] = [
-        "authorization", "client_secret", "refresh_token", "access_token", "private_key",
-        "password", "id_token", "api-key", "api_key", "apikey", "passwd", "secret", "token", "pwd",
+        "authorization", "clientsecret", "refreshtoken", "accesstoken", "privatekey", "secretkey",
+        "passphrase", "password", "idtoken", "apikey", "passwd", "secret", "token", "pwd",
     ].map { Array($0.utf8) }
+
+    /// Words that, right after a secret word, make the field describe the secret instead of
+    /// holding it: `passwordHint`, `token_type`, `token_expires_in`.
+    static let describingWords: Set<[UInt8]> = Set([
+        "hint", "type", "expiry", "expires", "expiration", "ttl", "lifetime", "length", "policy",
+        "url", "uri", "endpoint", "count", "required", "rules", "strength", "changed", "updated",
+    ].map { Array($0.utf8) })
 
     /// The kinds this redactor looks for.
     public let kinds: Kinds

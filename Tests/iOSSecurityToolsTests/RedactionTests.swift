@@ -218,10 +218,43 @@ struct SensitiveDataRedactorTests {
         #expect(redactor.redact(input) == expected)
     }
 
+    @Test("finds the secret word among the other words of a field name", arguments: [
+        ("SECRET_KEY=abc", "SECRET_KEY=[redacted]"),
+        ("secret_key: abc", "secret_key: [redacted]"),
+        ("aws_secret_access_key=abc", "aws_secret_access_key=[redacted]"),
+        ("AWSSecretKey=abc", "AWSSecretKey=[redacted]"),
+        ("password_confirmation=x", "password_confirmation=[redacted]"),
+        ("passwordConfirm: x", "passwordConfirm: [redacted]"),
+        ("password2=x", "password2=[redacted]"),
+        ("new-password=x", "new-password=[redacted]"),
+        ("--password=x", "--password=[redacted]"),
+        ("privateKey=abc", "privateKey=[redacted]"),
+        ("PRIVATE-KEY: abc", "PRIVATE-KEY: [redacted]"),
+        ("password_reset_token=abc", "password_reset_token=[redacted]"),
+    ])
+    func secretWordsInFieldNames(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("replaces secret values in JSON escaped inside another string", arguments: [
+        (#"{\"password\":\"x\"}"#, #"{\"password\":\"[redacted]\"}"#),
+        (#"log: "{\"user\":\"bob\",\"api_key\": \"k-1\"}""#, #"log: "{\"user\":\"bob\",\"api_key\": \"[redacted]\"}""#),
+        (#"{\"password\":\"a\\\"b\",\"next\":1}"#, #"{\"password\":\"[redacted]\",\"next\":1}"#),
+        (#"{\"password\":\"a\\\\\",\"next\":1}"#, #"{\"password\":\"[redacted]\",\"next\":1}"#),
+    ])
+    func escapedJSON(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
     @Test("leaves fields that only contain a secret name", arguments: [
         "passwordHint=dog's name",
         "tokenizer=bpe",
         "token_type=bearer",
+        "token_expires_in=3600",
+        "passwordLength: 12",
+        "password_policy=strict",
+        "secretary=bob",
+        "TOKENIZER=bpe",
         "password reset requested",
         "the token expired",
         "password=",
@@ -270,6 +303,9 @@ struct SensitiveDataRedactorTests {
             String(repeating: "1 ", count: size / 2),
             String(repeating: "password", count: size / 8),
             "password=\"" + String(repeating: "\\", count: size),
+            "password=\\\"" + String(repeating: "\\", count: size),
+            String(repeating: "p_a_s_s_w_o_r_d_", count: size / 16),
+            "a" + String(repeating: "_", count: size) + "=x",
             String(repeating: "bearer ", count: size / 7),
             String(repeating: "\u{200B}", count: size),
         ]

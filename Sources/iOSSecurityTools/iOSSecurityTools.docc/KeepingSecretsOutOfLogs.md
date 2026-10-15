@@ -49,8 +49,10 @@ logger.error("\(redactor.redact(error.localizedDescription), privacy: .public)")
 ```
 
 It finds card numbers (with the Luhn check), email addresses, JSON Web Tokens, bearer tokens and
-the values of fields named like secrets (`password`, `token`, `api_key`, `authorization`, ...). It
-removes invisible characters and maps full-width letters and digits from other scripts before
+the values of fields named like secrets (`password`, `token`, `api_key`, `authorization`, ...),
+also when the secret word is one part of a longer name (`SECRET_KEY`, `aws_secret_access_key`,
+`passwordConfirm`) and in JSON escaped inside another string. Names that only describe a secret,
+such as `passwordHint` or `token_type`, are left alone. It removes invisible characters and maps full-width letters and digits from other scripts before
 matching, so `password=` with a zero-width space inside the name, or a card number in full-width
 digits, is still found. It works in one pass without regular expressions, so a long or crafted
 input cannot slow it down.

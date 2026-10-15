@@ -56,7 +56,8 @@ No 1.0.0 API remains.
   pins and host names. Dates built from NaN or infinite intervals throw instead of trapping in
   the TOTP counter.
 - `SensitiveDataRedactor` normalizes zero-width characters, combining marks, full-width forms and
-  non-ASCII digits before matching, and runs in linear time.
+  non-ASCII digits before matching, finds secret words inside longer field names (`SECRET_KEY`,
+  `passwordConfirm`) and in escaped JSON, and runs in linear time.
 - Calls into the macOS login keychain are serialized: concurrent calls could deadlock inside the
   Security framework.
 
