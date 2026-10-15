@@ -103,8 +103,9 @@ extension NormalizedText {
             j += 1
         }
         j = indexAfterSpaces(from: j)
-        // `?=` and `+=` in a Makefile and `!=`: the first character belongs to the separator.
-        if j + 1 < count, [UInt8(ascii: "?"), UInt8(ascii: "+"), UInt8(ascii: "!")].contains(bytes[j]), bytes[j + 1] == UInt8(ascii: "=") {
+        // `?=` in a Makefile and `!=`: the first character belongs to the separator. The `+` of
+        // `+=` was already passed over with the spaces.
+        if j + 1 < count, [UInt8(ascii: "?"), UInt8(ascii: "!")].contains(bytes[j]), bytes[j + 1] == UInt8(ascii: "=") {
             j += 1
         }
         guard let afterSeparator = indexAfterSeparator(at: j) else { return nil }
@@ -164,9 +165,19 @@ extension NormalizedText {
         return isEncoded ? 3 : 0
     }
 
+    /// Where the text continues after spaces at `i`, also written as form bodies encode them:
+    /// `+` and `%20`.
     private func indexAfterSpaces(from i: Int) -> Int {
         var j = i
-        while j < count, isSpace(j) { j += 1 }
+        while j < count {
+            if isSpace(j) || bytes[j] == UInt8(ascii: "+") {
+                j += 1
+            } else if j + 2 < count, bytes[j] == UInt8(ascii: "%"), bytes[j + 1] == UInt8(ascii: "2"), bytes[j + 2] == UInt8(ascii: "0") {
+                j += 3
+            } else {
+                break
+            }
+        }
         return j
     }
 
