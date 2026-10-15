@@ -24,6 +24,9 @@ import Foundation
 ///   `passwordConfirm`, `password2`. Names that only describe a secret, such as `passwordHint`,
 ///   `token_type` or `token_expires_in`, are left alone.
 ///
+/// When two findings partly overlap, such as a token that runs into a card number
+/// (`token=abc_4111 1111 1111 1111`), the whole stretch they cover becomes `[redacted]`.
+///
 /// Text written to get past a filter is normalized before matching: zero-width and other
 /// invisible characters, combining marks, full-width letters (`ｐａｓｓｗｏｒｄ`) and digits from
 /// other scripts do not hide a value. The scan is linear in the length of the text and does not
@@ -53,7 +56,8 @@ public struct SensitiveDataRedactor: Sendable {
 
     /// A piece of sensitive data found in a text.
     public struct Match: Sendable, Hashable {
-        /// What was found; one of the ``Kinds`` constants.
+        /// What was found: one of the ``Kinds`` constants, or several of them when findings that
+        /// partly overlap were joined into one match. Test it with `contains(_:)`.
         public let kind: Kinds
         /// Where it is in the text.
         public let range: Range<String.Index>
@@ -147,8 +151,17 @@ public struct SensitiveDataRedactor: Sendable {
 
         found.sort { $0.start != $1.start ? $0.start < $1.start : $0.end > $1.end }
         var result: [Span] = []
-        for span in found where span.start >= (result.last?.end ?? 0) {
-            result.append(span)
+        for span in found {
+            guard let last = result.last, span.start < last.end else {
+                result.append(span)
+                continue
+            }
+            guard span.end > last.end else { continue }
+            // The two overlap and neither contains the other ("token=abc_4111 1111 1111 1111"):
+            // dropping either would show part of it, so hide both as one region.
+            result[result.count - 1] = Span(
+                start: last.start, end: span.end, kind: last.kind.union(span.kind), replacement: Self.replacement
+            )
         }
         return result
     }
