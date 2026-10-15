@@ -1,26 +1,22 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
     name: "iOSSecurityTools",
     platforms: [
-        .iOS(.v15),
-        .macOS(.v12),
-        .watchOS(.v8),
-        .tvOS(.v15)
+        .iOS(.v17),
+        .macOS(.v14),
+        .tvOS(.v17),
+        .watchOS(.v10),
+        .visionOS(.v1)
     ],
     products: [
-        .library(name: "iOSSecurityTools", targets: ["iOSSecurityTools"]),
+        .library(name: "iOSSecurityTools", targets: ["iOSSecurityTools"])
     ],
-    dependencies: [],
     targets: [
         .target(
             name: "iOSSecurityTools",
-            dependencies: [],
-            path: "Sources/iOSSecurityTools",
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
+            path: "Sources/iOSSecurityTools"
         ),
         .testTarget(
             name: "iOSSecurityToolsTests",

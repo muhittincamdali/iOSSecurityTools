@@ -1,0 +1,7 @@
+version: 1
+builder:
+  configs:
+    - platform: ios
+      scheme: iOSSecurityTools
+      documentation_targets: [iOSSecurityTools]
+    - platform: macos-spm

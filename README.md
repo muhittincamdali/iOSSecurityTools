@@ -1,528 +1,407 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Swift-6.0-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0"/>
-  <img src="https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20visionOS-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Platform"/>
-  <img src="https://img.shields.io/badge/Standard-Unified%20Core-5856D6?style=for-the-badge" alt="Standard"/>
-</p>
+<!-- brand:start -->
 
----
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-light.svg" alt="iOSSecurityTools: Keychain, encryption, pinning, one-time codes and integrity checks for Apple apps."></picture></p>
 
-## 🚀 Killer Feature: Runtime Tamper Defender
-Military-grade protection. The `RuntimeDefender` actively monitors memory and Swift method swizzling, instantly self-destructing sensitive `SecureVault` data if a debugger or jailbreak hook is detected.
-> **🛡️ PART OF THE 2026 UNIFIED CORE**
-> This repository is a verified component of 'The Endless March' initiative. Purified for Swift 6, zero-dependency, and engineered for maximum hardware saturation.
-> 
-> *Flagship Engines:* [SwiftNetwork](https://github.com/muhittincamdali/SwiftNetwork) | [SwiftAI](https://github.com/muhittincamdali/SwiftAI) | [LiquidGlassKit](https://github.com/muhittincamdali/LiquidGlassKit)
-
----
-
-```
-███████╗███████╗ ██████╗██╗   ██╗██████╗ ██╗████████╗██╗   ██╗
-██╔════╝██╔════╝██╔════╝██║   ██║██╔══██╗██║╚══██╔══╝╚██╗ ██╔╝
-███████╗█████╗  ██║     ██║   ██║██████╔╝██║   ██║    ╚████╔╝ 
-╚════██║██╔══╝  ██║     ██║   ██║██╔══██╗██║   ██║     ╚██╔╝  
-███████║███████╗╚██████╗╚██████╔╝██║  ██║██║   ██║      ██║   
-╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝   ╚═╝      ╚═╝   
-                    iOS Security Tools
-```
+<!-- lang-selector:start -->
+<p align="center"><a href="README.md">English</a> · <a href="README.tr.md">Türkçe</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.es.md">Español</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.ru.md">Русский</a></p>
+<!-- lang-selector:end -->
 
 <p align="center">
-  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9+-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 5.9+"></a>
-  <a href="https://developer.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-15.0+-000000?style=for-the-badge&logo=apple&logoColor=white" alt="iOS 15+"></a>
-  <a href="https://swift.org/package-manager/"><img src="https://img.shields.io/badge/SPM-Compatible-blue?style=for-the-badge&logo=swift&logoColor=white" alt="SPM"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License"></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Latest version: v2.0.0"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Supported platforms: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Language version: Swift 6.2+"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="License: MIT"></picture></a>
 </p>
 
 <p align="center">
-  <b>Production-ready security toolkit for iOS applications</b><br>
-  <sub>Encryption • Keychain • Biometrics • Certificate Pinning • Secure Enclave</sub>
+<a href="#quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-start-en-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-start-en-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-start-en-light.svg" alt="Get started"></picture></a>
+<a href="https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-docs-en-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-docs-en-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-docs-en-light.svg" alt="Documentation"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/tree/master/Examples"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-examples-en-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-examples-en-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/button-examples-en-light.svg" alt="Examples"></picture></a>
 </p>
 
----
+<!-- brand:end -->
 
-## 📋 Table of Contents
+A Swift package of security building blocks for apps on iOS, macOS, tvOS, watchOS and
+visionOS: keychain storage, authenticated encryption, PIN hashes, Secure Enclave keys,
+certificate pinning, one-time passwords, device integrity checks and log redaction. It is for
+app developers who need these pieces done correctly without studying the Security framework's
+C APIs. Each type validates what it is given and throws a typed error instead of crashing, so
+values from a QR code, a server or a file cannot trap the app. The package has no dependencies.
 
-- [Security Features Matrix](#-security-features-matrix)
-- [Security Architecture](#-security-architecture)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
-- [Star History](#-star-history)
+## Highlights
 
----
+- **Keychain without the dictionaries** — `Keychain` stores data, strings and `Codable` values,
+  creates encryption keys on first use, and can require Face ID, Touch ID or the passcode,
+  enforced by the keychain itself rather than by an `if` around `LAContext`.
+- **Encryption that detects tampering** — `DataCipher` writes AES-256-GCM or ChaCha20-Poly1305
+  envelopes that carry their own version, algorithm and nonce; any changed byte, wrong key or
+  wrong associated data fails decryption. HKDF, PBKDF2 and PHC-format PIN hashes come with it.
+- **Pinning that does not lock users out** — `PinningPolicy` requires a backup pin, supports
+  subdomains, expiration dates and a report-only mode, and still requires the system's own trust
+  evaluation to pass.
+- **Signals, not promises** — `IntegrityInspector` reports jailbreak files, a debugger, the
+  simulator, hooking libraries and a system proxy as a `Codable` report, and the documentation
+  says what an attacker can hide from it.
+- **Secrets stay out of logs and screenshots** — `@Redacted` prints `<redacted>` everywhere,
+  `SensitiveDataRedactor` scrubs card numbers, emails, tokens and password fields (also when hidden
+  with zero-width or full-width characters), and `.privacyShield()` covers views in the app
+  switcher and during screen recording.
+- **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
+  an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 157 Swift Testing tests on
+  macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
-## 🛡️ Security Features Matrix
+### What's included
 
-| Feature | Description | iOS Version | Security Level |
-|---------|-------------|:-----------:|:--------------:|
-| **Keychain Services** | Secure credential & secret storage | iOS 2.0+ | 🔐 Hardware |
-| **Biometric Auth** | Face ID / Touch ID integration | iOS 8.0+ | 🔐 Hardware |
-| **AES-256 Encryption** | Symmetric encryption for data at rest | iOS 2.0+ | ⚡ Software |
-| **RSA Encryption** | Asymmetric encryption for key exchange | iOS 2.0+ | ⚡ Software |
-| **Certificate Pinning** | SSL/TLS man-in-the-middle protection | iOS 7.0+ | 🌐 Network |
-| **Secure Enclave** | Hardware-isolated key operations | iOS 9.0+ | 🔒 Hardware |
-| **JWT Handling** | Token generation & validation | iOS 13.0+ | 🎫 Token |
-| **TOTP/HOTP** | Two-factor authentication codes | iOS 13.0+ | 🔑 2FA |
+| Area                   | Types                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| Keychain               | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError`               |
+| Encryption and hashing | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| Secure Enclave         | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)`                      |
+| Biometrics             | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS)                         |
+| Certificate pinning    | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
+| One-time passwords     | `TOTP`, `HOTP`, `OTPAuthURI`                                                              |
+| Device integrity       | `IntegrityInspector`, `IntegrityReport`, `IntegrityFinding`                               |
+| Logs and screens       | `Redacted`, `Mask`, `SensitiveDataRedactor`, `.privacyShield(when:)`, `.onScreenshot(perform:)` |
 
----
+## Quick start
 
-## 🔐 Security Architecture
+**1. Add the package**
 
-```mermaid
-graph TD
-    subgraph User Layer
-        A[👤 User Data]
-        B[🔑 Credentials]
-    end
-    
-    subgraph Security Layer
-        C{AES-256<br/>Encryption}
-        D[🔒 Keychain<br/>Services]
-        E{Biometric<br/>Gate}
-    end
-    
-    subgraph Hardware Layer
-        F[💎 Secure<br/>Enclave]
-        G[✅ Authorized<br/>Access]
-        H[🚫 Access<br/>Denied]
-    end
-    
-    A --> C
-    B --> C
-    C -->|Encrypted| D
-    D --> E
-    E -->|Face ID ✓| F
-    E -->|Touch ID ✓| F
-    E -->|Failed| H
-    F --> G
-    
-    style A fill:#e1f5fe
-    style B fill:#e1f5fe
-    style C fill:#fff3e0
-    style D fill:#e8f5e9
-    style E fill:#fce4ec
-    style F fill:#f3e5f5
-    style G fill:#c8e6c9
-    style H fill:#ffcdd2
+In Xcode, choose **File › Add Package Dependencies…** and enter the repository URL:
+
+```text
+https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
----
+Paste it into the search field at the top right of the window. Leave **Dependency Rule** at
+**Up to Next Major Version** from `2.0.0`, then click **Add Package**. In the next window,
+choose your app target next to **iOSSecurityTools** and click **Add Package** again.
 
-## 📦 Installation
-
-### Swift Package Manager
-
-Add to your `Package.swift`:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "1.0.0")
-]
-```
-
-Or in Xcode: **File → Add Package Dependencies** → paste the URL.
-
----
-
-## 🚀 Quick Start
+**2. Import the module**
 
 ```swift
 import iOSSecurityTools
-
-// Initialize
-let security = iOSSecurityTools.shared
-security.initialize()
-
-// Check security status
-let status = security.getSecurityStatus()
-print("Biometrics available: \(status.biometricAvailable)")
-print("Keychain ready: \(status.keychainAvailable)")
 ```
 
----
+Put this line at the top of the Swift file where you use the package, below `import SwiftUI`.
 
-## 📚 Features & Examples
+**3. Use it**
 
-### 🔒 Keychain Services
-
-Store sensitive data securely in the iOS Keychain with hardware-backed encryption.
-
-```swift
-let keychain = KeychainManager.shared
-
-// Save with automatic encryption
-try keychain.save("api_secret_token_xyz", forKey: "apiToken")
-
-// Retrieve securely
-if let token: String = try keychain.get(forKey: "apiToken") {
-    print("Token retrieved")
-}
-
-// Save with biometric protection
-try keychain.save(
-    sensitiveData,
-    forKey: "protectedSecret",
-    accessibility: .whenPasscodeSetThisDeviceOnly,
-    flags: [.biometryCurrentSet]
-)
-
-// Delete when done
-try keychain.delete(forKey: "apiToken")
-```
-
-### 🔐 AES-256 Encryption
-
-Military-grade symmetric encryption for data at rest.
+In a new Xcode app (**File › New › Project… › App**), replace everything in `ContentView.swift`
+with:
 
 ```swift
-let aes = AESEncryption.shared
+import SwiftUI
+import iOSSecurityTools
 
-// Generate a secure 256-bit key
-let key = aes.generateKey(bits: 256)
+struct ContentView: View {
+    @State private var status = "Nothing stored yet"
 
-// Encrypt sensitive data
-let plaintext = "Social Security: 123-45-6789"
-let encrypted = try aes.encrypt(plaintext.data(using: .utf8)!, with: key)
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(status)
+            Button("Encrypt and store a note") {
+                do {
+                    let keychain = Keychain(service: "QuickStart")
+                    let cipher = try DataCipher(key: keychain.symmetricKey(forKey: "notes-key"))
+                    try keychain.set(cipher.encrypt("Meet at 7 pm"), forKey: "note")
 
-// Decrypt when needed
-let decrypted = try aes.decrypt(encrypted, with: key)
-let original = String(data: decrypted, encoding: .utf8)
-```
-
-### 👆 Biometric Authentication
-
-Seamless Face ID and Touch ID integration.
-
-```swift
-let biometrics = BiometricAuth.shared
-
-// Check what's available
-switch biometrics.biometricType {
-case .faceID:
-    print("Face ID ready")
-case .touchID:
-    print("Touch ID ready")
-case .none:
-    print("Fallback to passcode")
-}
-
-// Authenticate user
-biometrics.authenticate(reason: "Access your vault") { result in
-    switch result {
-    case .success:
-        self.unlockSensitiveContent()
-    case .failure(let error):
-        self.handleAuthError(error)
+                    let stored = try keychain.data(forKey: "note") ?? Data()
+                    status = "Decrypted: \(try cipher.decryptString(stored))"
+                } catch {
+                    status = error.localizedDescription
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .privacyShield()
     }
 }
+```
 
-// Modern async/await
-func authenticateUser() async throws -> Bool {
-    return try await biometrics.authenticate(reason: "Verify your identity")
+Choose an iPhone simulator and press **Run** (⌘R). Tap the button: the app creates a key in the
+keychain, encrypts the note with it, stores the encrypted bytes, reads them back and shows
+"Decrypted: Meet at 7 pm". `.privacyShield()` covers the screen with a lock while the app is in
+the background, so the app switcher does not show the note.
+
+## Installation
+
+### Swift Package Manager
+
+In Xcode, choose **File › Add Package Dependencies…** and enter the repository URL:
+
+```text
+https://github.com/muhittincamdali/iOSSecurityTools.git
+```
+
+Or add it to the `dependencies` in your `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.0.0")
+],
+targets: [
+    .target(name: "YourApp", dependencies: [
+        .product(name: "iOSSecurityTools", package: "iOSSecurityTools")
+    ])
+]
+```
+
+Version 2.0.0 (October 2026) is the first release of the current package. The earlier release,
+1.0.0 (February 2026), is a different code base: in June 2026 its sources were replaced with
+placeholder code, and in October 2026 the package was rebuilt from scratch with tests.
+[CHANGELOG.md](CHANGELOG.md) lists the changes.
+
+A macOS app needs a development team under **Signing & Capabilities** to use the keychain;
+iOS apps and the simulator need nothing extra. For Face ID, add `NSFaceIDUsageDescription` to the
+app's Info.plist.
+
+## Usage
+
+The samples below are copied from
+[`Examples/SecurityLab/SecurityLab/ReadmeSamples.swift`](Examples/SecurityLab/SecurityLab/ReadmeSamples.swift).
+The example app and the test suite both compile that file, and the tests run the samples that
+need no prompt or network.
+
+### Store a token in the keychain
+
+```swift
+func keychainSample() throws -> String? {
+    let keychain = Keychain(service: "com.example.app.credentials")
+    try keychain.set("r-7f3a9c", forKey: "refreshToken")
+    let token = try keychain.string(forKey: "refreshToken")   // "r-7f3a9c"
+    try keychain.removeValue(forKey: "refreshToken")
+    return token
 }
 ```
 
-### 🌐 Certificate Pinning
-
-Protect against man-in-the-middle attacks.
+### Require Face ID for a value
 
 ```swift
-// Configure pinned certificates
-let pins = CertificatePins(
-    domain: "api.yourapp.com",
-    hashes: [
-        "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-        "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
-    ]
-)
-
-// Create pinned session
-let session = PinnedURLSession(pins: [pins])
-
-// All requests are now protected
-let (data, response) = try await session.data(from: apiURL)
-```
-
-### 🎫 JWT Token Management
-
-Generate and validate JSON Web Tokens.
-
-```swift
-let jwt = JWTManager.shared
-
-// Create a signed token
-let payload = JWTPayload(
-    sub: "user_12345",
-    exp: Date().addingTimeInterval(3600),
-    customClaims: ["role": "admin"]
-)
-let token = try jwt.sign(payload, algorithm: .hs256, secret: signingKey)
-
-// Validate incoming tokens
-let verified = try jwt.verify(incomingToken, secret: signingKey)
-if verified.isExpired {
-    throw AuthError.tokenExpired
+func protectedValueSample() throws -> String? {
+    let keychain = Keychain(service: "com.example.app.cards")
+    // Only the biometry enrolled now can read the value; the system enforces it.
+    try keychain.set("4921", forKey: "card-pin", protection: .biometryCurrentSet)
+    return try keychain.string(forKey: "card-pin", prompt: "Show your card PIN")
 }
 ```
 
-### 🔑 TOTP Two-Factor Authentication
-
-Generate time-based one-time passwords compatible with Google Authenticator.
+### Encrypt a record
 
 ```swift
-let otp = OTPGenerator.shared
+func encryptionSample() throws -> String {
+    let cipher = try DataCipher(key: DataCipher.generateKey())
+    let recordID = Data("note-42".utf8)
 
-// Generate secret for new user
-let secret = otp.generateSecret()
-// Store this in Keychain, show QR code to user
-
-// Generate current TOTP code
-let code = otp.generateTOTP(secret: secret)
-print("Current code: \(code)") // "847293"
-
-// Verify user-entered code
-let isValid = otp.verify(code: userInput, secret: secret)
-```
-
-### 🔒 Secure Enclave
-
-Hardware-isolated cryptographic operations (iPhone 5s+).
-
-```swift
-let enclave = SecureEnclaveManager.shared
-
-// Generate key pair inside Secure Enclave
-// Private key NEVER leaves the hardware
-let keyPair = try enclave.generateKeyPair(
-    tag: "com.app.signing",
-    accessControl: .biometryAny
-)
-
-// Sign data with hardware-protected key
-let signature = try enclave.sign(
-    data: documentHash,
-    keyTag: "com.app.signing"
-)
-
-// Verify signature
-let isValid = try enclave.verify(
-    signature: signature,
-    for: documentHash,
-    keyTag: "com.app.signing"
-)
-```
-
-### 📁 Secure File Storage
-
-Encrypted file storage with automatic key management.
-
-```swift
-let storage = SecureStorage.shared
-
-// Save encrypted file
-let document = sensitiveDocument.data(using: .utf8)!
-try storage.save(document, filename: "medical_records.enc")
-
-// Read and decrypt
-let decrypted = try storage.load(filename: "medical_records.enc")
-
-// Secure delete (overwrites before deletion)
-try storage.secureDelete(filename: "medical_records.enc")
-```
-
-### 🔍 Security Audit
-
-Runtime security scanning and jailbreak detection.
-
-```swift
-let scanner = SecurityScanner.shared
-
-// Run comprehensive audit
-let audit = try await scanner.performAudit()
-
-// Check results
-if audit.isJailbroken {
-    // Device compromised - restrict sensitive features
-    disableSensitiveOperations()
-}
-
-if audit.debuggerAttached {
-    // Potential reverse engineering attempt
-    logSecurityEvent(.debuggerDetected)
-}
-
-// Check all vulnerabilities
-for vulnerability in audit.vulnerabilities {
-    print("⚠️ \(vulnerability.severity): \(vulnerability.description)")
+    // The record ID is authenticated, so this envelope cannot be pasted into another record.
+    let envelope = try cipher.encrypt("Meet at 7 pm", authenticating: recordID)
+    return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
 
----
+### Check an app lock PIN
 
-## 🏗️ Architecture
-
-```
-iOSSecurityTools/
-├── Sources/
-│   ├── Authentication/
-│   │   ├── BiometricAuth.swift      # Face ID / Touch ID
-│   │   ├── JWTManager.swift         # JWT handling
-│   │   ├── OTPGenerator.swift       # TOTP/HOTP codes
-│   │   └── OAuthManager.swift       # OAuth 2.0 flows
-│   ├── Encryption/
-│   │   └── AESEncryption.swift      # AES-256-GCM
-│   ├── KeyManagement/
-│   │   ├── KeychainManager.swift    # Keychain wrapper
-│   │   ├── KeyGenerator.swift       # Secure key generation
-│   │   ├── KeyRotation.swift        # Automatic rotation
-│   │   └── CertificateManager.swift # Cert pinning
-│   ├── SecureStorage/
-│   │   ├── SecureStorage.swift      # Encrypted files
-│   │   └── FileEncryption.swift     # File-level crypto
-│   ├── SecurityMonitoring/
-│   │   ├── SecurityScanner.swift    # Jailbreak detection
-│   │   └── AuditLogger.swift        # Security logging
-│   └── Core/
-│       └── iOSSecurityTools.swift   # Main interface
-├── Examples/
-│   └── SecurityDemo/                # Sample app
-├── Tests/
-│   └── iOSSecurityToolsTests/       # Unit tests
-└── Documentation/                   # DocC docs
+```swift
+func pinSample() throws -> Bool {
+    let stored = try PasswordHash.make(for: "4921")          // "$pbkdf2-sha256$i=600000$..."
+    return try PasswordHash.verify("4921", against: stored)   // true
+}
 ```
 
----
+### Show one-time codes from a QR code
 
-## ✅ Security Best Practices
+```swift
+func oneTimePasswordSample() throws -> Bool {
+    let scanned = "otpauth://totp/Example:alice@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Example"
+    let uri = try OTPAuthURI(parsing: scanned)
+    guard case .totp(let totp) = uri.kind else { return false }
 
-### Do's ✓
-
-| Practice | Implementation |
-|----------|----------------|
-| **Store secrets in Keychain** | Never use `UserDefaults` for sensitive data |
-| **Use Secure Enclave** | Hardware-protect signing keys on supported devices |
-| **Implement cert pinning** | Prevent MITM attacks on API calls |
-| **Enable data protection** | Use `.completeFileProtection` for sensitive files |
-| **Salt password hashes** | Use unique salts with bcrypt/Argon2 |
-| **Rotate keys periodically** | Implement automatic key rotation |
-| **Log security events** | Audit trail for compliance |
-
-### Don'ts ✗
-
-| Anti-Pattern | Risk |
-|--------------|------|
-| ❌ Hardcoded API keys | Extracted via reverse engineering |
-| ❌ HTTP for sensitive data | Traffic interception |
-| ❌ MD5/SHA1 for passwords | Rainbow table attacks |
-| ❌ Ignoring jailbreak status | Bypassed security controls |
-| ❌ Long-lived tokens | Extended attack window |
-| ❌ Disabled ATS | No transport security |
-
----
-
-## 🔒 Data Flow
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant A as App
-    participant K as Keychain
-    participant E as Secure Enclave
-    participant S as Server
-    
-    U->>A: Login Request
-    A->>K: Retrieve stored credentials
-    K-->>A: Encrypted credentials
-    A->>E: Decrypt with biometrics
-    E->>U: Face ID prompt
-    U-->>E: Biometric verified
-    E-->>A: Decrypted credentials
-    A->>S: Authenticate (TLS + Pinning)
-    S-->>A: JWT Token
-    A->>K: Store token securely
-    A-->>U: Login successful
+    let code = try totp.code()                    // six digits, new every 30 seconds
+    let secondsLeft = try totp.secondsRemaining()
+    print("\(uri.issuer ?? ""): \(code), \(secondsLeft) s left")
+    return try totp.verify(code)                   // also accepts the previous and next code
+}
 ```
 
----
+### Pin a server's keys
 
-## 📋 Requirements
-
-| Requirement | Minimum |
-|-------------|---------|
-| iOS | 15.0+ |
-| Xcode | 15.0+ |
-| Swift | 5.9+ |
-| Secure Enclave | iPhone 5s+ (A7 chip) |
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-swift test
-
-# Run with coverage
-swift test --enable-code-coverage
-
-# Test specific module
-swift test --filter KeychainTests
+```swift
+func pinnedSessionSample() throws -> URLSession {
+    let policy = try PinningPolicy([
+        PinnedDomain("letsencrypt.org", pins: [
+            "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",   // ISRG Root X1
+            "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",   // ISRG Root X2
+        ], includesSubdomains: true),
+    ])
+    return URLSession.pinned(policy: policy) { failure in
+        print("Blocked: \(failure.localizedDescription)")
+    }
+}
 ```
 
----
+The [pinning guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/pinningcertificates)
+shows how to get the pins of your own server and roll them out without locking users out.
 
-## 📖 Documentation
+### Check the device
 
-Full documentation available in the `Documentation/` folder:
+```swift
+func integritySample() -> IntegrityReport {
+    let report = IntegrityInspector().inspect()
+    if report.hasFindings(in: [.jailbreak, .injectedLibraries]) {
+        // Add friction: ask for the passcode again, lower limits, flag the session on the server.
+    }
+    for finding in report.findings {
+        print(finding)   // for example "Running in the simulator"
+    }
+    return report
+}
+```
 
-- [Encryption Guide](Documentation/EncryptionGuide.md)
-- [Keychain Best Practices](Documentation/KeychainGuide.md)
-- [Biometric Integration](Documentation/BiometricGuide.md)
-- [Certificate Pinning Setup](Documentation/CertPinningGuide.md)
-- [Security Audit Guide](Documentation/SecurityAuditGuide.md)
+### Keep secrets out of logs
 
----
+```swift
+struct LoginRequest: Codable {
+    var username: String
+    @Redacted var password: String
+}
 
-## 🤝 Contributing
+func redactionSample() -> (request: String, log: String) {
+    let request = LoginRequest(username: "alice", password: "hunter2")
+    let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
-Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+    let redactor = SensitiveDataRedactor()
+    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    return (printed, log)
+}
+```
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Bind an account to the device
 
----
+```swift
+func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature: Data)? {
+    guard SecureEnclaveKey.isAvailable else { return nil }
+    let key = try Keychain(service: "com.example.app.device").secureEnclaveKey(forKey: "device-key")
+    // Send key.publicKeyDER to the server once; afterwards sign its login challenges.
+    return (key.publicKeyDER, try key.signature(for: challenge))
+}
+```
 
-## 📄 License
+## Demo
 
-MIT License - see [LICENSE](LICENSE) for details.
+Screens of the SecurityLab example app on an iPhone simulator, captured from the running app by
+[`scripts/capture-example-screens.sh`](scripts/capture-example-screens.sh):
 
----
+| Integrity | Vault | One-time codes |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="Integrity report in the simulator: jailbreak check not applicable, simulator found, debugger, injected libraries and proxy clear" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="A note encrypted into the keychain as 46 bytes and read back, and a PIN checked against its stored hash" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="A six-digit TOTP code from an otpauth URI with a ring counting down the seconds left" width="260"></picture> |
 
-## 👨‍💻 Author
+| Redaction | Privacy shield |
+| --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="A log text with an email, a password, a bearer token and a card number, and the redacted version below it" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="A card details view covered by the privacy shield with a lock symbol" width="260"></picture> |
 
-**Muhittin Camdali**
+To run the app, open `SecurityLab.xcodeproj` in [`Examples/SecurityLab`](Examples/SecurityLab)
+with Xcode, choose an iPhone simulator or **My Mac**, and press **Run**. It also has the quick
+start and a certificate pinning screen that connects to a server and lists the pins of its
+chain; [Examples/README.md](Examples/README.md) has the details.
 
-[![GitHub](https://img.shields.io/badge/GitHub-@muhittincamdali-181717?style=flat&logo=github)](https://github.com/muhittincamdali)
-[![CI](https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/muhittincamdali/iOSSecurityTools/actions)[![LinkedIn](https://img.shields.io/badge/LinkedIn-muhittincamdali-0A66C2?style=flat&logo=linkedin)](https://linkedin.com/in/muhittincamdali)
-[![CI](https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/muhittincamdali/iOSSecurityTools/actions)
----
+## Documentation
 
-<p align="center">
-  <sub>Built with security in mind 🛡️</sub>
-</p>
+Reference documentation and articles:
 
----
+- [API reference](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/)
+  (DocC, published to GitHub Pages from `master`)
+- Build it locally in Xcode with **Product › Build Documentation**, or from the command line:
 
-## 📈 Star History
+```sh
+xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macOS'
+```
 
-<a href="https://star-history.com/#muhittincamdali/iOSSecurityTools&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=muhittincamdali/iOSSecurityTools&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=muhittincamdali/iOSSecurityTools&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=muhittincamdali/iOSSecurityTools&type=Date" />
- </picture>
-</a>
+## Guides
+
+- [Getting Started](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/gettingstarted)
+  — add the package, encrypt a note into the keychain and cover the screen
+  ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/GettingStarted.md)).
+- [Storing Secrets](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/storingsecrets)
+  — accessibility, biometric protection, encryption keys, PIN hashes and Secure Enclave keys
+  ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/StoringSecrets.md)).
+- [Pinning Certificates](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/pinningcertificates)
+  — getting pins, choosing a backup, report-only rollout and expiration
+  ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/PinningCertificates.md)).
+- [Detecting Compromised Devices](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)
+  — what each integrity check sees, what it cannot, and when to use App Attest
+  ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)).
+- [Keeping Secrets Out of Logs](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+  — `Redacted`, masks, the redactor and the privacy shield
+  ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)).
+
+## Requirements
+
+| Platform  | Minimum version       |
+| --------- | --------------------- |
+| iOS       | 17                    |
+| macOS     | 14                    |
+| tvOS      | 17                    |
+| watchOS   | 10                    |
+| visionOS  | 1                     |
+| Toolchain | Swift 6.2 · Xcode 26+ |
+
+`BiometricAuthenticator` is not available on tvOS and watchOS, which have no biometry. CI builds
+with the default Xcode of GitHub's `macos-26` runner image. The package is developed with
+Xcode 27.
+
+## Architecture
+
+- `Sources/iOSSecurityTools/<Area>/` holds one folder per area: `Keychain`, `Crypto`, `Random`,
+  `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` and
+  `Privacy`. Everything is a `Sendable` value type except `PinningURLSessionDelegate`, which
+  `URLSession` requires to be a class.
+- The package calls Apple's frameworks directly — Security for the keychain and trust
+  evaluation, CryptoKit for AES-GCM, ChaCha20-Poly1305, HKDF, HMAC and the Secure Enclave,
+  CommonCrypto for PBKDF2, LocalAuthentication for biometry — and implements only what they lack:
+  the envelope format, SubjectPublicKeyInfo encoding for pins, HOTP/TOTP truncation, Base32,
+  the PHC hash format and the redaction scanner.
+- Errors are typed (`throws(KeychainError)`, `throws(CipherError)`, ...) and every enum case
+  has a description. Values that come from outside the app have limits checked before any work
+  is done.
+- Code that reads the system (integrity checks, `LAContext`) goes through small internal
+  protocols, so the tests drive every branch with fakes and also check the live implementation.
+- What the package does not do is part of the design: no `ptrace` deny-attach, no method
+  swizzling, no reading of private dyld structures. Those break between OS releases and are easy
+  to bypass; the [integrity guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)
+  points to App Attest instead.
+- CI runs `swift test` on macOS, `xcodebuild test` on an iPhone simulator, builds for all five
+  platforms, builds the example app for iOS and macOS, runs its tests inside the app, and
+  publishes the DocC documentation.
+
+Run the tests locally:
+
+```sh
+swift test                                    # macOS
+xcodebuild test -scheme iOSSecurityTools \
+  -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+
+A test bundle without a host app has no keychain entitlement on the simulator, so the package's
+keychain suites run there inside the example app:
+
+```sh
+cd Examples/SecurityLab
+xcodebuild test -scheme SecurityLab -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+
+## Roadmap
+
+- An App Attest wrapper (`DCAppAttestService`) with a server-side verification example.
+- Add the package to the Swift Package Index; `.spi.yml` is already in the repository.
+
+## Contributing
+
+Contributions are welcome. Read the [contributing guide](https://github.com/muhittincamdali/iOSSecurityTools/blob/master/CONTRIBUTING.md) and the [code of conduct](https://github.com/muhittincamdali/.github/blob/main/CODE_OF_CONDUCT.md) before opening a pull request. Report security issues privately as described in the [security policy](https://github.com/muhittincamdali/iOSSecurityTools/blob/master/SECURITY.md).
+
+## License
+
+Released under the MIT license. See [LICENSE](LICENSE).

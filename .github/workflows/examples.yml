@@ -1,0 +1,74 @@
+# Repository-specific: builds the example app that the README samples are copied from, and runs
+# its tests inside the app on a simulator, where the keychain suites have the entitlement they need.
+name: Example app
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: examples-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: SecurityLab (${{ matrix.platform }})
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: iOS
+            destination: generic/platform=iOS Simulator
+          - platform: macOS
+            destination: platform=macOS
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Toolchain
+        run: xcodebuild -version
+
+      - name: Build
+        working-directory: Examples/SecurityLab
+        env:
+          DESTINATION: ${{ matrix.destination }}
+        run: |
+          set -o pipefail
+          xcodebuild build -project SecurityLab.xcodeproj -scheme SecurityLab \
+            -destination "$DESTINATION" -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO -quiet
+
+  test:
+    name: SecurityLab tests (iOS simulator)
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test inside the app
+        working-directory: Examples/SecurityLab
+        # Signing stays on: the simulator signs the app ad hoc, which gives it the keychain
+        # entitlement that the keychain suites need.
+        run: |
+          set -o pipefail
+          udid=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices | to_entries[] | select(.key | test("iOS")) | .value[] | select(.name | startswith("iPhone"))] | last | .udid')
+          if [ -z "$udid" ] || [ "$udid" = "null" ]; then
+            echo "::error::No available iPhone simulator on this image"
+            exit 1
+          fi
+          xcodebuild test -project SecurityLab.xcodeproj -scheme SecurityLab -destination "id=$udid" \
+            -skipPackagePluginValidation -skipMacroValidation -quiet
