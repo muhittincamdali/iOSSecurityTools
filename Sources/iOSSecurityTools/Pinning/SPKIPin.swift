@@ -50,7 +50,28 @@ public struct SPKIPin: Sendable, Hashable, CustomStringConvertible {
 
     /// The pin as `sha256/<base64>`.
     public var description: String { "sha256/\(base64)" }
+}
 
+extension SPKIPin: Codable {
+    /// Decodes a pin from its base64 text, with or without the `sha256/` prefix.
+    public init(from decoder: any Decoder) throws {
+        let text = try decoder.singleValueContainer().decode(String.self)
+        do {
+            try self.init(base64: text)
+        } catch {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: error.localizedDescription))
+        }
+    }
+
+    /// Encodes the pin as base64 text without a prefix.
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(base64)
+    }
+
+}
+
+extension SPKIPin {
     /// The DER-encoded SubjectPublicKeyInfo of a key.
     ///
     /// `SecKeyCopyExternalRepresentation` returns only the key itself (PKCS #1 for RSA, the X9.63

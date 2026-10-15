@@ -168,7 +168,10 @@ public enum PinningDecision: Sendable, Hashable {
 }
 
 /// Why a server's certificate chain failed pinning.
-public enum PinningFailure: Error, Sendable, Hashable, LocalizedError {
+///
+/// It is `Codable`, so the failure handler of ``PinningURLSessionDelegate`` can send it to a
+/// report endpoint as JSON.
+public enum PinningFailure: Error, Sendable, Hashable, Codable, LocalizedError {
     /// The system does not trust the chain for this host.
     case untrustedChain(host: String, reason: String)
     /// The chain is trusted, but no certificate in it has one of the host's pins. `chainPins`

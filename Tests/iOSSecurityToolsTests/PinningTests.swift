@@ -50,6 +50,16 @@ struct SPKIPinTests {
         #expect(throws: PinningError.invalidPin(text)) { try SPKIPin(base64: text) }
     }
 
+    @Test("pins and failures encode as JSON for a report endpoint")
+    func codable() throws {
+        let pin = try SPKIPin(base64: CertificateFixtures.ecLeafPin)
+        let failure = PinningFailure.noMatchingPin(host: "pinned.test", chainPins: [pin])
+        let json = try JSONEncoder().encode(failure)
+        #expect(String(decoding: json, as: UTF8.self).contains(CertificateFixtures.ecLeafPin.replacingOccurrences(of: "/", with: "\\/")))
+        #expect(try JSONDecoder().decode(PinningFailure.self, from: json) == failure)
+        #expect(throws: DecodingError.self) { try JSONDecoder().decode([SPKIPin].self, from: Data(#"["not-a-pin"]"#.utf8)) }
+    }
+
     @Test("encodes DER lengths in short and long form")
     func derLength() {
         #expect(DER.length(0) == [0x00])
