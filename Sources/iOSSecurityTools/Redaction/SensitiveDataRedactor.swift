@@ -45,7 +45,8 @@ import Foundation
 /// A text that is a JSON object or array is read with a JSON parser and checked against
 /// `JSONSerialization`: names are compared after their escapes are decoded, at every depth,
 /// inside arrays and for every repetition of a name, and strings that hold JSON themselves are
-/// read too.
+/// read too. ``redact(body:contentType:)`` reads JSON, form and multipart bodies the same way and
+/// omits a body it cannot parse completely.
 ///
 /// ## Free text
 ///
