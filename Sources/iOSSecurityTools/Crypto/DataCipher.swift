@@ -3,7 +3,7 @@ import Foundation
 
 /// Encrypts and authenticates data with a 256-bit key, in a self-describing format.
 ///
-/// The output of ``encrypt(_:authenticating:)`` — the *envelope* — holds everything
+/// The output of ``encrypt(_:authenticating:)-(DataProtocol,_)`` — the *envelope* — holds everything
 /// ``decrypt(_:authenticating:)`` needs besides the key: a format version, the algorithm, a fresh
 /// random nonce, the ciphertext and the authentication tag. Changing any byte of it, or using a
 /// different key, makes decryption throw ``CipherError/authenticationFailed`` instead of returning
@@ -39,7 +39,7 @@ public struct DataCipher: Sendable {
     /// a 16-byte tag. Every envelope is this much longer than its plaintext.
     public static let overhead = 2 + 12 + 16
 
-    /// The algorithm ``encrypt(_:authenticating:)`` uses.
+    /// The algorithm ``encrypt(_:authenticating:)-(DataProtocol,_)`` uses.
     public let algorithm: Algorithm
     private let key: SymmetricKey
 
@@ -93,11 +93,11 @@ public struct DataCipher: Sendable {
         try encrypt(Data(string.utf8), authenticating: associatedData)
     }
 
-    /// Decrypts an envelope made by ``encrypt(_:authenticating:)`` with the same key.
+    /// Decrypts an envelope made by ``encrypt(_:authenticating:)-(DataProtocol,_)`` with the same key.
     ///
     /// - Parameters:
     ///   - envelope: The envelope.
-    ///   - associatedData: The associated data passed to ``encrypt(_:authenticating:)``.
+    ///   - associatedData: The associated data passed to ``encrypt(_:authenticating:)-(DataProtocol,_)``.
     /// - Throws: ``CipherError/malformedEnvelope(_:)`` for data too short to be an envelope or
     ///   with an unknown version or algorithm, and ``CipherError/authenticationFailed`` when the
     ///   key, the associated data or any byte of the envelope does not match.

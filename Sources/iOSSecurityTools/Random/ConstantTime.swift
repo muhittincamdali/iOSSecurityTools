@@ -4,7 +4,7 @@ import Foundation
 ///
 /// `==` on `Data` or `String` returns at the first byte that differs, so the time it takes tells
 /// an attacker how many leading bytes of a guess were right. Compare secrets (one-time codes,
-/// MACs, password hashes) with ``isEqual(_:_:)`` instead.
+/// MACs, password hashes) with ``isEqual(_:_:)-(DataProtocol,_)`` instead.
 public enum ConstantTime {
     /// Returns whether two byte sequences are equal, looking at every byte.
     ///
