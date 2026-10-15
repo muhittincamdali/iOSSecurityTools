@@ -61,17 +61,21 @@ struct PlainName {
     ///
     /// The words are held to the same rule as one name: a secret word that counts anywhere in a
     /// name (`mypa ssword`) or at its end (`myto ken`) needs no word boundary there either.
-    func continuesSecret(after preceding: PrecedingWords) -> Bool {
+    /// `preceding` is read only when part of a secret word starts the name.
+    func continuesSecret(after preceding: @autoclosure () -> PrecedingWords) -> Bool {
         guard let first = bytes.firstIndex(where: ASCII.isAlphanumeric) else { return false }
+        let firstLetter = ASCII.lowercased(bytes[first])
+        var words: PrecedingWords?
         for secret in SensitiveDataRedactor.secretFieldNames {
             let isUnbounded = SensitiveDataRedactor.unboundedSecretFieldNames.contains(secret)
             let isTrailing = SensitiveDataRedactor.trailingSecretFieldNames.contains(secret)
-            for split in 1..<secret.count {
+            for split in 1..<secret.count where secret[split] == firstLetter {
                 guard let end = spelledEnd(of: secret[split...], from: first), !isDescribingWord(at: end) else { continue }
                 let endsName = bytes[end...].allSatisfy { !ASCII.isAlphanumeric($0) }
                 let isFree = isUnbounded || (isTrailing && endsName)
                 guard isFree || endsWord(end) else { continue }
-                if preceding.endsWith(secret[..<split], fromWordStart: !isFree) { return true }
+                if words == nil { words = preceding() }
+                if words!.endsWith(secret[..<split], fromWordStart: !isFree) { return true }
             }
         }
         return false
