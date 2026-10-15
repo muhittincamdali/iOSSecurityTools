@@ -91,7 +91,16 @@ public struct SensitiveDataRedactor: Sendable {
         let scalars = Array(text.unicodeScalars)
         let spans = findSpans(in: scalars)
         guard !spans.isEmpty else { return text }
-        var output = String.UnicodeScalarView()
+        return Self.replacing(spans, in: scalars)
+    }
+
+    /// The scalars with every span replaced; `spans` are in order and do not overlap.
+    static func replacing(_ spans: [Span], in scalars: [Unicode.Scalar]) -> String {
+        // Appending to a String.UnicodeScalarView piece by piece copies what is already there,
+        // which made many matches take quadratic time; collect the scalars and build the
+        // string once.
+        var output: [Unicode.Scalar] = []
+        output.reserveCapacity(scalars.count)
         var position = 0
         for span in spans {
             output.append(contentsOf: scalars[position..<span.start])
@@ -99,7 +108,7 @@ public struct SensitiveDataRedactor: Sendable {
             position = span.end
         }
         output.append(contentsOf: scalars[position...])
-        return String(output)
+        return String(String.UnicodeScalarView(output))
     }
 
     /// Returns the sensitive data found in a text, in order, without overlaps.
