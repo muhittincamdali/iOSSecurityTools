@@ -87,7 +87,7 @@ extension NormalizedText {
 
     // MARK: Values
 
-    /// The value after a field name: `name: value`, `name=value`, `"name": "value"`,
+    /// The value after a field name: `name: value`, `name=value`, `name := value`, `"name": "value"`,
     /// `\"name\":\"value\"` in JSON escaped inside another string, form fields such as
     /// `password[]=value` and `user[password]=value`, and `name%3Dvalue` with the `=` or `:`
     /// percent-encoded. `afterName` is where the text continues after the name and its brackets.
@@ -99,9 +99,17 @@ extension NormalizedText {
             j += 1
         }
         while j < count, isSpace(j) { j += 1 }
+        // `?=` and `+=` in a Makefile: the `?` or `+` belongs to the separator.
+        if j + 1 < count, bytes[j] == UInt8(ascii: "?") || bytes[j] == UInt8(ascii: "+"), bytes[j + 1] == UInt8(ascii: "=") {
+            j += 1
+        }
+        let separator = j
         guard let afterSeparator = indexAfterSeparator(at: j) else { return nil }
         j = afterSeparator
-        if j < count, bytes[j] == UInt8(ascii: ">") { j += 1 }
+        // `=>`, and `:=` in Make, Go and Pascal: the `>` or `=` belongs to the separator.
+        if j < count, bytes[j] == UInt8(ascii: ">") || (bytes[j] == UInt8(ascii: "=") && bytes[separator] == UInt8(ascii: ":")) {
+            j += 1
+        }
         while j < count, isSpace(j) { j += 1 }
         guard j < count else { return nil }
 
