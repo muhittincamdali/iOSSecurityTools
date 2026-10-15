@@ -1,53 +1,49 @@
 import Foundation
 
-/// The text the detectors read: invisible scalars removed, full-width ASCII and decimal digits of
-/// every script mapped to ASCII, with the offset of each kept scalar in the original.
+/// The text the detectors read: invisible scalars removed and everything else read as ASCII
+/// where it stands for ASCII (see ``LatinFolding``), with the range each byte came from in the
+/// original scalars. One scalar can become several bytes (`ß` is read as `ss`).
 struct NormalizedText {
     let bytes: [UInt8]
+    /// The offset in the original scalars where the scalar a byte came from starts.
     let offsets: [Int]
+    /// The offset in the original scalars right after the scalar a byte came from.
+    let ends: [Int]
     let isUppercase: [Bool]
     let originalCount: Int
 
     init(_ scalars: [Unicode.Scalar]) {
         var bytes: [UInt8] = []
         var offsets: [Int] = []
-        var isUppercase: [Bool] = []
+        var ends: [Int] = []
         bytes.reserveCapacity(scalars.count)
         offsets.reserveCapacity(scalars.count)
-        isUppercase.reserveCapacity(scalars.count)
+        ends.reserveCapacity(scalars.count)
+        var folding = LatinFolding()
         for (offset, scalar) in scalars.enumerated() where !ScalarClass.isInvisible(scalar) {
-            let byte = Self.ascii(scalar)
-            bytes.append(byte)
-            offsets.append(offset)
-            isUppercase.append((UInt8(ascii: "A")...UInt8(ascii: "Z")).contains(byte))
+            if scalar.isASCII {
+                bytes.append(UInt8(scalar.value))
+                offsets.append(offset)
+                ends.append(offset + 1)
+                continue
+            }
+            for byte in folding.bytes(for: scalar) {
+                bytes.append(byte)
+                offsets.append(offset)
+                ends.append(offset + 1)
+            }
         }
         self.bytes = bytes
         self.offsets = offsets
-        self.isUppercase = isUppercase
+        self.ends = ends
+        self.isUppercase = bytes.map { (UInt8(ascii: "A")...UInt8(ascii: "Z")).contains($0) }
         self.originalCount = scalars.count
-    }
-
-    /// Byte used for matching: ASCII as is, full-width forms and other digits as ASCII, spaces as
-    /// a space, look-alikes of `=` and `:` as those, anything else as 0xFF (never matches).
-    private static func ascii(_ scalar: Unicode.Scalar) -> UInt8 {
-        let value = scalar.value
-        if value < 0x80 { return UInt8(value) }
-        if (0xFF01...0xFF5E).contains(value) { return UInt8(value - 0xFEE0) }
-        if let digit = ScalarClass.decimalDigit(scalar) { return UInt8(ascii: "0") + digit }
-        switch value {
-        // Every space separator of Unicode (category Zs) except the ASCII space handled above.
-        case 0x00A0, 0x1680, 0x2000...0x200A, 0x202F, 0x205F, 0x3000: return UInt8(ascii: " ")
-        // Single characters drawn as `:=`, `::=`, `==`, `===` and small or ratio forms of `=` and `:`.
-        case 0x2254, 0x2A74, 0x2A75, 0x2A76, 0xFE66: return UInt8(ascii: "=")
-        case 0x2236, 0xFE55: return UInt8(ascii: ":")
-        default: return 0xFF
-        }
     }
 
     var count: Int { bytes.count }
 
     func span(_ range: Range<Int>, _ kind: SensitiveDataRedactor.Kinds, _ replacement: String) -> SensitiveDataRedactor.Span {
-        SensitiveDataRedactor.Span(start: offsets[range.lowerBound], end: offsets[range.upperBound - 1] + 1, kind: kind, replacement: replacement)
+        SensitiveDataRedactor.Span(start: offsets[range.lowerBound], end: ends[range.upperBound - 1], kind: kind, replacement: replacement)
     }
 
     func string(_ range: Range<Int>) -> String {
