@@ -17,23 +17,26 @@ import Foundation
 /// - **JSON Web Tokens**: `eyJ…​.…​.…` — replaced completely.
 /// - **Bearer tokens**: the token after `Bearer `.
 /// - **Secret fields**: the value after a field name followed by `:` or `=` whose words include
-///   `password`, `token`, `secret`, `api_key`, `authorization` or a similar word, in JSON (also
-///   JSON escaped inside another string), query strings, headers and `key: value` text. Names in
-///   `camelCase`, `snake_case`, `kebab-case` and upper case count, with other words around the
-///   secret one: `accessToken`, `client_secret`, `SECRET_KEY`, `aws_secret_access_key`,
-///   `passwordConfirm`, `password2`. Names that only describe a secret, such as `passwordHint`,
-///   `token_type` or `token_expires_in`, are left alone.
+///   `password`, `pass`, `token`, `secret`, `api_key`, `authorization`, `session_id` or a similar
+///   word, or that is exactly `session`. JSON (also JSON escaped inside another string), query
+///   strings, form fields (`password[]=`, `user[password]=`), headers, `key: value` text, XML
+///   elements (`<password>…</password>`) and a percent-encoded `=` or `:` (`password%3D…`) count.
+///   Names in `camelCase`, `snake_case`, `kebab-case` and upper case count, with other words
+///   around the secret one: `accessToken`, `client_secret`, `SECRET_KEY`, `DB_PASS`,
+///   `aws_secret_access_key`, `passwordConfirm`, `password2`. Names that only describe a secret,
+///   such as `passwordHint`, `token_type`, `pass_count` or `session_start`, are left alone.
 ///
 /// When two findings partly overlap, such as a token that runs into a card number
 /// (`token=abc_4111 1111 1111 1111`), the whole stretch they cover becomes `[redacted]`.
 ///
 /// Text written to get past a filter is normalized before matching: zero-width and other
 /// invisible characters, combining marks, full-width letters (`ｐａｓｓｗｏｒｄ`) and digits from
-/// other scripts do not hide a value. The scan is linear in the length of the text and does not
-/// use regular expressions, so no input makes it slow.
+/// other scripts do not hide a value. Scanning and replacing are linear in the length of the text
+/// and do not use regular expressions, so no input makes them slow.
 ///
-/// Redaction is a safety net for mistakes, not a reason to log secrets: it cannot recognize a
-/// password that is not labelled as one.
+/// Redaction is a safety net for mistakes, not a reason to log secrets. It cannot recognize a
+/// password that is not labelled as one or is labelled with a name it does not know (`pin`,
+/// `credentials`), or text that is encoded as a whole, such as base64 or percent-encoded JSON.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -70,8 +73,13 @@ public struct SensitiveDataRedactor: Sendable {
     /// also matches them across those separators and camel-case humps (`api_key`, `accessToken`).
     static let secretFieldNames: [[UInt8]] = [
         "authorization", "clientsecret", "refreshtoken", "accesstoken", "privatekey", "secretkey",
-        "passphrase", "password", "idtoken", "apikey", "passwd", "secret", "token", "pwd",
+        "sessionid", "sessionkey", "passphrase", "password", "idtoken", "apikey", "passwd", "secret",
+        "token", "pass", "pwd",
     ].map { Array($0.utf8) }
+
+    /// Field names that hold a secret only when they are the whole name: a `session` cookie holds
+    /// the session, while `session_start` or `sessionCount` describe it.
+    static let wholeSecretFieldNames: Set<[UInt8]> = [Array("session".utf8)]
 
     /// Words that, right after a secret word, make the field describe the secret instead of
     /// holding it: `passwordHint`, `token_type`, `token_expires_in`.

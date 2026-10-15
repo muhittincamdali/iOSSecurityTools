@@ -41,4 +41,51 @@ struct RedactionEdgeCaseTests {
         let found = redactor.matches(in: "a@example.com,4111 1111 1111 1111")
         #expect(found.map(\.kind) == [.emailAddresses, .cardNumbers])
     }
+
+    @Test("finds secret fields in form, XML and percent-encoded syntax", arguments: [
+        ("password[]=hunter2", "password[]=[redacted]"),
+        ("password[0]=a&password[1]=b", "password[0]=[redacted]&password[1]=[redacted]"),
+        ("user[password]=hunter2&user[name]=bob", "user[password]=[redacted]&user[name]=bob"),
+        ("user[password][confirmation]=x", "user[password][confirmation]=[redacted]"),
+        ("<password>hunter2</password><user>bob</user>", "<password>[redacted]</password><user>bob</user>"),
+        ("<ApiKey>\nk-1\n</ApiKey>", "<ApiKey>[redacted]</ApiKey>"),
+        ("<token>unclosed\nnext line", "<token>[redacted]\nnext line"),
+        ("password%3Dhunter2", "password%3D[redacted]"),
+        ("q=password%3dhunter2", "q=password%3d[redacted]"),
+        ("secret%3Ax", "secret%3A[redacted]"),
+    ])
+    func otherSyntaxes(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("pass and session names hold secrets", arguments: [
+        ("pass=hunter2", "pass=[redacted]"),
+        ("DB_PASS=hunter2", "DB_PASS=[redacted]"),
+        ("smtpPass: hunter2", "smtpPass: [redacted]"),
+        ("session=abc123", "session=[redacted]"),
+        ("Session: abc123", "Session: [redacted]"),
+        ("sessionId=abc123", "sessionId=[redacted]"),
+        ("SESSION_KEY=abc123", "SESSION_KEY=[redacted]"),
+    ])
+    func passAndSessionNames(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("leaves names and syntax that only look like a secret field", arguments: [
+        "passport=X1234",
+        "bypass=true",
+        "compass=north",
+        "passed=12",
+        "pass_count=3",
+        "session_start=2026-10-15",
+        "sessionCount: 3",
+        "<passwordHint>dog</passwordHint>",
+        "</password>",
+        "password[=x",
+        "password%3x",
+        "password%",
+    ])
+    func lookalikes(input: String) {
+        #expect(redactor.redact(input) == input)
+    }
 }

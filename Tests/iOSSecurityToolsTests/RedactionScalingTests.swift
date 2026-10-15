@@ -46,6 +46,11 @@ struct RedactionScalingTests {
         RepeatedText(prefix: "a", unit: "_", suffix: "=x"),
         RepeatedText(unit: "bearer "),
         RepeatedText(unit: "\u{200B}"),
+        RepeatedText(unit: "password["),
+        RepeatedText(prefix: "password", unit: "[a]", suffix: "=x"),
+        RepeatedText(unit: "<password>"),
+        RepeatedText(prefix: "<password>", unit: "\n"),
+        RepeatedText(unit: "password%3"),
     ]
 
     // 2.0.0 appended each piece of the output to a String.UnicodeScalarView, which copied the

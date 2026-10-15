@@ -13,7 +13,7 @@ extension NormalizedText {
             }
             var end = i
             while end < count, isIdentifierCharacter(end) { end += 1 }
-            guard namesSecret(i..<end), let value = valueRange(after: end) else {
+            guard namesSecret(i..<end), let value = valueRange(after: i..<end) ?? elementContent(after: i..<end) else {
                 i = end
                 continue
             }
@@ -48,6 +48,7 @@ extension NormalizedText {
     /// a secret: a word of it begins a secret word that ends with a word of the name and is not
     /// followed by a word that only describes the secret (`passwordHint`, `token_type`).
     private func namesSecret(_ name: Range<Int>) -> Bool {
+        if SensitiveDataRedactor.wholeSecretFieldNames.contains(name.map(lowercased)) { return true }
         for start in name where isLetter(start) && startsWord(start, in: name) {
             for secret in SensitiveDataRedactor.secretFieldNames {
                 guard let end = spelledEnd(of: secret, from: start, in: name), endsWord(end, in: name) else { continue }
@@ -79,18 +80,20 @@ extension NormalizedText {
 
     // MARK: Values
 
-    /// The value after a field name: `name: value`, `name=value`, `"name": "value"`, and
-    /// `\"name\":\"value\"` in JSON escaped inside another string.
-    private func valueRange(after nameEnd: Int) -> Range<Int>? {
-        var j = nameEnd
+    /// The value after a field name: `name: value`, `name=value`, `"name": "value"`,
+    /// `\"name\":\"value\"` in JSON escaped inside another string, form fields such as
+    /// `password[]=value` and `user[password]=value`, and `name%3Dvalue` with the `=` or `:`
+    /// percent-encoded.
+    private func valueRange(after name: Range<Int>) -> Range<Int>? {
+        var j = indexAfterBrackets(of: name)
         if isEscapedQuote(j) {
             j += 2
         } else if j < count, isQuote(j) {
             j += 1
         }
         while j < count, isSpace(j) { j += 1 }
-        guard j < count, bytes[j] == UInt8(ascii: ":") || bytes[j] == UInt8(ascii: "=") else { return nil }
-        j += 1
+        guard let afterSeparator = indexAfterSeparator(at: j) else { return nil }
+        j = afterSeparator
         if j < count, bytes[j] == UInt8(ascii: ">") { j += 1 }
         while j < count, isSpace(j) { j += 1 }
         guard j < count else { return nil }
@@ -112,6 +115,48 @@ extension NormalizedText {
             if tokenEnd > tokenStart { return start..<tokenEnd }
         }
         return start..<end
+    }
+
+    /// Where the text continues after the `]` that closes `user[password` and after brackets that
+    /// follow a name, as in `password[]` and `password[0]`.
+    private func indexAfterBrackets(of name: Range<Int>) -> Int {
+        var j = name.upperBound
+        if name.lowerBound > 0, bytes[name.lowerBound - 1] == UInt8(ascii: "["), j < count, bytes[j] == UInt8(ascii: "]") {
+            j += 1
+        }
+        while j < count, bytes[j] == UInt8(ascii: "[") {
+            var close = j + 1
+            while close < count, isIdentifierCharacter(close) { close += 1 }
+            guard close < count, bytes[close] == UInt8(ascii: "]") else { break }
+            j = close + 1
+        }
+        return j
+    }
+
+    /// Where the value starts after a `:` or `=` at `i`, also written as `%3A` or `%3D`.
+    private func indexAfterSeparator(at i: Int) -> Int? {
+        guard i < count else { return nil }
+        if bytes[i] == UInt8(ascii: ":") || bytes[i] == UInt8(ascii: "=") { return i + 1 }
+        guard i + 2 < count, bytes[i] == UInt8(ascii: "%"), bytes[i + 1] == UInt8(ascii: "3") else { return nil }
+        let code = lowercased(i + 2)
+        return code == UInt8(ascii: "a") || code == UInt8(ascii: "d") ? i + 3 : nil
+    }
+
+    /// The content of an XML element named like a secret, `<password>value</password>`: up to the
+    /// next `<`, or to the end of the line when no `<` follows.
+    private func elementContent(after name: Range<Int>) -> Range<Int>? {
+        guard name.lowerBound > 0, bytes[name.lowerBound - 1] == UInt8(ascii: "<"),
+              name.upperBound < count, bytes[name.upperBound] == UInt8(ascii: ">")
+        else { return nil }
+        let start = name.upperBound + 1
+        var end = start
+        var lineEnd: Int?
+        while end < count, bytes[end] != UInt8(ascii: "<") {
+            if lineEnd == nil, bytes[end] == UInt8(ascii: "\n") { lineEnd = end }
+            end += 1
+        }
+        if end == count, let lineEnd { end = lineEnd }
+        return end > start ? start..<end : nil
     }
 
     private func isQuote(_ i: Int) -> Bool { bytes[i] == UInt8(ascii: "\"") || bytes[i] == UInt8(ascii: "'") }
