@@ -16,7 +16,7 @@ extension NormalizedText {
             // In `user%5Bpassword%5D` the name starts after the `5B` of the encoded `[`.
             let start = i > 0 && bracketLength(at: i - 1, closing: false) == 3 ? i + 2 : i
             let name = start..<end
-            guard !name.isEmpty, namesSecret(name) else {
+            guard !name.isEmpty, namesSecret(name) || joinedName(endingWith: name).map(spellsSecret) == true else {
                 i = end
                 continue
             }
@@ -35,13 +35,42 @@ extension NormalizedText {
 
     // MARK: Field names
 
-    private func isSeparator(_ i: Int) -> Bool { bytes[i] == UInt8(ascii: "_") || bytes[i] == UInt8(ascii: "-") }
-
-    private func isIdentifierCharacter(_ i: Int) -> Bool {
-        isAlphanumeric(i) || isSeparator(i) || bytes[i] == LatinFolding.unreadableLetter
+    /// `_`, `-` and `.` between the words of a name, and the spaces of a name joined across them
+    /// (see ``joinedName(endingWith:)``).
+    private func isSeparator(_ i: Int) -> Bool {
+        [UInt8(ascii: "_"), UInt8(ascii: "-"), UInt8(ascii: "."), UInt8(ascii: " "), UInt8(ascii: "\t")].contains(bytes[i])
     }
 
-    /// Whether a word of a field name starts at `i`: after `_` or `-`, between letters and digits,
+    private func isIdentifierCharacter(_ i: Int) -> Bool {
+        isAlphanumeric(i) || (isSeparator(i) && !isSpace(i)) || bytes[i] == LatinFolding.unreadableLetter
+    }
+
+    /// The longest secret word, in letters.
+    private static let longestSecretWord = SensitiveDataRedactor.secretFieldNames.map(\.count).max() ?? 0
+
+    /// The name together with the words before it when they are only spaces apart, as long as
+    /// the words before it are short enough to hold part of a secret word: `pass word` and
+    /// `api key` in `pass word=hunter2` and `API key: abc`. Nil when no word comes before it.
+    private func joinedName(endingWith name: Range<Int>) -> Range<Int>? {
+        var start = name.lowerBound
+        var letters = 0
+        while true {
+            var gapStart = start
+            while gapStart > 0, start - gapStart < 3, isSpace(gapStart - 1) { gapStart -= 1 }
+            guard gapStart < start, gapStart > 0, isIdentifierCharacter(gapStart - 1) else { break }
+            var wordStart = gapStart
+            while wordStart > 0, isIdentifierCharacter(wordStart - 1), letters + gapStart - wordStart < Self.longestSecretWord {
+                wordStart -= 1
+            }
+            // A word longer than any secret word cannot hold the start of one.
+            guard wordStart == 0 || !isIdentifierCharacter(wordStart - 1) else { break }
+            letters += gapStart - wordStart
+            start = wordStart
+        }
+        return start < name.lowerBound ? start..<name.upperBound : nil
+    }
+
+    /// Whether a word of a field name starts at `i`: after `_`, `-` or `.`, between letters and digits,
     /// at a camel-case hump (`accessToken`) or at the last capital of an acronym (`AWSSecret`).
     private func startsWord(_ i: Int, in name: Range<Int>) -> Bool {
         guard i > name.lowerBound else { return true }
@@ -60,11 +89,18 @@ extension NormalizedText {
     /// a secret: a word of it begins a secret word that ends with a word of the name and is not
     /// followed by a word that only describes the secret (`passwordHint`, `token_type`).
     private func namesSecret(_ name: Range<Int>) -> Bool {
-        if mixesScripts(name) { return true }
-        if SensitiveDataRedactor.wholeSecretFieldNames.contains(name.map(lowercased)) { return true }
+        mixesScripts(name) || spellsSecret(name)
+    }
+
+    /// Whether a secret word is spelled in the name and reaches its last part, after the last `.`
+    /// or space: `pass.word`, `api.key` and `client.secret` hold a secret, while `token.type` and
+    /// `token.example.com` name something else, as `type` and `com` did before `.` joined them.
+    private func spellsSecret(_ name: Range<Int>) -> Bool {
+        let lastPart = (name.last { bytes[$0] == UInt8(ascii: ".") || isSpace($0) }).map { $0 + 1 } ?? name.lowerBound
+        if SensitiveDataRedactor.wholeSecretFieldNames.contains((lastPart..<name.upperBound).map(lowercased)) { return true }
         for start in name where isLetter(start) && startsWord(start, in: name) {
             for secret in SensitiveDataRedactor.secretFieldNames {
-                guard let end = spelledEnd(of: secret, from: start, in: name), endsWord(end, in: name) else { continue }
+                guard let end = spelledEnd(of: secret, from: start, in: name), end > lastPart, endsWord(end, in: name) else { continue }
                 if !isDescribingWord(at: end, in: name) { return true }
             }
         }
@@ -88,7 +124,7 @@ extension NormalizedText {
         return false
     }
 
-    /// Where `word` ends if it is spelled from `start`, ignoring `_` and `-` between its letters.
+    /// Where `word` ends if it is spelled from `start`, ignoring separators between its letters.
     private func spelledEnd(of word: [UInt8], from start: Int, in name: Range<Int>) -> Int? {
         var j = start
         for (k, byte) in word.enumerated() {

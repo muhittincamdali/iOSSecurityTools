@@ -84,4 +84,32 @@ struct RedactionObfuscationTests {
         #expect(redactor.redact("password=a%26b%20c next") == "password=[redacted] next")
         #expect(redactor.redact("note=50%25 of %ZZ & more") == "note=50%25 of %ZZ & more")
     }
+
+    @Test("reads a secret word split by a dot or by spaces", arguments: [
+        ("pass.word=hunter2", "pass.word=[redacted]"),
+        ("api.key=hunter2", "api.key=[redacted]"),
+        ("client.secret=hunter2", "client.secret=[redacted]"),
+        ("user.session=abc", "user.session=[redacted]"),
+        ("pass word=hunter2", "pass word=[redacted]"),
+        ("pass  word=hunter2", "pass  word=[redacted]"),
+        ("p a s s w o r d=hunter2", "p a s s w o r d=[redacted]"),
+        ("API key: hunter2", "API key: [redacted]"),
+        ("Session ID: abc123", "Session ID: [redacted]"),
+        ("{\"api key\":\"hunter2\"}", "{\"api key\":\"[redacted]\"}"),
+    ])
+    func splitNames(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("a secret word that ends before the last part of a name names something else", arguments: [
+        "token.type=Bearer",
+        "token.example.com:443",
+        "password.length=12",
+        "pass rate=0.9",
+        "the token count: 5",
+        "a long bypassword x=1",
+    ])
+    func dottedAndSpacedNonSecrets(input: String) {
+        #expect(redactor.redact(input) == input)
+    }
 }
