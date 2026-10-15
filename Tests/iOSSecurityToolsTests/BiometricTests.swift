@@ -103,10 +103,21 @@ struct BiometricAuthenticatorTests {
         #expect(BiometricError(NSError(domain: "Other", code: 12345)) == .other(12345))
     }
 
-    @Test("the live authenticator answers availability without prompting")
-    func live() {
-        // The answer depends on the machine; the call must simply not prompt or crash.
-        _ = BiometricAuthenticator().availability(for: .biometricsOrPasscode)
+    @Test("the live authenticator answers like LAContext, without prompting", arguments: [
+        BiometricAuthenticator.Policy.biometrics, .biometricsOrPasscode,
+    ])
+    func live(policy: BiometricAuthenticator.Policy) {
+        // The answer depends on the machine, so it is checked against LAContext itself.
+        let context = LAContext()
+        var error: NSError?
+        let canEvaluate = context.canEvaluatePolicy(policy.laPolicy, error: &error)
+        let availability = BiometricAuthenticator().availability(for: policy)
+        if case .available(let kind) = availability {
+            #expect(canEvaluate)
+            #expect(kind == BiometricAuthenticator.BiometryKind(context.biometryType))
+        } else {
+            #expect(!canEvaluate)
+        }
     }
 }
 #endif
