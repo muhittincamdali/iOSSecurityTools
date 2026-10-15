@@ -37,7 +37,9 @@ extension NormalizedText {
 
     private func isSeparator(_ i: Int) -> Bool { bytes[i] == UInt8(ascii: "_") || bytes[i] == UInt8(ascii: "-") }
 
-    private func isIdentifierCharacter(_ i: Int) -> Bool { isAlphanumeric(i) || isSeparator(i) }
+    private func isIdentifierCharacter(_ i: Int) -> Bool {
+        isAlphanumeric(i) || isSeparator(i) || bytes[i] == LatinFolding.unreadableLetter
+    }
 
     /// Whether a word of a field name starts at `i`: after `_` or `-`, between letters and digits,
     /// at a camel-case hump (`accessToken`) or at the last capital of an acronym (`AWSSecret`).
@@ -58,12 +60,30 @@ extension NormalizedText {
     /// a secret: a word of it begins a secret word that ends with a word of the name and is not
     /// followed by a word that only describes the secret (`passwordHint`, `token_type`).
     private func namesSecret(_ name: Range<Int>) -> Bool {
+        if mixesScripts(name) { return true }
         if SensitiveDataRedactor.wholeSecretFieldNames.contains(name.map(lowercased)) { return true }
         for start in name where isLetter(start) && startsWord(start, in: name) {
             for secret in SensitiveDataRedactor.secretFieldNames {
                 guard let end = spelledEnd(of: secret, from: start, in: name), endsWord(end, in: name) else { continue }
                 if !isDescribingWord(at: end, in: name) { return true }
             }
+        }
+        return false
+    }
+
+    /// Whether a name mixes Latin letters with letters of another script or Latin letters that
+    /// have no ASCII reading (`passwдrd`). Such a name is written to look like another one, or
+    /// cannot be read, so its value is hidden: the redactor fails closed.
+    private func mixesScripts(_ name: Range<Int>) -> Bool {
+        var hasLatin = false
+        var hasForeign = false
+        for i in name {
+            if isForeignLetter[i] {
+                hasForeign = true
+            } else if isLetter(i) {
+                hasLatin = true
+            }
+            if hasLatin, hasForeign { return true }
         }
         return false
     }

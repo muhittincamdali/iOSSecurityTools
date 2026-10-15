@@ -10,32 +10,41 @@ struct NormalizedText {
     /// The offset in the original scalars right after the scalar a byte came from.
     let ends: [Int]
     let isUppercase: [Bool]
+    /// Whether a byte came from a letter of another script or an unreadable Latin letter; see
+    /// ``LatinFolding/Reading/isForeignLetter``.
+    let isForeignLetter: [Bool]
     let originalCount: Int
 
     init(_ scalars: [Unicode.Scalar]) {
         var bytes: [UInt8] = []
         var offsets: [Int] = []
         var ends: [Int] = []
+        var isForeignLetter: [Bool] = []
         bytes.reserveCapacity(scalars.count)
         offsets.reserveCapacity(scalars.count)
         ends.reserveCapacity(scalars.count)
+        isForeignLetter.reserveCapacity(scalars.count)
         var folding = LatinFolding()
         for (offset, scalar) in scalars.enumerated() where !ScalarClass.isInvisible(scalar) {
             if scalar.isASCII {
                 bytes.append(UInt8(scalar.value))
                 offsets.append(offset)
                 ends.append(offset + 1)
+                isForeignLetter.append(false)
                 continue
             }
-            for byte in folding.bytes(for: scalar) {
+            let reading = folding.reading(of: scalar)
+            for byte in reading.bytes {
                 bytes.append(byte)
                 offsets.append(offset)
                 ends.append(offset + 1)
+                isForeignLetter.append(reading.isForeignLetter)
             }
         }
         self.bytes = bytes
         self.offsets = offsets
         self.ends = ends
+        self.isForeignLetter = isForeignLetter
         self.isUppercase = bytes.map { (UInt8(ascii: "A")...UInt8(ascii: "Z")).contains($0) }
         self.originalCount = scalars.count
     }

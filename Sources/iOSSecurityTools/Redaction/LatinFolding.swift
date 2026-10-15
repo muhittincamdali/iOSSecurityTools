@@ -9,14 +9,46 @@ import Foundation
 struct LatinFolding {
     /// A scalar that is read as nothing the detectors match.
     static let unreadable: UInt8 = 0xFF
+    /// A letter of another script, or a Latin letter, that has no ASCII reading. It belongs to a
+    /// field name, so a name that mixes it with Latin letters can be told apart.
+    static let unreadableLetter: UInt8 = 0xFE
 
-    private var cache: [UInt32: [UInt8]] = [:]
+    /// How a scalar is read.
+    struct Reading {
+        let bytes: [UInt8]
+        /// Whether the scalar is a letter of a script other than Latin that has Latin look-alikes
+        /// (Cyrillic, Greek, Armenian, Cherokee), or a Latin letter without an ASCII reading.
+        let isForeignLetter: Bool
+    }
 
-    mutating func bytes(for scalar: Unicode.Scalar) -> [UInt8] {
+    private var cache: [UInt32: Reading] = [:]
+
+    mutating func reading(of scalar: Unicode.Scalar) -> Reading {
         if let cached = cache[scalar.value] { return cached }
-        let folded = Self.fold(scalar)
-        cache[scalar.value] = folded
-        return folded
+        var bytes = Self.fold(scalar)
+        let isLookAlikeScript = scalar.properties.isAlphabetic && Self.isLookAlikeScript(scalar.value)
+        let isUnreadableLatin = bytes == [Self.unreadable] && scalar.properties.isAlphabetic && Self.isLatin(scalar.value)
+        if bytes == [Self.unreadable], isLookAlikeScript || isUnreadableLatin { bytes = [Self.unreadableLetter] }
+        let reading = Reading(bytes: bytes, isForeignLetter: isLookAlikeScript || isUnreadableLatin)
+        cache[scalar.value] = reading
+        return reading
+    }
+
+    private static func isLookAlikeScript(_ value: UInt32) -> Bool {
+        switch value {
+        case 0x0370...0x03FF, 0x1F00...0x1FFF: true // Greek
+        case 0x0400...0x052F, 0x1C80...0x1C8F, 0xA640...0xA69F: true // Cyrillic
+        case 0x0531...0x058F: true // Armenian
+        case 0x13A0...0x13FF, 0xAB70...0xABBF: true // Cherokee
+        default: false
+        }
+    }
+
+    private static func isLatin(_ value: UInt32) -> Bool {
+        switch value {
+        case 0x00C0...0x02AF, 0x1D00...0x1DBF, 0x1E00...0x1EFF, 0x2C60...0x2C7F, 0xA720...0xA7FF, 0xAB30...0xAB6F: true
+        default: false
+        }
     }
 
     private static func fold(_ scalar: Unicode.Scalar) -> [UInt8] {

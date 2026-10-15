@@ -43,4 +43,24 @@ struct RedactionObfuscationTests {
     func otherScripts(input: String) {
         #expect(redactor.redact(input) == input)
     }
+
+    // A name that mixes Latin with a letter the redactor cannot read as Latin may spell a secret
+    // name it does not recognize, so the redactor fails closed and hides the value.
+    @Test("hides the value of a name that mixes Latin with letters it cannot read", arguments: [
+        ("passw\u{0434}rd=hunter2", "passw\u{0434}rd=[redacted]"),
+        ("{\"p\u{0444}ss\":\"hunter2\"}", "{\"p\u{0444}ss\":\"[redacted]\"}"),
+        ("user_\u{043F}\u{0430}\u{0440}\u{043E}\u{043B}\u{044C}: hunter2", "user_\u{043F}\u{0430}\u{0440}\u{043E}\u{043B}\u{044C}: [redacted]"),
+        ("t\u{0254}ken=hunter2", "t\u{0254}ken=[redacted]"),
+        ("<passw\u{0434}rd>hunter2</passw\u{0434}rd>", "<passw\u{0434}rd>[redacted]</passw\u{0434}rd>"),
+    ])
+    func mixedScripts(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("a name written in one other script is not mixed")
+    func singleScript() {
+        let russian = "\u{0441}\u{0442}\u{0430}\u{0442}\u{0443}\u{0441}=ok"
+        #expect(redactor.redact(russian) == russian)
+        #expect(redactor.redact("user=\u{0430}\u{043B}\u{0438}\u{0441}\u{0430}") == "user=\u{0430}\u{043B}\u{0438}\u{0441}\u{0430}")
+    }
 }
