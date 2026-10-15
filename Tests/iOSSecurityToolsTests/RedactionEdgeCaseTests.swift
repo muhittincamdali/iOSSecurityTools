@@ -66,6 +66,11 @@ struct RedactionEdgeCaseTests {
         ("password+%3D+hunter2", "password+%3D+[redacted]"),
         ("q=password%20%3A%20hunter2&x=1", "q=password%20%3A%20[redacted]&x=1"),
         ("password%20=%20hunter2", "password%20=%20[redacted]"),
+        ("password: <hunter2>", "password: <[redacted]>"),
+        ("token=<abc 123>; next", "token=<[redacted]>; next"),
+        ("password: <hunter2", "password: <[redacted]"),
+        ("password=<hunter2\n>", "password=<[redacted]\n>"),
+        ("password:<a password:<b>", "password:<[redacted] password:<[redacted]>"),
     ])
     func otherSyntaxes(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

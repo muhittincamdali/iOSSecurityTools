@@ -120,6 +120,11 @@ extension NormalizedText {
 
         if isEscapedQuote(j) { return escapedQuotedValue(from: j + 2, quote: bytes[j + 1]) }
         if isQuote(j) { return quotedValue(from: j + 1, quote: bytes[j]) }
+        // `password: <hunter2>`: the value inside angle brackets, or after a `<` that is not closed.
+        if bytes[j] == UInt8(ascii: "<") {
+            if let value = angleBracketedValue(from: j + 1) { return value }
+            j += 1
+        }
 
         let start = j
         var end = start
@@ -270,6 +275,17 @@ extension NormalizedText {
             end += 2
         }
         return end > start ? start..<end : nil
+    }
+
+    /// A value up to the `>` that closes it on the same line; nil when a `<` or the end of the line
+    /// comes first. Stopping at the next `<` keeps the scans of `password:<…` repeated apart.
+    private func angleBracketedValue(from start: Int) -> Range<Int>? {
+        var end = start
+        while end < count, ![UInt8(ascii: ">"), UInt8(ascii: "<"), UInt8(ascii: "\n"), UInt8(ascii: "\r")].contains(bytes[end]) {
+            end += 1
+        }
+        guard end < count, bytes[end] == UInt8(ascii: ">"), end > start else { return nil }
+        return start..<end
     }
 
     private func isValueTerminator(_ i: Int) -> Bool {
