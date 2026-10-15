@@ -44,14 +44,19 @@ public enum PasswordHash {
 
     /// Returns whether a password matches an encoded hash.
     ///
-    /// The comparison takes the same time wherever the hashes differ.
+    /// The comparison takes the same time wherever the hashes differ. An empty password, or one
+    /// longer than ``PasswordKeyDerivation/passwordLengthRange`` allows, returns `false`: no hash
+    /// made by ``make(for:iterations:)`` can match it, so an empty PIN field is a wrong entry,
+    /// not an error.
     ///
     /// - Throws: ``CipherError/malformedHash(_:)`` when `encoded` is not a hash made by
     ///   ``make(for:iterations:)`` — including one whose iteration count is outside
     ///   ``PasswordKeyDerivation/iterationRange``, so a tampered hash cannot make the check run
-    ///   for hours — and ``CipherError/invalidParameter(_:)`` for an empty or overlong password.
+    ///   for hours.
     public static func verify(_ password: String, against encoded: String) throws(CipherError) -> Bool {
         let parts = try parse(encoded)
+        let passwordLength = password.precomposedStringWithCanonicalMapping.utf8.count
+        guard PasswordKeyDerivation.passwordLengthRange.contains(passwordLength) else { return false }
         let key = try PasswordKeyDerivation.deriveKey(from: password, salt: parts.salt, iterations: parts.iterations, outputByteCount: parts.hash.count)
         return key.withUnsafeBytes { ConstantTime.isEqual(Data($0), parts.hash) }
     }

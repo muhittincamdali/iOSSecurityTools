@@ -222,6 +222,16 @@ struct PasswordHashTests {
         #expect(try !PasswordHash.verify("49210", against: stored))
     }
 
+    @Test("a password make(for:) rejects is a wrong entry, not an error")
+    func passwordsOutsideTheRange() throws {
+        let stored = try PasswordHash.make(for: "4921", iterations: 1000)
+        #expect(try !PasswordHash.verify("", against: stored))
+        #expect(try !PasswordHash.verify(String(repeating: "a", count: 4097), against: stored))
+        #expect(throws: CipherError.self) { try PasswordHash.make(for: "", iterations: 1000) }
+        // A malformed hash is still reported, whatever the password.
+        #expect(throws: CipherError.self) { try PasswordHash.verify("", against: "not a hash") }
+    }
+
     @Test("salts every hash")
     func salted() throws {
         #expect(try PasswordHash.make(for: "same", iterations: 1000) != PasswordHash.make(for: "same", iterations: 1000))
