@@ -18,9 +18,11 @@ import Foundation
 /// - **Bearer tokens**: the token after `Bearer `.
 /// - **Secret fields**: the value after a field name followed by `:` or `=` whose words include
 ///   `password`, `pass`, `token`, `secret`, `api_key`, `authorization`, `session_id` or a similar
-///   word, or that is exactly `session`. JSON (also JSON escaped inside another string), query
-///   strings, form fields (`password[]=`, `user[password]=`), headers, `key: value` text, XML
-///   elements (`<password>…</password>`) and a percent-encoded `=` or `:` (`password%3D…`) count.
+///   word, or that is exactly `session`, `PHPSESSID` or `JSESSIONID`. JSON (also JSON escaped
+///   inside another string), query strings, form fields (`password[]=`, `user[password]=`, also
+///   with the brackets percent-encoded as in `user%5Bpassword%5D=`), headers, `key: value` text,
+///   `:=`, `?=` and `+=` assignments, XML elements (`<password>…</password>`, also with
+///   attributes or a namespace prefix) and a percent-encoded `=` or `:` (`password%3D…`) count.
 ///   Names in `camelCase`, `snake_case`, `kebab-case` and upper case count, with other words
 ///   around the secret one: `accessToken`, `client_secret`, `SECRET_KEY`, `DB_PASS`,
 ///   `aws_secret_access_key`, `passwordConfirm`, `password2`. Names that only describe a secret,
@@ -37,6 +39,9 @@ import Foundation
 /// Redaction is a safety net for mistakes, not a reason to log secrets. It cannot recognize a
 /// password that is not labelled as one or is labelled with a name it does not know (`pin`,
 /// `credentials`), or text that is encoded as a whole, such as base64 or percent-encoded JSON.
+/// It does not read XML `CDATA` sections, text percent-encoded twice (`password%253D…`), spaces
+/// inside form brackets (`user[ password ]=`) or a secret given as an attribute value
+/// (`<input name="password" value="…">`).
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {

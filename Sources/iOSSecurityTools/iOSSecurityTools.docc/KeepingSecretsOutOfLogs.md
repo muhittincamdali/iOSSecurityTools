@@ -50,11 +50,14 @@ logger.error("\(redactor.redact(error.localizedDescription), privacy: .public)")
 
 It finds card numbers (with the Luhn check), email addresses, JSON Web Tokens, bearer tokens and
 the values of fields named like secrets (`password`, `pass`, `token`, `api_key`, `authorization`,
-`session_id`, a field named exactly `session`, ...), also when the secret word is one part of a
-longer name (`SECRET_KEY`, `DB_PASS`, `aws_secret_access_key`, `passwordConfirm`). Besides JSON,
-query strings, headers and `key: value` text, it reads JSON escaped inside another string, form
-fields (`password[]=`, `user[password]=`), XML elements (`<password>…</password>`) and a
-percent-encoded separator (`password%3D…`). Names that only describe a secret, such as
+`session_id`, a field named exactly `session`, `PHPSESSID` or `JSESSIONID`, ...), also when the
+secret word is one part of a longer name (`SECRET_KEY`, `DB_PASS`, `aws_secret_access_key`,
+`passwordConfirm`). Besides JSON, query strings, headers and `key: value` text, it reads JSON
+escaped inside another string, form fields (`password[]=`, `user[password]=`, and
+`user%5Bpassword%5D=` as form bodies send them), `:=`, `?=` and `+=` assignments, XML elements
+(`<password>…</password>`, also with attributes or a namespace prefix such as
+`<wsse:Password Type="…">`) and a percent-encoded separator (`password%3D…`). Names that only
+describe a secret, such as
 `passwordHint`, `token_type` or `session_start`, are left alone. When a token runs into a card
 number, the whole stretch is replaced, so no part of either shows.
 
@@ -64,8 +67,11 @@ digits, is still found. Scanning and replacing take time linear in the length of
 regular expressions, so a long or crafted input cannot slow it down.
 
 It cannot find a secret that has no label or a label it does not know (`pin`, `credentials`), or
-text encoded as a whole, such as base64 or percent-encoded JSON. Keep secrets out of log calls in
-the first place, and treat the redactor as the net under that rule.
+text encoded as a whole, such as base64 or percent-encoded JSON. It does not read XML `CDATA`
+sections, text percent-encoded twice (`password%253D…`), spaces inside form brackets
+(`user[ password ]=`) or a secret given as an attribute value (`<input name="password" value="…">`).
+Keep secrets out of log calls in the first place, and treat the redactor as the net under that
+rule.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
 `.public`; use the redactor for the values you do mark public, and for logs sent to your own
