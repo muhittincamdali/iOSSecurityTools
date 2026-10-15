@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `SensitiveDataRedactor.redact(body:contentType:)` redacts request and response bodies with a
+  parser chosen by the content type: JSON, `application/x-www-form-urlencoded` forms (also read
+  as split at `;`) and multipart form data, each part by its own type. A body that is not UTF-8,
+  has another type or does not parse completely is omitted as
+  `[body omitted: N bytes, <type>]`; uploaded files are omitted the same way.
+
+### Changed
+
+- `SensitiveDataRedactor` compares only plain-ASCII field names (`A`–`Z`, `a`–`z`, `0`–`9`, `_`
+  and `-`, with `_` and `-` folded away) with its secret names, and hides the value of every
+  other name by default: names with letters outside ASCII, mixed scripts, combining marks,
+  format characters, spaces, dots, brackets, escapes or other punctuation. A value is hidden
+  whole: a string, and an array or object with everything in it. Values of names such as
+  `статус`, `café`, `user.id` and `user[name]` are now hidden too.
+- A text that is a JSON object or array is read with a JSON parser checked against
+  `JSONSerialization` instead of being scanned: names are compared after their escapes are
+  decoded, at every depth, inside arrays and for every repetition of a name, and hidden values
+  keep the document valid JSON (`"password":"[redacted]"` for an array or object as well).
+- Other text is read with a documented free-text rule. Words before a name that only whitespace
+  separates are read with it (`pass word=`); a separator with no name before it, an unclosed
+  quote and punctuation outside ASCII after a secret name hide the rest of the line; a value on
+  the line after its separator is hidden; an angle-bracketed value is hidden with its brackets.
+- `dbpassword`, `apitoken`, `dbpwd` and other names with a compound secret word anywhere, or with
+  `token`, `secret` or `pwd` at the end, now hide their value.
+
+### Removed
+
+- The table of look-alike letters from other scripts. It could never be complete; names that
+  are not plain ASCII are hidden instead of being read as Latin.
+
+### Fixed
+
+- Every one of the 51 inputs that got a secret past the 2.0.1 branch is hidden, among them
+  Cyrillic and Greek look-alike letters (`pаssword=`), styled letters (`𝐩𝐚𝐬𝐬𝐰𝐨𝐫𝐝=`, `ⓟassword=`),
+  separators and escapes inside a name (`pass.word=`, `pass%77ord=`, `p&#97;ssword=`,
+  `"pass\u0077ord":`), arrays and objects under a secret name, a value after a line break,
+  vertical tab or form feed, and `︓` as a separator. They are kept as tests, together with
+  tests that disguise secret names at random and check that no value shows, and tests that
+  plain names that are not secret keep their value.
+
 ## [2.0.1] - 2026-10-15
 
 ### Fixed
@@ -32,10 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `<wsse:Password Type="…">`), after a percent-encoded `=` or `:` (`password%3D…`, also with
   `%20` or `+` around it) and inside angle brackets (`password: <…>`), and treats
   `pass`, `session_id`, `session_key`, `PHPSESSID`, `JSESSIONID` and a field named exactly
-  `session` as secret names. It still does not read XML `CDATA` sections, text percent-encoded
-  twice, spaces inside form brackets, a `<` inside a quoted XML attribute value, JSON `\u`
-  escapes inside a name, a value on the line after its separator or operators such as `<=` and
-  `->`.
+  `session` as secret names.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
