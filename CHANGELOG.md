@@ -18,8 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SensitiveDataRedactor.redact(_:)` took time quadratic in the number of findings (22 s for
   1.6 million characters of `pwd=x `); it now builds the output once and runs in linear time, as
   2.0.0 stated. A scaling test replaces the old timing test, which could not fail.
-- `SensitiveDataRedactor` hid only the `=` of `PASSWORD := hunter2` and left the password; it
-  now reads `:=`, `?=` and `+=` as separators.
+- `SensitiveDataRedactor` turned `PASSWORD := hunter2` into `PASSWORD :[redacted] hunter2`,
+  hiding the `=` and showing the password, and did the same with `password == hunter2`; it now
+  reads `:=`, `?=`, `+=`, `==` and `!=` as separators.
 - `SensitiveDataRedactor` now finds secret values in form fields (`password[]=`,
   `user[password]=`, also with percent-encoded brackets as in `user%5Bpassword%5D=`), XML elements
   (`<password>…</password>`, also with attributes or a namespace prefix such as

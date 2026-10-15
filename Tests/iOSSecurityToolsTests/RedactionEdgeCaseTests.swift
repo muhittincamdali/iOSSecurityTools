@@ -67,13 +67,15 @@ struct RedactionEdgeCaseTests {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("hides the value after assignment operators of Make, Go and Pascal", arguments: [
+    @Test("hides the value after assignment and comparison operators", arguments: [
         ("PASSWORD := hunter2", "PASSWORD := [redacted]"),
         ("password:=hunter2", "password:=[redacted]"),
         ("apiKey := \"k-1\"", "apiKey := \"[redacted]\""),
         ("API_TOKEN ?= abc123", "API_TOKEN ?= [redacted]"),
         ("SECRET += abc123", "SECRET += [redacted]"),
         ("password=>hunter2", "password=>[redacted]"),
+        ("password == \"hunter2\"", "password == \"[redacted]\""),
+        ("token!=abc123", "token!=[redacted]"),
     ])
     func assignmentOperators(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

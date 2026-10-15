@@ -54,7 +54,7 @@ the values of fields named like secrets (`password`, `pass`, `token`, `api_key`,
 secret word is one part of a longer name (`SECRET_KEY`, `DB_PASS`, `aws_secret_access_key`,
 `passwordConfirm`). Besides JSON, query strings, headers and `key: value` text, it reads JSON
 escaped inside another string, form fields (`password[]=`, `user[password]=`, and
-`user%5Bpassword%5D=` as form bodies send them), `:=`, `?=` and `+=` assignments, XML elements
+`user%5Bpassword%5D=` as form bodies send them), `:=`, `?=`, `+=`, `==` and `!=`, XML elements
 (`<password>…</password>`, also with attributes or a namespace prefix such as
 `<wsse:Password Type="…">`) and a percent-encoded separator (`password%3D…`). Names that only
 describe a secret, such as

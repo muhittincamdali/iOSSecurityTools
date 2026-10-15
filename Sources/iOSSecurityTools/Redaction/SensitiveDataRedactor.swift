@@ -21,7 +21,7 @@ import Foundation
 ///   word, or that is exactly `session`, `PHPSESSID` or `JSESSIONID`. JSON (also JSON escaped
 ///   inside another string), query strings, form fields (`password[]=`, `user[password]=`, also
 ///   with the brackets percent-encoded as in `user%5Bpassword%5D=`), headers, `key: value` text,
-///   `:=`, `?=` and `+=` assignments, XML elements (`<password>…</password>`, also with
+///   `:=`, `?=`, `+=`, `==` and `!=`, XML elements (`<password>…</password>`, also with
 ///   attributes or a namespace prefix) and a percent-encoded `=` or `:` (`password%3D…`) count.
 ///   Names in `camelCase`, `snake_case`, `kebab-case` and upper case count, with other words
 ///   around the secret one: `accessToken`, `client_secret`, `SECRET_KEY`, `DB_PASS`,

@@ -91,10 +91,10 @@ extension NormalizedText {
     // MARK: Values
 
     /// The value after a field name: `name: value`, `name=value`, `name := value`,
-    /// `"name": "value"`, `\"name\":\"value\"` in JSON escaped inside another string, form fields
-    /// such as `password[]=value`, `user[password]=value` and `user%5Bpassword%5D=value`, and
-    /// `name%3Dvalue` with the `=` or `:` percent-encoded. `afterName` is where the text continues
-    /// after the name and its brackets.
+    /// `name == value`, `"name": "value"`, `\"name\":\"value\"` in JSON escaped inside another
+    /// string, form fields such as `password[]=value`, `user[password]=value` and
+    /// `user%5Bpassword%5D=value`, and `name%3Dvalue` with the `=` or `:` percent-encoded.
+    /// `afterName` is where the text continues after the name and its brackets.
     private func valueRange(from afterName: Int) -> Range<Int>? {
         var j = afterName
         if isEscapedQuote(j) {
@@ -103,17 +103,14 @@ extension NormalizedText {
             j += 1
         }
         while j < count, isSpace(j) { j += 1 }
-        // `?=` and `+=` in a Makefile: the `?` or `+` belongs to the separator.
-        if j + 1 < count, bytes[j] == UInt8(ascii: "?") || bytes[j] == UInt8(ascii: "+"), bytes[j + 1] == UInt8(ascii: "=") {
+        // `?=` and `+=` in a Makefile and `!=`: the first character belongs to the separator.
+        if j + 1 < count, [UInt8(ascii: "?"), UInt8(ascii: "+"), UInt8(ascii: "!")].contains(bytes[j]), bytes[j + 1] == UInt8(ascii: "=") {
             j += 1
         }
-        let separator = j
         guard let afterSeparator = indexAfterSeparator(at: j) else { return nil }
         j = afterSeparator
-        // `=>`, and `:=` in Make, Go and Pascal: the `>` or `=` belongs to the separator.
-        if j < count, bytes[j] == UInt8(ascii: ">") || (bytes[j] == UInt8(ascii: "=") && bytes[separator] == UInt8(ascii: ":")) {
-            j += 1
-        }
+        // `=>`, `:=` in Make, Go and Pascal, and `==` in code: the `>` or `=` belongs to the separator.
+        if j < count, bytes[j] == UInt8(ascii: ">") || bytes[j] == UInt8(ascii: "=") { j += 1 }
         while j < count, isSpace(j) { j += 1 }
         guard j < count else { return nil }
 
