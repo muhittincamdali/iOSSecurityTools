@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@f98d414a0b3c7b4296c57822ed0fd925c7045d4c status=reviewed -->
+<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -50,12 +50,14 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   симуляторе, библиотеках для хукинга и системном прокси в виде отчёта `Codable`, а в документации
   сказано, что от него может скрыть злоумышленник.
 - **Секреты не попадают в логи и скриншоты** — `@Redacted` везде выводит `<redacted>`,
-  `SensitiveDataRedactor` затирает номера карт, адреса электронной почты, токены и поля паролей
-  (даже если они спрятаны символами нулевой или полной ширины), а `.privacyShield()` закрывает
-  экраны в переключателе приложений и во время записи экрана.
+  `SensitiveDataRedactor` затирает номера карт, адреса электронной почты, токены и секретные
+  поля, а `.privacyShield()` закрывает экраны в переключателе приложений и во время записи
+  экрана. Редактор сравнивает с секретными именами только ключи из простого ASCII, а значения
+  любых других ключей по умолчанию скрывает; тела JSON, форм и multipart разбираются парсером,
+  а тела, которые не удалось разобрать, пропускаются.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 157 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 222 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -284,6 +286,14 @@ func redactionSample() -> (request: String, log: String) {
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` сравнивает с секретными именами только ключи из простого ASCII (`A`–`Z`,
+`a`–`z`, `0`–`9`, `_`, `-`). Значение любого другого ключа по умолчанию скрывается: похожие
+буквы, невидимые символы и escape-последовательности могут замаскировать секретное имя. JSON
+читается парсером, а `redact(body:contentType:)` читает тела JSON, форм и multipart; тело,
+которое не удаётся разобрать полностью, пропускается как `[body omitted: N bytes, <type>]`.
+[Руководство по логам](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+описывает правило для свободного текста и его цену.
 
 ### Привязать учётную запись к устройству
 

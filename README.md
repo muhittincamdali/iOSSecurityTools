@@ -44,12 +44,13 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   simulator, hooking libraries and a system proxy as a `Codable` report, and the documentation
   says what an attacker can hide from it.
 - **Secrets stay out of logs and screenshots** — `@Redacted` prints `<redacted>` everywhere,
-  `SensitiveDataRedactor` scrubs card numbers, emails, tokens and password fields (also when hidden
-  with zero-width or full-width characters), and `.privacyShield()` covers views in the app
-  switcher and during screen recording.
+  `SensitiveDataRedactor` scrubs card numbers, emails, tokens and secret fields, and
+  `.privacyShield()` covers views in the app switcher and during screen recording. The redactor
+  compares plain-ASCII keys with its secret names and redacts any other key by default; JSON,
+  form and multipart bodies are parsed, and unparsed bodies are omitted.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 157 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 222 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -278,6 +279,14 @@ func redactionSample() -> (request: String, log: String) {
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` compares only plain-ASCII keys (`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`)
+with its secret names. Any other key is redacted by default, because look-alike letters,
+invisible characters and escapes can disguise a secret name. JSON is read with a parser, and
+`redact(body:contentType:)` reads JSON, form and multipart bodies; a body it cannot parse
+completely is omitted as `[body omitted: N bytes, <type>]`. The
+[logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+describes the rule for free text and what it costs.
 
 ### Bind an account to the device
 

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@f98d414a0b3c7b4296c57822ed0fd925c7045d4c status=reviewed -->
+<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -51,13 +51,14 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
   dokümantasyon da bir saldırganın bunlardan nelerini gizleyebileceğini açıkça söyler.
 - **Gizli veriler günlüklerde ve ekran görüntülerinde görünmez** — `@Redacted` her yerde
   `<redacted>` yazdırır, `SensitiveDataRedactor` kart numaralarını, e-posta adreslerini,
-  token'ları ve parola alanlarını (sıfır genişlikli veya tam genişlikli karakterlerle
-  gizlenmiş olsalar bile) siler, `.privacyShield()` ise uygulama değiştiricide ve ekran
-  kaydı sırasında görünümleri örter.
+  token'ları ve gizli alanları siler, `.privacyShield()` ise uygulama değiştiricide ve ekran
+  kaydı sırasında görünümleri örter. Maskeleyici yalnız düz ASCII anahtarları gizli adlarla
+  karşılaştırır, diğer her anahtarı varsayılan olarak maskeler; JSON, form ve multipart
+  gövdeleri ayrıştırılır, ayrıştırılamayan gövdeler atlanır.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 157 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 222 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -288,6 +289,15 @@ func redactionSample() -> (request: String, log: String) {
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` gizli adlarla yalnız düz ASCII anahtarları (`A`–`Z`, `a`–`z`, `0`–`9`,
+`_`, `-`) karşılaştırır. Benzer harfler, görünmez karakterler ve kaçış dizileri bir gizli adı
+gizleyebildiği için diğer her anahtarın değeri varsayılan olarak maskelenir. JSON bir
+ayrıştırıcıyla okunur; `redact(body:contentType:)` JSON, form ve multipart gövdelerini okur ve
+tamamen ayrıştıramadığı bir gövdeyi `[body omitted: N bytes, <type>]` olarak atlar. Serbest
+metin kuralını ve bedelini
+[günlük kılavuzu](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+anlatır.
 
 ### Bir hesabı cihaza bağlama
 

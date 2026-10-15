@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@f98d414a0b3c7b4296c57822ed0fd925c7045d4c status=reviewed -->
+<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-zh-CN-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-zh-CN-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-zh-CN-light.svg" alt="iOSSecurityTools: 面向 Apple 应用的钥匙串、加密、证书固定、一次性验证码和完整性检查。"></picture></p>
@@ -33,8 +33,8 @@
 - **能发现篡改的加密** —— `DataCipher` 写出 AES-256-GCM 或 ChaCha20-Poly1305 信封，信封中自带版本、算法和 nonce；任何一个字节被改动、密钥错误或关联数据错误，都会导致解密失败。同时提供 HKDF、PBKDF2 和 PHC 格式的 PIN 哈希。
 - **不会把用户锁在门外的证书固定** —— `PinningPolicy` 要求提供备用 pin，支持子域名、过期日期和仅报告模式，并且仍要求系统自身的信任评估通过。
 - **提供信号，而非承诺** —— `IntegrityInspector` 以 `Codable` 报告的形式给出越狱文件、调试器、模拟器、hook 库和系统代理的检测结果；文档也会说明攻击者能够隐藏哪些内容。
-- **机密不会出现在日志和截图中** —— `@Redacted` 在任何地方都输出 `<redacted>`；`SensitiveDataRedactor` 会清除银行卡号、电子邮件、token 和密码字段（即使它们被零宽字符或全角字符隐藏）；`.privacyShield()` 会在 App 切换器和屏幕录制期间遮住视图。
-- **经受过恶意输入的测试** —— RFC 4226、6238 和 5869 的测试向量，由独立实现生成的信封和哈希，来自测试 PKI 的证书链，NaN 和无穷大的日期，`Int.min` 和 `Int.max`，过大和重复的 URI 参数：在 macOS 和 iPhone 模拟器上共有 157 个 Swift Testing 测试，另外还有示例应用内部的钥匙串测试套件。
+- **机密不会出现在日志和截图中** —— `@Redacted` 在任何地方都输出 `<redacted>`；`SensitiveDataRedactor` 会清除银行卡号、电子邮件、token 和机密字段；`.privacyShield()` 会在 App 切换器和屏幕录制期间遮住视图。脱敏器只把纯 ASCII 的键与机密名称比较，其他任何键默认都会被脱敏；JSON、表单和 multipart 请求体会经过解析，无法解析的请求体会被省略。
+- **经受过恶意输入的测试** —— RFC 4226、6238 和 5869 的测试向量，由独立实现生成的信封和哈希，来自测试 PKI 的证书链，NaN 和无穷大的日期，`Int.min` 和 `Int.max`，过大和重复的 URI 参数：在 macOS 和 iPhone 模拟器上共有 222 个 Swift Testing 测试，另外还有示例应用内部的钥匙串测试套件。
 
 ### 包含的内容
 
@@ -247,6 +247,8 @@ func redactionSample() -> (request: String, log: String) {
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` 只把纯 ASCII 的键（`A`–`Z`、`a`–`z`、`0`–`9`、`_`、`-`）与机密名称比较。形近字母、不可见字符和转义序列都可能伪装机密名称，因此其他任何键的值默认都会被脱敏。JSON 由解析器读取，`redact(body:contentType:)` 会读取 JSON、表单和 multipart 请求体；无法完整解析的请求体会以 `[body omitted: N bytes, <type>]` 的形式省略。[日志指南](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)说明了自由文本的规则及其代价。
 
 ### 将账户绑定到设备
 

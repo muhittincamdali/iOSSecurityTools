@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@f98d414a0b3c7b4296c57822ed0fd925c7045d4c status=reviewed -->
+<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -52,13 +52,14 @@ dépendance.
   rapport `Codable`, et la documentation précise ce qu’un attaquant peut lui cacher.
 - **Les secrets restent hors des journaux et des captures d’écran** — `@Redacted` affiche
   `<redacted>` partout, `SensitiveDataRedactor` masque les numéros de carte, les e-mails, les
-  tokens et les champs de mot de passe (même dissimulés par des caractères de largeur nulle ou
-  pleine largeur), et `.privacyShield()` recouvre les vues dans le sélecteur d’apps et pendant
-  l’enregistrement de l’écran.
+  tokens et les champs secrets, et `.privacyShield()` recouvre les vues dans le sélecteur d’apps
+  et pendant l’enregistrement de l’écran. Le masqueur ne compare à ses noms secrets que les clés
+  en ASCII simple et masque par défaut toute autre clé ; les corps JSON, de formulaire et
+  multipart sont analysés, et les corps non analysables sont omis.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  157 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  222 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -288,6 +289,15 @@ func redactionSample() -> (request: String, log: String) {
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` ne compare à ses noms secrets que les clés en ASCII simple (`A`–`Z`,
+`a`–`z`, `0`–`9`, `_`, `-`). La valeur de toute autre clé est masquée par défaut, car des lettres
+semblables, des caractères invisibles et des séquences d’échappement peuvent déguiser un nom
+secret. Le JSON est lu par un analyseur, et `redact(body:contentType:)` lit les corps JSON, de
+formulaire et multipart ; un corps qu’il ne peut pas analyser entièrement est omis sous la forme
+`[body omitted: N bytes, <type>]`. Le
+[guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+décrit la règle pour le texte libre et ce qu’elle coûte.
 
 ### Lier un compte à l’appareil
 
