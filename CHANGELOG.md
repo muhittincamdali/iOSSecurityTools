@@ -19,15 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   1.6 million characters of `pwd=x `); it now builds the output once and runs in linear time, as
   2.0.0 stated. A scaling test replaces the old timing test, which could not fail.
 - `SensitiveDataRedactor` turned `PASSWORD := hunter2` into `PASSWORD :[redacted] hunter2`,
-  hiding the `=` and showing the password, and did the same with `password == hunter2`; it now
-  reads `:=`, `?=`, `+=`, `==` and `!=` as separators.
+  hiding the `=` and showing the password, and did the same with `password == hunter2`,
+  `password === hunter2`, `password ::= hunter2` and `password = = hunter2`; it now reads `:=`,
+  `?=`, `+=`, `==`, `!=` and any further run of `=` and `:` as one separator, also when written
+  as one character such as `≔`.
+- `SensitiveDataRedactor` printed a secret as is when an en space or another Unicode space
+  outside U+00A0, U+2007, U+2009, U+202F and U+3000 stood around the `=`, inside a card number
+  or after `Bearer`; every Unicode space now counts as a space.
 - `SensitiveDataRedactor` now finds secret values in form fields (`password[]=`,
   `user[password]=`, also with percent-encoded brackets as in `user%5Bpassword%5D=`), XML elements
   (`<password>…</password>`, also with attributes or a namespace prefix such as
-  `<wsse:Password Type="…">`) and after a percent-encoded `=` or `:` (`password%3D…`), and treats
+  `<wsse:Password Type="…">`), after a percent-encoded `=` or `:` (`password%3D…`, also with
+  `%20` or `+` around it) and inside angle brackets (`password: <…>`), and treats
   `pass`, `session_id`, `session_key`, `PHPSESSID`, `JSESSIONID` and a field named exactly
   `session` as secret names. It still does not read XML `CDATA` sections, text percent-encoded
-  twice or spaces inside form brackets.
+  twice, spaces inside form brackets, a `<` inside a quoted XML attribute value, JSON `\u`
+  escapes inside a name, a value on the line after its separator or operators such as `<=` and
+  `->`.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 

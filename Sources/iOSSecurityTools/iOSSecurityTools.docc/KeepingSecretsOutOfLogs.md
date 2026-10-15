@@ -54,22 +54,28 @@ the values of fields named like secrets (`password`, `pass`, `token`, `api_key`,
 secret word is one part of a longer name (`SECRET_KEY`, `DB_PASS`, `aws_secret_access_key`,
 `passwordConfirm`). Besides JSON, query strings, headers and `key: value` text, it reads JSON
 escaped inside another string, form fields (`password[]=`, `user[password]=`, and
-`user%5Bpassword%5D=` as form bodies send them), `:=`, `?=`, `+=`, `==` and `!=`, XML elements
-(`<password>…</password>`, also with attributes or a namespace prefix such as
-`<wsse:Password Type="…">`) and a percent-encoded separator (`password%3D…`). Names that only
-describe a secret, such as
-`passwordHint`, `token_type` or `session_start`, are left alone. When a token runs into a card
+`user%5Bpassword%5D=` as form bodies send them), `:=`, `?=`, `+=`, `==`, `!=`, `===` and other
+runs of `=` and `:`, also written as one character (`≔`), XML elements (`<password>…</password>`,
+also with attributes or a namespace prefix such as `<wsse:Password Type="…">`), a
+percent-encoded separator with or without encoded spaces around it (`password%3D…`,
+`password%20%3D%20…`, `password+%3D+…`) and a value in angle brackets (`password: <…>`). Names
+that only describe a secret, such as `passwordHint`, `token_type` or `session_start`, are left
+alone. When a token runs into a card
 number, the whole stretch is replaced, so no part of either shows.
 
 It removes invisible characters and maps full-width letters and digits from other scripts before
-matching, so `password=` with a zero-width space inside the name, or a card number in full-width
-digits, is still found. Scanning and replacing take time linear in the length of the text, without
+matching, and reads every Unicode space as a space, so `password=` with a zero-width space inside
+the name, a card number in full-width digits or an en space around the `=` does not hide a value. Scanning and replacing take time linear in the length of the text, without
 regular expressions, so a long or crafted input cannot slow it down.
 
 It cannot find a secret that has no label or a label it does not know (`pin`, `credentials`), or
 text encoded as a whole, such as base64 or percent-encoded JSON. It does not read XML `CDATA`
 sections, text percent-encoded twice (`password%253D…`), spaces inside form brackets
-(`user[ password ]=`) or a secret given as an attribute value (`<input name="password" value="…">`).
+(`user[ password ]=`), a secret given as an attribute value (`<input name="password" value="…">`)
+or a start tag with a `<` inside a quoted attribute value, which XML does not allow. It also does
+not read JSON `\u` escapes inside a name (`"pass\u0077ord"`), a value on the line after its
+separator (`password=` followed by a line break) or operators that are not assignments, such as
+`<=`, `->` and `<-`.
 Keep secrets out of log calls in the first place, and treat the redactor as the net under that
 rule.
 
