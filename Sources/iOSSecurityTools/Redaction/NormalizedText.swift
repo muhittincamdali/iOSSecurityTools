@@ -1,8 +1,9 @@
 import Foundation
 
-/// The text the detectors read: invisible scalars removed and everything else read as ASCII
-/// where it stands for ASCII (see ``LatinFolding``), with the range each byte came from in the
-/// original scalars. One scalar can become several bytes (`ß` is read as `ss`).
+/// The text the detectors read: invisible scalars removed, escaped letters decoded (see
+/// ``EscapedCharacter``) and everything else read as ASCII where it stands for ASCII (see
+/// ``LatinFolding``), with the range each byte came from in the original scalars. One scalar can
+/// become several bytes (`ß` is read as `ss`) and several scalars one byte (`%77` as `w`).
 struct NormalizedText {
     let bytes: [UInt8]
     /// The offset in the original scalars where the scalar a byte came from starts.
@@ -25,7 +26,19 @@ struct NormalizedText {
         ends.reserveCapacity(scalars.count)
         isForeignLetter.reserveCapacity(scalars.count)
         var folding = LatinFolding()
-        for (offset, scalar) in scalars.enumerated() where !ScalarClass.isInvisible(scalar) {
+        var offset = 0
+        while offset < scalars.count {
+            let scalar = scalars[offset]
+            if let escaped = EscapedCharacter(in: scalars, at: offset) {
+                bytes.append(escaped.byte)
+                offsets.append(offset)
+                ends.append(offset + escaped.length)
+                isForeignLetter.append(false)
+                offset += escaped.length
+                continue
+            }
+            defer { offset += 1 }
+            if ScalarClass.isInvisible(scalar) { continue }
             if scalar.isASCII {
                 bytes.append(UInt8(scalar.value))
                 offsets.append(offset)

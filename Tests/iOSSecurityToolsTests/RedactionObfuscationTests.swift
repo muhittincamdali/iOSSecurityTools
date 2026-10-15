@@ -63,4 +63,25 @@ struct RedactionObfuscationTests {
         #expect(redactor.redact(russian) == russian)
         #expect(redactor.redact("user=\u{0430}\u{043B}\u{0438}\u{0441}\u{0430}") == "user=\u{0430}\u{043B}\u{0438}\u{0441}\u{0430}")
     }
+
+    @Test("decodes escaped letters in a name", arguments: [
+        ("pass%77ord=hunter2", "pass%77ord=[redacted]"),
+        ("%70%61%73%73%77%6F%72%64=hunter2", "%70%61%73%73%77%6F%72%64=[redacted]"),
+        ("p&#97;ssword=hunter2", "p&#97;ssword=[redacted]"),
+        ("p&#x61;ssword=hunter2", "p&#x61;ssword=[redacted]"),
+        ("{\"pass\\u0077ord\":\"hunter2\"}", "{\"pass\\u0077ord\":\"[redacted]\"}"),
+        ("password&#61;hunter2", "password&#61;[redacted]"),
+        ("password\\u003Ahunter2", "password\\u003A[redacted]"),
+        ("password=abc&#100;ef next", "password=[redacted] next"),
+        ("password=hunter%32 next", "password=[redacted] next"),
+    ])
+    func escapedLetters(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("escapes of characters that end a value are not decoded")
+    func escapedTerminators() {
+        #expect(redactor.redact("password=a%26b%20c next") == "password=[redacted] next")
+        #expect(redactor.redact("note=50%25 of %ZZ & more") == "note=50%25 of %ZZ & more")
+    }
 }

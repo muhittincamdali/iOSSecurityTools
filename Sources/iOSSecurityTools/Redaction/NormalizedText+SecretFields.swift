@@ -206,13 +206,11 @@ extension NormalizedText {
         return j
     }
 
-    /// Where the value starts after a `:` or `=` at `i`, also written as `%3A` or `%3D`.
+    /// Where the value starts after a `:` or `=` at `i`. Written as `%3A`, `%3D` or another
+    /// escape, it is already decoded.
     private func indexAfterSeparator(at i: Int) -> Int? {
-        guard i < count else { return nil }
-        if bytes[i] == UInt8(ascii: ":") || bytes[i] == UInt8(ascii: "=") { return i + 1 }
-        guard i + 2 < count, bytes[i] == UInt8(ascii: "%"), bytes[i + 1] == UInt8(ascii: "3") else { return nil }
-        let code = lowercased(i + 2)
-        return code == UInt8(ascii: "a") || code == UInt8(ascii: "d") ? i + 3 : nil
+        guard i < count, bytes[i] == UInt8(ascii: ":") || bytes[i] == UInt8(ascii: "=") else { return nil }
+        return i + 1
     }
 
     /// The content of an XML element named like a secret, `<password>value</password>`, also with
