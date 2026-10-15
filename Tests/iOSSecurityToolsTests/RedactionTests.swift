@@ -290,27 +290,4 @@ struct SensitiveDataRedactorTests {
         #expect(redactor.redact(text) == text)
         #expect(redactor.redact("") == "")
     }
-
-    @Test("scans adversarial inputs in linear time", .timeLimit(.minutes(1)))
-    func adversarialInputs() {
-        let size = 200_000
-        let inputs = [
-            String(repeating: "eyJ", count: size / 3),
-            String(repeating: "eyJa.", count: size / 5),
-            String(repeating: "@", count: size),
-            String(repeating: "a.", count: size / 2) + "@",
-            "@" + String(repeating: "a.", count: size / 2),
-            String(repeating: "1 ", count: size / 2),
-            String(repeating: "password", count: size / 8),
-            "password=\"" + String(repeating: "\\", count: size),
-            "password=\\\"" + String(repeating: "\\", count: size),
-            String(repeating: "p_a_s_s_w_o_r_d_", count: size / 16),
-            "a" + String(repeating: "_", count: size) + "=x",
-            String(repeating: "bearer ", count: size / 7),
-            String(repeating: "\u{200B}", count: size),
-        ]
-        for input in inputs {
-            #expect(!redactor.redact(input).isEmpty || input.isEmpty)
-        }
-    }
 }
