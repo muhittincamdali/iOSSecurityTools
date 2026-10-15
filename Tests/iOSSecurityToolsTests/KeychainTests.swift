@@ -4,26 +4,36 @@ import Testing
 
 /// Chooses a keychain the test process can write to.
 ///
-/// The iOS simulator gives test bundles a data protection keychain. On macOS that keychain needs
-/// a signed app with a team, which `swift test` does not have, so the tests fall back to the
-/// login keychain there. When neither works (for example a locked login keychain on a build
-/// machine), the keychain suites are skipped; CI runs them on the iOS simulator.
+/// The keychain needs an entitlement that a test bundle without a host app lacks: on the iOS
+/// simulator every call fails with `errSecMissingEntitlement`, and on macOS the data protection
+/// keychain does too. On macOS the tests fall back to the login keychain. Where no keychain is
+/// writable the suites are skipped with the reason in the log; the example app's test target runs
+/// keychain round trips inside a signed app on the simulator.
 enum KeychainTestSupport {
-    static let usesDataProtectionKeychain: Bool? = {
+    static let probe: Result<Bool, KeychainError> = {
+        var lastError = KeychainError.unexpectedData
         for candidate in [true, false] {
             let keychain = Keychain(service: "iOSSecurityToolsTests.probe.\(UUID().uuidString)", usesDataProtectionKeychain: candidate)
             do {
                 try keychain.set(Data([1]), forKey: "probe")
                 try keychain.removeValue(forKey: "probe")
-                return candidate
+                return .success(candidate)
             } catch {
-                continue
+                lastError = error as? KeychainError ?? .unexpectedData
             }
         }
-        return nil
+        return .failure(lastError)
     }()
 
+    static var usesDataProtectionKeychain: Bool? { try? probe.get() }
+
     static var isAvailable: Bool { usesDataProtectionKeychain != nil }
+
+    /// Why the keychain suites are skipped, for the test log.
+    static var unavailableReason: Comment {
+        guard case .failure(let error) = probe else { return "" }
+        return Comment(rawValue: "No writable keychain in this test process: \(error) (\(error.localizedDescription))")
+    }
 
     static func makeKeychain(
         accessibility: KeychainAccessibility = .afterFirstUnlockThisDeviceOnly,
@@ -38,7 +48,7 @@ enum KeychainTestSupport {
     }
 }
 
-@Suite("Keychain", .enabled(if: KeychainTestSupport.isAvailable, "No writable keychain in this test process"), .serialized)
+@Suite("Keychain", .enabled(if: KeychainTestSupport.isAvailable, KeychainTestSupport.unavailableReason), .serialized)
 struct KeychainTests {
     let keychain = KeychainTestSupport.makeKeychain()
 
@@ -188,7 +198,7 @@ struct KeychainValidationTests {
     }
 }
 
-@Suite("Keychain symmetric keys", .enabled(if: KeychainTestSupport.isAvailable, "No writable keychain in this test process"))
+@Suite("Keychain symmetric keys", .enabled(if: KeychainTestSupport.isAvailable, KeychainTestSupport.unavailableReason))
 struct KeychainSymmetricKeyTests {
     @Test("creates a key once and returns the same key afterwards")
     func createsOnce() throws {
