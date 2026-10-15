@@ -1,0 +1,107 @@
+{
+  "name": "iOSSecurityTools",
+  "repository": "muhittincamdali/iOSSecurityTools",
+  "branch": "master",
+  "tagline": {
+    "en": "Keychain, encryption, pinning, one-time codes and integrity checks for Apple apps.",
+    "tr": "Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi.",
+    "zh-CN": "面向 Apple 应用的钥匙串、加密、证书固定、一次性验证码和完整性检查。",
+    "ja": "Apple アプリ向けのキーチェーン、暗号化、証明書ピンニング、ワンタイムコード、整合性チェック。",
+    "ko": "Apple 앱을 위한 키체인, 암호화, 인증서 피닝, 일회용 코드, 무결성 검사.",
+    "es": "Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple.",
+    "de": "Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps.",
+    "fr": "Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple.",
+    "pt-BR": "Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple.",
+    "ru": "Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."
+  },
+  "tags": {
+    "en": [
+      "Swift 6",
+      "CryptoKit",
+      "5 platforms",
+      "No dependencies"
+    ],
+    "tr": [
+      "Swift 6",
+      "CryptoKit",
+      "5 platform",
+      "Bağımlılık yok"
+    ],
+    "zh-CN": [
+      "Swift 6",
+      "CryptoKit",
+      "5 个平台",
+      "无依赖"
+    ],
+    "ja": [
+      "Swift 6",
+      "CryptoKit",
+      "5 プラットフォーム",
+      "依存関係なし"
+    ],
+    "ko": [
+      "Swift 6",
+      "CryptoKit",
+      "플랫폼 5종",
+      "의존성 없음"
+    ],
+    "es": [
+      "Swift 6",
+      "CryptoKit",
+      "5 plataformas",
+      "Sin dependencias"
+    ],
+    "de": [
+      "Swift 6",
+      "CryptoKit",
+      "5 Plattformen",
+      "Keine Abhängigkeiten"
+    ],
+    "fr": [
+      "Swift 6",
+      "CryptoKit",
+      "5 plateformes",
+      "Sans dépendance"
+    ],
+    "pt-BR": [
+      "Swift 6",
+      "CryptoKit",
+      "5 plataformas",
+      "Sem dependências"
+    ],
+    "ru": [
+      "Swift 6",
+      "CryptoKit",
+      "5 платформ",
+      "Без зависимостей"
+    ]
+  },
+  "motif": "code",
+  "buttons": [
+    "start",
+    "docs",
+    "examples"
+  ],
+  "links": {
+    "docs": "https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/",
+    "examples": "Examples/"
+  },
+  "languages": [
+    "en",
+    "tr",
+    "zh-CN",
+    "ja",
+    "ko",
+    "es",
+    "de",
+    "fr",
+    "pt-BR",
+    "ru"
+  ],
+  "docc": {
+    "targets": [
+      "iOSSecurityTools"
+    ]
+  },
+  "socialTheme": "dark"
+}
