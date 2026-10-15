@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import iOSSecurityTools
 
@@ -64,6 +65,43 @@ struct RedactionScalingTests {
         RepeatedText(unit: "password:<a"),
         RepeatedText(prefix: "password:<", unit: "a"),
         RepeatedText(prefix: "password=<", unit: "password=<a "),
+        // The scaling inputs of the 2.0.1 bypass probes.
+        RepeatedText(unit: "<password a=\""),
+        RepeatedText(unit: "<a:password b "),
+        RepeatedText(unit: "password: <"),
+        RepeatedText(unit: "password: <x"),
+        RepeatedText(unit: "password=<"),
+        RepeatedText(unit: "password%20%20"),
+        RepeatedText(unit: "password ==="),
+        RepeatedText(unit: "password %3D"),
+        RepeatedText(unit: "password+"),
+        RepeatedText(unit: "\\\"password\\\":\\\""),
+        RepeatedText(unit: "pass."),
+        RepeatedText(unit: "4111 1111 1111 1111 "),
+        RepeatedText(unit: "a@b."),
+        RepeatedText(unit: "password: \""),
+        RepeatedText(unit: "password\""),
+        RepeatedText(unit: "password \u{2254} "),
+        // Names read back over whitespace, quotes, escapes and look-alike separators.
+        RepeatedText(unit: "a ", suffix: "word=x"),
+        RepeatedText(prefix: "a", unit: " ", suffix: "\u{A789}x"),
+        RepeatedText(unit: "pass \u{0430}"),
+        RepeatedText(unit: "\"a\":"),
+        RepeatedText(unit: "\"a"),
+        RepeatedText(unit: "\\\""),
+        RepeatedText(unit: "&#97;", suffix: "=x"),
+        RepeatedText(unit: "&#97"),
+        RepeatedText(unit: "password\u{A789}"),
+        RepeatedText(unit: "a\u{00B7}"),
+        RepeatedText(unit: "%25"),
+        RepeatedText(unit: "::"),
+        RepeatedText(unit: "=a "),
+        RepeatedText(unit: "<a:"),
+        // JSON: nesting beyond the limit, many members and strings with escapes.
+        RepeatedText(unit: "["),
+        RepeatedText(prefix: "[", unit: "{\"password\":1},", suffix: "{}]"),
+        RepeatedText(prefix: "[\"", unit: "\\\"", suffix: "\"]"),
+        RepeatedText(prefix: "{\"a\":\"", unit: "password=\\\"", suffix: "\"}"),
     ]
 
     // 2.0.0 appended each piece of the output to a String.UnicodeScalarView, which copied the
@@ -95,6 +133,32 @@ struct RedactionScalingTests {
     @Test("redaction time grows linearly on adversarial inputs", arguments: adversarial)
     func adversarialScale(input: RepeatedText) {
         expectLinear(input)
+    }
+
+    @Test("redacting a body takes time linear in its size", arguments: [
+        ("a=1&password=x&", "application/x-www-form-urlencoded"),
+        ("{\"password\":\"x\"},", "application/json"),
+        ("--B\r\nContent-Disposition: form-data; name=\"password\"\r\n\r\nx\r\n", "multipart/form-data; boundary=B"),
+    ])
+    func bodyScale(unit: String, contentType: String) {
+        func body(length: Int) -> Data {
+            let repeated = String(repeating: unit, count: length / unit.count)
+            switch contentType {
+            case "application/json": return Data(("[" + repeated + "{}]").utf8)
+            case "application/x-www-form-urlencoded": return Data((repeated + "z=1").utf8)
+            default: return Data((repeated + "--B--").utf8)
+            }
+        }
+        // A multipart body may have at most 1,000 parts; keep both sizes under that.
+        let scale = contentType.hasPrefix("multipart") ? 12 : 1
+        let small = body(length: 20_000 / scale)
+        let large = body(length: 80_000 / scale)
+        expectLinear(
+            "\(contentType) body of \(unit.debugDescription)",
+            small: { _ = redactor.redact(body: small, contentType: contentType) },
+            large: { _ = redactor.redact(body: large, contentType: contentType) },
+            maximumRatio: 10
+        )
     }
 
     /// Times `redact` on 20,000 characters of `input` and on four times as many: about 4 times
