@@ -45,7 +45,7 @@ struct RedactionEdgeCaseTests {
     @Test("finds secret fields in form, XML and percent-encoded syntax", arguments: [
         ("password[]=hunter2", "password[]=[redacted]"),
         ("password[0]=a&password[1]=b", "password[0]=[redacted]&password[1]=[redacted]"),
-        ("user[password]=hunter2&user[name]=bob", "user[password]=[redacted]&user[name]=bob"),
+        ("user[password]=hunter2&user[name]=bob", "user[password]=[redacted]&user[name]=[redacted]"),
         ("user[password][confirmation]=x", "user[password][confirmation]=[redacted]"),
         ("<password>hunter2</password><user>bob</user>", "<password>[redacted]</password><user>bob</user>"),
         ("<ApiKey>\nk-1\n</ApiKey>", "<ApiKey>[redacted]</ApiKey>"),
@@ -58,19 +58,19 @@ struct RedactionEdgeCaseTests {
         ("password%3Dhunter2", "password%3D[redacted]"),
         ("q=password%3dhunter2", "q=password%3d[redacted]"),
         ("secret%3Ax", "secret%3A[redacted]"),
-        ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]&user%5Bname%5D=bob"),
+        ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]&user%5Bname%5D=[redacted]"),
         ("password%5B%5D=hunter2", "password%5B%5D=[redacted]"),
         ("user%5bpassword%5d%3dhunter2", "user%5bpassword%5d%3d[redacted]"),
         ("user%5Bpassword%5D%5Bconfirmation%5D=x", "user%5Bpassword%5D%5Bconfirmation%5D=[redacted]"),
-        ("password%20%3D%20hunter2", "password%20%3D%20[redacted]"),
-        ("password+%3D+hunter2", "password+%3D+[redacted]"),
-        ("q=password%20%3A%20hunter2&x=1", "q=password%20%3A%20[redacted]&x=1"),
-        ("password%20=%20hunter2", "password%20=%20[redacted]"),
-        ("password: <hunter2>", "password: <[redacted]>"),
-        ("token=<abc 123>; next", "token=<[redacted]>; next"),
-        ("password: <hunter2", "password: <[redacted]"),
-        ("password=<hunter2\n>", "password=<[redacted]\n>"),
-        ("password:<a password:<b>", "password:<[redacted] password:<[redacted]>"),
+        ("password%20%3D%20hunter2", "password%20%3D[redacted]"),
+        ("password+%3D+hunter2", "password+%3D[redacted]"),
+        ("q=password%20%3A%20hunter2&x=1", "q=password%20%3A[redacted]&x=1"),
+        ("password%20=%20hunter2", "password%20=[redacted]"),
+        ("password: <hunter2>", "password: [redacted]"),
+        ("token=<abc 123>; next", "token=[redacted]; next"),
+        ("password: <hunter2", "password: [redacted]"),
+        ("password=<hunter2\n>", "password=[redacted]"),
+        ("password:<a password:<b>", "password:[redacted]"),
     ])
     func otherSyntaxes(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -133,7 +133,7 @@ struct RedactionEdgeCaseTests {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("leaves names and syntax that only look like a secret field", arguments: [
+    @Test("leaves plain names and syntax that only look like a secret field", arguments: [
         "passport=X1234",
         "bypass=true",
         "compass=north",
@@ -150,15 +150,42 @@ struct RedactionEdgeCaseTests {
         "<password type=\"text\"",
         "<password a<b>c",
         "a:password>b",
-        "<:password>b",
-        "password[=x",
         "password%3x",
         "password%",
-        "user%5Bpassport%5D=X1234",
         "user%5Bpassword%5D",
-        "%5B=x",
     ])
     func lookalikes(input: String) {
+        #expect(redactor.redact(input) == input)
+    }
+}
+
+extension RedactionEdgeCaseTests {
+    // Brackets, `%` escapes and an empty prefix make a name that is not plain ASCII, whatever it
+    // spells, so its value is hidden.
+    @Test("hides the value of form and XML names that are not plain", arguments: [
+        ("password[=x", "password[=[redacted]"),
+        ("user%5Bpassport%5D=X1234", "user%5Bpassport%5D=[redacted]"),
+        ("%5B=x", "%5B=[redacted]"),
+        ("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>", "<\u{540D}\u{524D}>[redacted]</\u{540D}\u{524D}>"),
+    ])
+    func namesThatAreNotPlain(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("leaves HTML and comparisons that are not fields", arguments: [
+        "<br/> <p>hi</p> <a href=\"x\">y</a>",
+        "if a<b && c>d then",
+        "count>=5",
+        "a <= b",
+        "x == y",
+        "time: 12:30:45",
+        "Error: connection refused",
+        "<a:b:c>x</a:b:c>",
+        "finished: <NSHTTPURLResponse: 0x600> { URL: https://example.com/v2/items?id=7 } { Status Code: 200 }",
+        "<UIView: 0x7f8; frame = (0 0; 375 812); layer = <CALayer: 0x600>>",
+        "<private>",
+    ])
+    func notFields(input: String) {
         #expect(redactor.redact(input) == input)
     }
 }

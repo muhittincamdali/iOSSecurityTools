@@ -1,71 +1,42 @@
 import Foundation
 
-/// The text the detectors read: invisible scalars removed, escaped letters decoded (see
-/// ``EscapedCharacter``) and everything else read as ASCII where it stands for ASCII (see
-/// ``LatinFolding``), with the range each byte came from in the original scalars. One scalar can
-/// become several bytes (`ß` is read as `ss`) and several scalars one byte (`%77` as `w`).
+/// The text the card, email, token and bearer detectors read: invisible scalars removed and every
+/// other scalar read as the ASCII it stands for under Unicode compatibility normalization (see
+/// ``CompatibilityText``), with the range each byte came from in the original scalars. One scalar
+/// can become several bytes (`ﬁ` is read as `fi`).
+///
+/// Field names are not read here: ``FieldName`` compares them exactly as written.
 struct NormalizedText {
     let bytes: [UInt8]
-    /// The offset in the original scalars where the scalar a byte came from starts.
+    /// The offset in the original scalars of the scalar a byte came from.
     let offsets: [Int]
-    /// The offset in the original scalars right after the scalar a byte came from.
-    let ends: [Int]
     let isUppercase: [Bool]
-    /// Whether a byte came from a letter of another script or an unreadable Latin letter; see
-    /// ``LatinFolding/Reading/isForeignLetter``.
-    let isForeignLetter: [Bool]
-    let originalCount: Int
 
-    init(_ scalars: [Unicode.Scalar]) {
+    init(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) {
         var bytes: [UInt8] = []
         var offsets: [Int] = []
-        var ends: [Int] = []
-        var isForeignLetter: [Bool] = []
         bytes.reserveCapacity(scalars.count)
         offsets.reserveCapacity(scalars.count)
-        ends.reserveCapacity(scalars.count)
-        isForeignLetter.reserveCapacity(scalars.count)
-        var folding = LatinFolding()
-        var offset = 0
-        while offset < scalars.count {
-            let scalar = scalars[offset]
-            if let escaped = EscapedCharacter(in: scalars, at: offset) {
-                bytes.append(escaped.byte)
-                offsets.append(offset)
-                ends.append(offset + escaped.length)
-                isForeignLetter.append(false)
-                offset += escaped.length
-                continue
-            }
-            defer { offset += 1 }
-            if ScalarClass.isInvisible(scalar) { continue }
+        for (offset, scalar) in scalars.enumerated() where !ScalarClass.isInvisible(scalar) {
             if scalar.isASCII {
                 bytes.append(UInt8(scalar.value))
                 offsets.append(offset)
-                ends.append(offset + 1)
-                isForeignLetter.append(false)
                 continue
             }
-            let reading = folding.reading(of: scalar)
-            for byte in reading.bytes {
+            for byte in compatibility.ascii(scalar) {
                 bytes.append(byte)
                 offsets.append(offset)
-                ends.append(offset + 1)
-                isForeignLetter.append(reading.isForeignLetter)
             }
         }
         self.bytes = bytes
         self.offsets = offsets
-        self.ends = ends
-        self.isForeignLetter = isForeignLetter
-        self.isUppercase = bytes.map { (UInt8(ascii: "A")...UInt8(ascii: "Z")).contains($0) }
-        self.originalCount = scalars.count
+        self.isUppercase = bytes.map(ASCII.isUppercase)
     }
 
     var count: Int { bytes.count }
 
     func span(_ range: Range<Int>, _ kind: SensitiveDataRedactor.Kinds, _ replacement: String) -> SensitiveDataRedactor.Span {
-        SensitiveDataRedactor.Span(start: offsets[range.lowerBound], end: ends[range.upperBound - 1], kind: kind, replacement: replacement)
+        SensitiveDataRedactor.Span(start: offsets[range.lowerBound], end: offsets[range.upperBound - 1] + 1, kind: kind, replacement: replacement)
     }
 
     func string(_ range: Range<Int>) -> String {
@@ -74,16 +45,11 @@ struct NormalizedText {
 
     // MARK: Character classes
 
-    func isDigit(_ i: Int) -> Bool { (UInt8(ascii: "0")...UInt8(ascii: "9")).contains(bytes[i]) }
+    func isDigit(_ i: Int) -> Bool { ASCII.isDigit(bytes[i]) }
 
-    func isLetter(_ i: Int) -> Bool {
-        let byte = bytes[i] | 0x20
-        return (UInt8(ascii: "a")...UInt8(ascii: "z")).contains(byte)
-    }
+    func isLetter(_ i: Int) -> Bool { ASCII.isLetter(bytes[i]) }
 
     func isAlphanumeric(_ i: Int) -> Bool { isDigit(i) || isLetter(i) }
-
-    func lowercased(_ i: Int) -> UInt8 { isLetter(i) ? bytes[i] | 0x20 : bytes[i] }
 
     func isBase64URL(_ i: Int) -> Bool { isAlphanumeric(i) || bytes[i] == UInt8(ascii: "-") || bytes[i] == UInt8(ascii: "_") }
 
@@ -103,9 +69,48 @@ struct NormalizedText {
 
     func matches(_ word: [UInt8], at i: Int) -> Bool {
         guard i + word.count <= count else { return false }
-        for (k, byte) in word.enumerated() where lowercased(i + k) != byte {
+        for (k, byte) in word.enumerated() where ASCII.lowercased(bytes[i + k]) != byte {
             return false
         }
         return true
+    }
+}
+
+/// Reads a scalar outside ASCII as the ASCII it stands for under Unicode compatibility
+/// normalization (NFKC): `ａ` and `𝐚` are `a`, `＝` and `︓` are `=` and `:`, a digit of any script
+/// is its digit, every space is ` ` and a line or paragraph separator is `\n`. A scalar whose
+/// normal form is not ASCII is read as ``unreadable``. This is Unicode's own mapping, not a list
+/// of look-alikes: a Cyrillic `а` stays unreadable.
+///
+/// The readings are cached per scalar: logs repeat the same few non-ASCII characters, and the
+/// normalization goes through Foundation.
+final class CompatibilityText {
+    /// A byte that no detector or separator matches.
+    static let unreadable: UInt8 = 0xFF
+
+    private var cache: [UInt32: [UInt8]] = [:]
+
+    func ascii(_ scalar: Unicode.Scalar) -> [UInt8] {
+        if scalar.isASCII { return [UInt8(scalar.value)] }
+        if let cached = cache[scalar.value] { return cached }
+        let reading = Self.read(scalar)
+        cache[scalar.value] = reading
+        return reading
+    }
+
+    private static func read(_ scalar: Unicode.Scalar) -> [UInt8] {
+        if let digit = ScalarClass.decimalDigit(scalar) { return [UInt8(ascii: "0") + digit] }
+        switch scalar.properties.generalCategory {
+        case .lineSeparator, .paragraphSeparator: return [UInt8(ascii: "\n")]
+        default: break
+        }
+        if scalar == "\u{85}" { return [UInt8(ascii: "\n")] }
+        if scalar.properties.isWhitespace { return [UInt8(ascii: " ")] }
+        var bytes: [UInt8] = []
+        for part in String(scalar).precomposedStringWithCompatibilityMapping.unicodeScalars where !ScalarClass.isInvisible(part) {
+            guard part.isASCII else { return [unreadable] }
+            bytes.append(UInt8(part.value))
+        }
+        return bytes.isEmpty ? [unreadable] : bytes
     }
 }
