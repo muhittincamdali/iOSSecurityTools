@@ -51,6 +51,7 @@ struct RedactionScalingTests {
         RepeatedText(unit: "[password]"),
         RepeatedText(unit: "[pass]"),
         RepeatedText(prefix: "password", unit: "[password]"),
+        RepeatedText(unit: "%5Bpassword%5D"),
         RepeatedText(unit: "<password>"),
         RepeatedText(prefix: "<password>", unit: "\n"),
         RepeatedText(unit: "password%3"),

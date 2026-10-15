@@ -53,6 +53,10 @@ struct RedactionEdgeCaseTests {
         ("password%3Dhunter2", "password%3D[redacted]"),
         ("q=password%3dhunter2", "q=password%3d[redacted]"),
         ("secret%3Ax", "secret%3A[redacted]"),
+        ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]&user%5Bname%5D=bob"),
+        ("password%5B%5D=hunter2", "password%5B%5D=[redacted]"),
+        ("user%5bpassword%5d%3dhunter2", "user%5bpassword%5d%3d[redacted]"),
+        ("user%5Bpassword%5D%5Bconfirmation%5D=x", "user%5Bpassword%5D%5Bconfirmation%5D=[redacted]"),
     ])
     func otherSyntaxes(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -96,6 +100,9 @@ struct RedactionEdgeCaseTests {
         "password[=x",
         "password%3x",
         "password%",
+        "user%5Bpassport%5D=X1234",
+        "user%5Bpassword%5D",
+        "%5B=x",
     ])
     func lookalikes(input: String) {
         #expect(redactor.redact(input) == input)

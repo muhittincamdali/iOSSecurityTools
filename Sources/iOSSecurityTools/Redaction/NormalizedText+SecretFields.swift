@@ -13,12 +13,15 @@ extension NormalizedText {
             }
             var end = i
             while end < count, isIdentifierCharacter(end) { end += 1 }
-            guard namesSecret(i..<end) else {
+            // In `user%5Bpassword%5D` the name starts after the `5B` of the encoded `[`.
+            let start = i > 0 && bracketLength(at: i - 1, closing: false) == 3 ? i + 2 : i
+            let name = start..<end
+            guard !name.isEmpty, namesSecret(name) else {
                 i = end
                 continue
             }
-            let afterBrackets = indexAfterBrackets(of: i..<end)
-            guard let value = valueRange(from: afterBrackets) ?? elementContent(after: i..<end) else {
+            let afterBrackets = indexAfterBrackets(of: name)
+            guard let value = valueRange(from: afterBrackets) ?? elementContent(after: name) else {
                 // A name inside the brackets that follow has no value either: its brackets end at
                 // the same place. Going on from there keeps `[password][password]…` linear.
                 i = max(end, afterBrackets)
@@ -87,10 +90,11 @@ extension NormalizedText {
 
     // MARK: Values
 
-    /// The value after a field name: `name: value`, `name=value`, `name := value`, `"name": "value"`,
-    /// `\"name\":\"value\"` in JSON escaped inside another string, form fields such as
-    /// `password[]=value` and `user[password]=value`, and `name%3Dvalue` with the `=` or `:`
-    /// percent-encoded. `afterName` is where the text continues after the name and its brackets.
+    /// The value after a field name: `name: value`, `name=value`, `name := value`,
+    /// `"name": "value"`, `\"name\":\"value\"` in JSON escaped inside another string, form fields
+    /// such as `password[]=value`, `user[password]=value` and `user%5Bpassword%5D=value`, and
+    /// `name%3Dvalue` with the `=` or `:` percent-encoded. `afterName` is where the text continues
+    /// after the name and its brackets.
     private func valueRange(from afterName: Int) -> Range<Int>? {
         var j = afterName
         if isEscapedQuote(j) {
@@ -133,19 +137,31 @@ extension NormalizedText {
     }
 
     /// Where the text continues after the `]` that closes `user[password` and after brackets that
-    /// follow a name, as in `password[]` and `password[0]`.
+    /// follow a name, as in `password[]` and `password[0]`. Brackets can be percent-encoded, as
+    /// form bodies send them: `user%5Bpassword%5D`.
     private func indexAfterBrackets(of name: Range<Int>) -> Int {
         var j = name.upperBound
-        if name.lowerBound > 0, bytes[name.lowerBound - 1] == UInt8(ascii: "["), j < count, bytes[j] == UInt8(ascii: "]") {
-            j += 1
-        }
-        while j < count, bytes[j] == UInt8(ascii: "[") {
-            var close = j + 1
+        let isInBrackets = bracketLength(at: name.lowerBound - 1, closing: false) == 1
+            || bracketLength(at: name.lowerBound - 3, closing: false) == 3
+        if isInBrackets { j += bracketLength(at: j, closing: true) }
+        while case let open = bracketLength(at: j, closing: false), open > 0 {
+            var close = j + open
             while close < count, isIdentifierCharacter(close) { close += 1 }
-            guard close < count, bytes[close] == UInt8(ascii: "]") else { break }
-            j = close + 1
+            let closeLength = bracketLength(at: close, closing: true)
+            guard closeLength > 0 else { break }
+            j = close + closeLength
         }
         return j
+    }
+
+    /// The length of the `[`, or of the `]` when `closing`, at `i`: 1, or 3 when it is
+    /// percent-encoded as `%5B` or `%5D`; 0 when there is none.
+    private func bracketLength(at i: Int, closing: Bool) -> Int {
+        guard i >= 0, i < count else { return 0 }
+        if bytes[i] == (closing ? UInt8(ascii: "]") : UInt8(ascii: "[")) { return 1 }
+        let isEncoded = i + 2 < count && bytes[i] == UInt8(ascii: "%") && bytes[i + 1] == UInt8(ascii: "5")
+            && lowercased(i + 2) == (closing ? UInt8(ascii: "d") : UInt8(ascii: "b"))
+        return isEncoded ? 3 : 0
     }
 
     /// Where the value starts after a `:` or `=` at `i`, also written as `%3A` or `%3D`.
