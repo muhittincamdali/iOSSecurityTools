@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
+<!-- i18n-source: README.md@48852257bc8362ca754a0111015315126fff600f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -59,7 +59,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  280 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  282 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus

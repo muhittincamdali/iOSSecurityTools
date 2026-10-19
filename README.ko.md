@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
+<!-- i18n-source: README.md@48852257bc8362ca754a0111015315126fff600f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-light.svg" alt="iOSSecurityTools: Apple 앱을 위한 키체인, 암호화, 인증서 피닝, 일회용 코드, 무결성 검사."></picture></p>
@@ -34,7 +34,7 @@ iOS, macOS, tvOS, watchOS, visionOS 앱을 위한 보안 구성 요소 모음인
 - **사용자를 막아 버리지 않는 피닝** — `PinningPolicy`는 백업 핀을 필수로 요구하고, 서브도메인, 만료일, 보고 전용 모드를 지원하며, 시스템 자체의 신뢰 평가도 여전히 통과해야 합니다.
 - **약속이 아닌 신호** — `IntegrityInspector`는 탈옥 관련 파일, 디버거, 시뮬레이터, 후킹 라이브러리, 시스템 프록시를 `Codable` 리포트로 알려 줍니다. 공격자가 무엇을 숨길 수 있는지도 문서에 적혀 있습니다.
 - **비밀 정보를 로그와 스크린샷에서 지킵니다** — `@Redacted`는 어디에서 출력하든 `<redacted>`로 표시합니다. `SensitiveDataRedactor`는 카드 번호, 이메일, 토큰, 비밀 필드를 가립니다. `.privacyShield()`는 앱 전환기와 화면 녹화 중에 뷰를 가려 줍니다. 리댁터는 순수 ASCII 키만 비밀 이름과 비교하고, 그 밖의 키는 모두 기본으로 가립니다. JSON, 폼, multipart 본문은 파서로 읽고, 파싱할 수 없는 본문은 생략합니다.
-- **악의적인 입력에 맞서 테스트했습니다** — RFC 4226, 6238, 5869 테스트 벡터, 독립된 구현이 만든 엔벨로프와 해시, 테스트용 PKI의 인증서 체인, NaN과 무한대 날짜, `Int.min`과 `Int.max`, 지나치게 크거나 중복된 URI 매개변수까지 다룹니다. macOS와 iPhone 시뮬레이터에서 Swift Testing 테스트 280개를 실행하고, 예제 앱 안에서 키체인 테스트 스위트도 실행합니다.
+- **악의적인 입력에 맞서 테스트했습니다** — RFC 4226, 6238, 5869 테스트 벡터, 독립된 구현이 만든 엔벨로프와 해시, 테스트용 PKI의 인증서 체인, NaN과 무한대 날짜, `Int.min`과 `Int.max`, 지나치게 크거나 중복된 URI 매개변수까지 다룹니다. macOS와 iPhone 시뮬레이터에서 Swift Testing 테스트 282개를 실행하고, 예제 앱 안에서 키체인 테스트 스위트도 실행합니다.
 
 ### 포함된 구성 요소
 

@@ -50,7 +50,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   form and multipart bodies are parsed, and unparsed bodies are omitted.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 280 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 282 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included

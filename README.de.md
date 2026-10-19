@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
+<!-- i18n-source: README.md@48852257bc8362ca754a0111015315126fff600f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -57,7 +57,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  280 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  282 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist

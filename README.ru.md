@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
+<!-- i18n-source: README.md@48852257bc8362ca754a0111015315126fff600f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -57,7 +57,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   а тела, которые не удалось разобрать, пропускаются.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 280 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 282 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
