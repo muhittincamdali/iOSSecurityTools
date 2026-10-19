@@ -84,8 +84,9 @@ public struct SensitiveDataRedactor: Sendable {
         /// Tokens after the word `Bearer`.
         public static let bearerTokens = Kinds(rawValue: 1 << 3)
         /// Values hidden by their key: secret and non-ASCII keys in structured input, keys that are
-        /// not allowed in free text, the parts of URLs that ``redact(url:)`` hides, and the password
-        /// in `user:password@host`.
+        /// not allowed in free text, the query values and path segments that ``redact(url:)`` hides
+        /// by its URL rules, and the password in `user:password@host` in text. ``redact(url:)``
+        /// drops a URL's user name, password and fragment with or without it.
         public static let secretFields = Kinds(rawValue: 1 << 4)
         /// International bank account numbers that pass the mod-97 check.
         public static let ibans = Kinds(rawValue: 1 << 5)

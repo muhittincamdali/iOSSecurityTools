@@ -61,9 +61,21 @@ struct RedactionURLTests {
         #expect(redactor.redact("go https://例え.jp/パス?code=1") == "go https://%E4%BE%8B%E3%81%88.jp/%E3%83%91%E3%82%B9?code=[redacted]")
     }
 
-    @Test("without secret fields a URL is written as it is")
+    @Test("without secret fields the user info and fragment are still dropped and the detectors still run")
     func kinds() throws {
-        let url = try #require(URL(string: "https://bob:pw@example.com/a?b=1"))
-        #expect(SensitiveDataRedactor(kinds: .emailAddresses).redact(url: url) == url.absoluteString)
+        let detectorsOnly = SensitiveDataRedactor(kinds: [.cardNumbers, .emailAddresses])
+        let url = try #require(URL(string: "https://bob:pw@example.com/pay?card=4111111111111111&email=alice@example.com#frag"))
+        let output = detectorsOnly.redact(url: url)
+        #expect(output == "https://example.com/pay?card=%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111&email=a%E2%80%A2%E2%80%A2%E2%80%A2%40example.com")
+        for leaked in ["bob", "pw", "frag", "4111111111111111", "alice"] {
+            #expect(!output.contains(leaked))
+        }
+        #expect(detectorsOnly.redact("https://example.com/pay?card=4111111111111111&email=alice@example.com") == "https://example.com/pay?card=•••• 1111&email=a•••@example.com")
+
+        let path = try #require(URL(string: "https://example.com/users/alice@example.com/cards/4111-1111-1111-1111?b=1&flag"))
+        #expect(detectorsOnly.redact(url: path) == "https://example.com/users/:id/cards/:id?b=1&flag")
+        #expect(SensitiveDataRedactor(kinds: []).redact(url: try #require(URL(string: "https://bob:pw@example.com/a?b=1#x"))) == "https://example.com/a?b=1")
+        let hostOnly = SensitiveDataRedactor(kinds: .emailAddresses, urlDetail: .hostOnly)
+        #expect(hostOnly.redact(url: try #require(URL(string: "https://bob:pw@example.com:8443/a?email=alice@example.com#x"))) == "https://example.com:8443")
     }
 }

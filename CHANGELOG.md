@@ -15,10 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   type, is larger than 1 MiB or does not parse completely is omitted as
   `[body omitted: N bytes, <type>]`; uploaded files are omitted the same way.
 - `SensitiveDataRedactor.redact(url:)` writes a URL read with `URLComponents` without its user
-  name, password and fragment. A query value is kept only for the names on
-  `allowedQueryParameters`, which is empty by default; a path segment that looks like an
-  identifier or a secret, and the segment after one that names a secret (`/pin/4831`), become
-  `:id`. With `URLDetail.hostOnly` only the scheme, host and port are written.
+  name, password and fragment, whatever `kinds` holds. With `.secretFields` a query value is
+  kept only for the names on `allowedQueryParameters`, which is empty by default, and a path
+  segment that looks like an identifier or a secret, and the segment after one that names a
+  secret (`/pin/4831`), become `:id`; without it only the value detectors run on the path and
+  the query. With `URLDetail.hostOnly` only the scheme, host and port are written.
 - `allowedTextKeys` and `defaultAllowedTextKeys`: the keys whose values free text keeps.
 
 ### Changed

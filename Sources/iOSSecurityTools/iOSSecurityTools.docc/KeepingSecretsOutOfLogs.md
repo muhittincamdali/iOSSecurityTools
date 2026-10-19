@@ -121,10 +121,12 @@ redactor.redact(body: Data("<password>hunter2</password>".utf8), contentType: "a
 ```
 
 URLs go through ``SensitiveDataRedactor/redact(url:)``, which reads them with `URLComponents`.
-The user name, password and fragment are never written. A query parameter keeps its value only
-when its name is plain ASCII and on ``SensitiveDataRedactor/allowedQueryParameters``, which is
-empty by default. A path segment that looks like an identifier or a secret becomes `:id`, and so
-does the segment after one that names a secret:
+The user name, password and fragment are never written, whatever kinds the redactor looks for;
+without ``SensitiveDataRedactor/Kinds/secretFields`` only the value detectors run on the path and
+the query. With it, a query parameter keeps its value only when its name is plain ASCII and on
+``SensitiveDataRedactor/allowedQueryParameters``, which is empty by default. A path segment
+that looks like an identifier or a secret becomes `:id`, and so does the segment after one that
+names a secret:
 
 ```swift
 redactor.redact(url: URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")!)

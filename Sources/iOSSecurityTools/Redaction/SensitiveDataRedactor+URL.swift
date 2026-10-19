@@ -5,7 +5,8 @@ extension SensitiveDataRedactor {
     ///
     /// The URL is read with `URLComponents`:
     ///
-    /// - The user name and password (`user:password@`) and the fragment (`#…`) are never written.
+    /// - The user name and password (`user:password@`) and the fragment (`#…`) are never written,
+    ///   whatever ``kinds`` holds.
     /// - **Query:** a parameter keeps its value only when its name, decoded, is plain ASCII and on
     ///   ``allowedQueryParameters``, which is empty by default; any other value is
     ///   `[redacted]`, and so is a parameter without `=` that is not on the list. A name that is not
@@ -18,6 +19,11 @@ extension SensitiveDataRedactor {
     ///   after a `;` are read like query parameters.
     /// - With ``URLDetail/hostOnly`` only the scheme, host and port are written.
     ///
+    /// The query and path rules above belong to ``Kinds/secretFields``. Without it the URL is read
+    /// the same way, but only the value detectors that ``kinds`` turns on run: a path segment in
+    /// which they find something becomes `:id`, and what they find in a decoded query name or
+    /// value is replaced and encoded again (`card=%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111`).
+    ///
     /// A URL that `URLComponents` cannot parse is written as ``unparsedURL``.
     ///
     /// ```swift
@@ -25,7 +31,6 @@ extension SensitiveDataRedactor {
     /// // https://example.com/users/:id/reset?code=[redacted]
     /// ```
     public func redact(url: URL) -> String {
-        guard kinds.contains(.secretFields) else { return url.absoluteString }
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return Self.unparsedURL }
         return redacted(components)
     }
@@ -41,11 +46,40 @@ extension SensitiveDataRedactor {
         var result = scheme + "://" + host
         if let port = components.port { result += ":\(port)" }
         guard urlDetail == .full else { return result }
-        result += redacted(path: components.percentEncodedPath)
+        let hidesByName = kinds.contains(.secretFields)
+        let path = components.percentEncodedPath
+        result += hidesByName ? redacted(path: path) : scanned(path: path)
         if let items = components.percentEncodedQueryItems {
-            result += "?" + items.map { redacted(parameter: $0.name, value: $0.value) }.joined(separator: "&")
+            let parameters = items.map { item in
+                hidesByName ? redacted(parameter: item.name, value: item.value) : scanned(parameter: item.name, value: item.value)
+            }
+            result += "?" + parameters.joined(separator: "&")
         }
         return result
+    }
+
+    // MARK: Without secret fields
+
+    /// The path when only the value detectors run: a segment in which they find something, or that
+    /// does not decode, becomes `:id`.
+    private func scanned(path: String) -> String {
+        path.split(separator: "/", omittingEmptySubsequences: false)
+            .map { holdsSecret(String($0)) ? Self.identifierPlaceholder : String($0) }
+            .joined(separator: "/")
+    }
+
+    /// A query parameter when only the value detectors run.
+    private func scanned(parameter rawName: String, value rawValue: String?) -> String {
+        let name = scanned(rawName)
+        return rawValue.map { name + "=" + scanned($0) } ?? name
+    }
+
+    /// A percent-encoded query name or value with what the value detectors find in it replaced;
+    /// `[redacted]` when it does not decode.
+    private func scanned(_ raw: String) -> String {
+        guard let decoded = Self.formDecoded(raw) else { return Self.replacement }
+        let redacted = redact(decoded)
+        return redacted == decoded ? raw : Self.formEncoded(redacted)
     }
 
     /// The path segment by segment. A segment after one that names a secret or cannot be read
