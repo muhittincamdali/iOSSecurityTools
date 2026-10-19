@@ -162,6 +162,13 @@ struct RedactionBodyTests {
         #expect(!output.contains("passport") && !output.contains("s3cr3t") && !output.contains("aHVudGVyMg"))
     }
 
+    @Test("finds the colon of a part header among the scalars, also before a mark")
+    func multipartHeaderColon() {
+        let body = multipart(["Content-Disposition: form-data; name=\"bio\"\r\nX-Note:\u{301}s3cr3t\r\n\r\nhi"])
+        let expected = multipart(["Content-Disposition: form-data; name=\"bio\"\r\nX-Note: [redacted]\r\n\r\nhi"])
+        #expect(redact(body, "multipart/form-data; boundary=XyZ") + "\r\n" == expected)
+    }
+
     @Test("omits multipart bodies that servers could split differently", arguments: [
         "preamble\r\n--XyZ\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nx\r\n--XyZ--",
         "--XyZ\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nx\r\n--XyZ--\r\nepilogue",
@@ -174,6 +181,7 @@ struct RedactionBodyTests {
         "--XyZ\r\nContent-Disposition: form-data; name=\"a\"\nContent-Type: text/plain\r\n\r\nx\r\n--XyZ--",
         "--XyZ\r\nContent-Disposition: form-data; name=\"a\"\r\nContent-Disposition: form-data; name=\"b\"\r\n\r\nx\r\n--XyZ--",
         "--XyZ\r\nContent-Disposition: attachment; name=\"a\"\r\n\r\nx\r\n--XyZ--",
+        "--XyZ\r\nContent-Disposition:\u{301} form-data; name=\"password\"\r\n\r\nhunter2\r\n--XyZ--",
     ])
     func malformedMultipart(body: String) {
         #expect(redact(body, "multipart/form-data; boundary=XyZ") == "[body omitted: \(body.utf8.count) bytes, multipart/form-data]")

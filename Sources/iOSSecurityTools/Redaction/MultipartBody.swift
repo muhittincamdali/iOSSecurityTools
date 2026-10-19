@@ -90,14 +90,16 @@ struct MultipartBody {
     }
 
     /// `name: value` on one line; nil for a folded line, a bare CR or LF or a name that is not a token.
+    /// The colon is found among the scalars, since `:` followed by a mark is one `Character`.
     private static func headerField(_ line: String) -> (name: String, value: String)? {
-        guard let first = line.unicodeScalars.first, first != " ", first != "\t",
-              !line.unicodeScalars.contains(where: { $0 == "\r" || $0 == "\n" }),
-              let colon = line.firstIndex(of: ":")
+        let scalars = line.unicodeScalars
+        guard let first = scalars.first, first != " ", first != "\t",
+              !scalars.contains(where: { $0 == "\r" || $0 == "\n" }),
+              let colon = scalars.firstIndex(of: ":")
         else { return nil }
-        let name = line[..<colon]
-        guard name.unicodeScalars.allSatisfy(HeaderValueReader.isTokenCharacter) else { return nil }
-        return (String(name), String(line[line.index(after: colon)...]))
+        let name = scalars[..<colon]
+        guard name.allSatisfy(HeaderValueReader.isTokenCharacter) else { return nil }
+        return (String(Substring(name)), String(Substring(scalars[scalars.index(after: colon)...])))
     }
 
     /// The `name` and `filename` of a `form-data` disposition.
