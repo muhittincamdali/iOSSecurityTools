@@ -65,7 +65,7 @@ struct RedactionScalingTests {
         RepeatedText(unit: "password:<a"),
         RepeatedText(prefix: "password:<", unit: "a"),
         RepeatedText(prefix: "password=<", unit: "password=<a "),
-        // The scaling inputs of the 2.0.1 bypass probes.
+        // The scaling inputs of the bypass probes against the first fixes after 2.0.0.
         RepeatedText(unit: "<password a=\""),
         RepeatedText(unit: "<a:password b "),
         RepeatedText(unit: "password: <"),

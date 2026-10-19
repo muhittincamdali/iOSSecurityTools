@@ -10,8 +10,8 @@ struct RedactionJSONTests {
 
     static let jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
 
-    /// Documents where a detector finds something inside a hidden value or in a number. Before
-    /// 2.0.1 the hidden value lost its quotes (`{"credentials":[redacted]}`) and numbers became
+    /// Documents where a detector finds something inside a hidden value or in a number. In 2.0.0
+    /// the hidden value lost its quotes (`{"credentials":[redacted]}`) and numbers became
     /// masks (`{"amount":•••• 1111}`).
     static let documents: [(String, String)] = [
         (#"{"credentials":{"email":"alice@example.com"}}"#, #"{"credentials":"[redacted]"}"#),

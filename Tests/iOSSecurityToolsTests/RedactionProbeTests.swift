@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import iOSSecurityTools
 
-/// The inputs that got a secret past 2.0.0 and the earlier designs of 2.0.1, kept so that none of
+/// The inputs that got a secret past 2.0.0 and the earlier designs of 2.1.0, kept so that none of
 /// them can come back.
 @Suite("SensitiveDataRedactor bypass probes")
 struct RedactionProbeTests {

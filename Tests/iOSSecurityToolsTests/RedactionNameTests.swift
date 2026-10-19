@@ -58,7 +58,7 @@ struct RedactionNameTests {
         }
     }
 
-    @Test("the inputs that got past the first fix of 2.0.1", arguments: [
+    @Test("the inputs that got past the first fix after 2.0.0", arguments: [
         ("{\"otp\":\"123456\",\"cvv\":\"123\",\"ssn\":\"078-05-1120\",\"auth\":\"a\",\"key\":\"k\",\"signature\":\"s\"}",
          "{\"otp\":\"[redacted]\",\"cvv\":\"[redacted]\",\"ssn\":\"[redacted]\",\"auth\":\"[redacted]\",\"key\":\"[redacted]\",\"signature\":\"[redacted]\"}"),
         // In free text an unquoted value goes to the end of its line: `;`, `&` and spaces do not

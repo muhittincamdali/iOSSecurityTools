@@ -1,8 +1,9 @@
 import Foundation
 @testable import iOSSecurityTools
 
-// The adversarial probe set written against 2.0.1 before this redesign: every probe hides a
-// unique secret behind one trick. 127 of the 386 got their secret past the redactor then.
+// The adversarial probe set written against the first fixes after 2.0.0, before this redesign:
+// every probe hides a unique secret behind one trick. 127 of the 386 got their secret past the
+// redactor then.
 
 extension AttackProbes {
     // swiftlint:disable:next function_body_length
