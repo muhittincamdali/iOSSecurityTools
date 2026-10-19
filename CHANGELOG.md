@@ -5,22 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - Unreleased
 
 ### Added
 
 - `SensitiveDataRedactor.redact(body:contentType:)` redacts request and response bodies with a
   parser chosen by the content type: JSON, `application/x-www-form-urlencoded` forms, multipart
   form data (each part by its own type) and plain text. A body that is not UTF-8, has another
-  type, is larger than 1 MiB or does not parse completely is omitted as
+  type, is larger than 1 MiB (`maximumBodySize`), does not parse completely or could be split
+  into fields differently by a common server parser is omitted as
   `[body omitted: N bytes, <type>]`; uploaded files are omitted the same way.
 - `SensitiveDataRedactor.redact(url:)` writes a URL read with `URLComponents` without its user
   name, password and fragment, whatever `kinds` holds. With `.secretFields` a query value is
   kept only for the names on `allowedQueryParameters`, which is empty by default, and a path
   segment that looks like an identifier or a secret, and the segment after one that names a
-  secret (`/pin/4831`), become `:id`; without it only the value detectors run on the path and
-  the query. With `URLDetail.hostOnly` only the scheme, host and port are written.
+  secret (`/pin/4831`), become `:id` (`identifierPlaceholder`); without it only the value
+  detectors run on the path and the query. A query that servers could split into fields
+  differently is written as `?[redacted]`, and a URL that `URLComponents` cannot parse as
+  `unparsedURL`. With `URLDetail.hostOnly` (the `urlDetail` argument of the initializer) only the
+  scheme, host and port are written.
 - `allowedTextKeys` and `defaultAllowedTextKeys`: the keys whose values free text keeps.
+- `SensitiveDataRedactor.Kinds.ibans` and `.longTokens`, both in `.all`: IBANs that pass the
+  mod-97 check, shown as `•••• 3000`, and runs of 32 or more hexadecimal digits or base64 letters
+  and digits, shown as `[redacted]`.
 
 ### Changed
 
@@ -47,6 +54,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default-ignorable code points (such as U+115F and U+3164) and control characters are left out
   of the scanning copy, like format characters, so they no longer split a secret name, a card
   number, an IBAN, a token or an email address.
+- Bodies and URL queries are read only when the common server parsers (PHP, Werkzeug, Rack, Go,
+  busboy) split them into the same fields. A multipart body needs a content type with one
+  unquoted `boundary` of at most 70 characters, and every `--boundary` in it, in any case, has
+  to be a delimiter line of its own after a CRLF. A form has to be printable ASCII without `;`,
+  with every `%` the start of an escape and no name spelled two ways (`a.b` and `a_b`,
+  `pass%77ord` and `password`, `Note` and `note`). Any other body is omitted, and such a query
+  is written as `?[redacted]`.
+- An invisible character right before a key or a word of free text belongs to it:
+  `\u{200D}status=…` is no longer read as the allowed key `status`, and `\u{202E}drowssap`, which
+  cannot be read, hides the rest of its line.
+- CI uses the shared workflows of muhittincamdali/.github v1.1.0.
 
 ### Removed
 
@@ -64,11 +82,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   URL path segments after a secret label. They are kept as tests, together with property tests
   that generate disguised secret names and random keys that are not allowed and check that no
   value shows, and tests that allowed keys and plain names keep their value.
-
-## [2.0.1] - 2026-10-15
-
-### Fixed
-
+- A multipart body in which Werkzeug 3.1.3 and PHP find another part after a `--boundary` that
+  follows a bare LF or CR showed that part's value: in
+  `…name="note"\r\n\r\nhi\n--B0und\r\nContent-Disposition: form-data; name="password"\r\n\r\n…`
+  the redactor read one `note` part whose text kept the password. Such a body is now omitted.
 - `SensitiveDataRedactor` no longer shows part of a card number that a secret value, bearer token
   or JSON Web Token runs into: `token=abc_4111 1111 1111 1111` became
   `token=[redacted] 1111 1111 1111`. Findings that partly overlap are now replaced together, and
@@ -93,10 +110,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `session` as secret names.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
-
-### Changed
-
-- CI uses the shared workflows of muhittincamdali/.github v1.1.0.
 
 ## [2.0.0] - 2026-10-15
 
@@ -157,7 +170,6 @@ No 1.0.0 API remains.
 First tagged release: encryption, keychain, authentication and monitoring managers. Replaced by
 2.0.0.
 
-[Unreleased]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.1...HEAD
-[2.0.1]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...v2.0.1
+[2.1.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/muhittincamdali/iOSSecurityTools/releases/tag/v1.0.0
