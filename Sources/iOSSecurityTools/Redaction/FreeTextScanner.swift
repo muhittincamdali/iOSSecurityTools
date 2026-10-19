@@ -159,7 +159,7 @@ struct FreeTextScanner {
     /// part of the key (`status\=…` escapes the `=` in some formats), so such a key is not plain.
     func allowsValue(ofKey key: Range<Int>?) -> Bool {
         guard let key, !key.isEmpty else { return false }
-        var name = source[text.original(key)]
+        var name = source[text.originalWithInvisiblesBefore(key)]
         while let first = name.first, "([{<'".unicodeScalars.contains(first) { name = name.dropFirst() }
         while let last = name.last, last == "'" { name = name.dropLast() }
         guard let fold = FieldName.allowableFold(name) else { return false }

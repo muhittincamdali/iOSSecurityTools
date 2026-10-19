@@ -72,6 +72,14 @@ struct NormalizedText {
         offset(at: range.lowerBound)..<offset(at: range.upperBound)
     }
 
+    /// ``original(_:)`` together with the invisible scalars right before the range, which belong
+    /// to the key or word that starts there: `\u{200D}status` is not the key `status`.
+    func originalWithInvisiblesBefore(_ range: Range<Int>) -> Range<Int> {
+        let end = offset(at: range.upperBound)
+        guard range.lowerBound > 0 else { return 0..<end }
+        return min(offsets[range.lowerBound - 1] + 1, offset(at: range.lowerBound))..<end
+    }
+
     /// The first byte at or after an offset in the original scalars.
     func byteIndex(atOrAfter offset: Int) -> Int {
         var low = 0

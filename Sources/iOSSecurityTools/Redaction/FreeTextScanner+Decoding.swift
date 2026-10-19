@@ -4,7 +4,7 @@ extension FreeTextScanner {
     /// ``EscapeDecoder``): whether it can be read with certainty, and where the first secret word
     /// in it ends.
     func read(_ range: Range<Int>) -> WordReading {
-        let scalars = source[text.original(range)]
+        let scalars = source[text.originalWithInvisiblesBefore(range)]
         guard scalars.contains(where: EscapeDecoder.startsEscape) else {
             if Self.isAmbiguous(scalars) { return .ambiguous }
             return LooseReading(text, [range], source: source)?.secretEnd { _ in true }.map { .valueStart($0) } ?? .plain

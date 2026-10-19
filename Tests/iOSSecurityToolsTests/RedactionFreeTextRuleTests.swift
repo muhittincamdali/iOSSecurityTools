@@ -157,6 +157,26 @@ struct RedactionFreeTextRuleTests {
         #expect(redactor.redact(input) == expected)
     }
 
+    // Review probes 71, 80 and 401–414: the scanning copy leaves out an invisible character, so a
+    // key or word that starts with one was read without it, as the allowed key `status` or a
+    // plain word.
+    @Test("an invisible character right before a key or a word belongs to it", arguments: [
+        ("\u{200D}status=Qz080Wk7r", "\u{200D}status=[redacted]"),
+        ("x \u{200B}status=hunter2", "x \u{200B}status=[redacted]"),
+        ("\u{2060}status=hunter2", "\u{2060}status=[redacted]"),
+        ("\u{115F}status=hunter2", "\u{115F}status=[redacted]"),
+        ("\u{AD}status: hunter2", "\u{AD}status: [redacted]"),
+        ("\u{FEFF}status=200", "\u{FEFF}status=[redacted]"),
+        ("status=200 \u{200B}", "status=200 \u{200B}"),
+        ("\u{202E}drowssap Qz071Wk7r", "\u{202E}[redacted]"),
+        ("login \u{202E}zyx2retnuh drowssap", "login \u{202E}[redacted]"),
+        ("\u{2066}\u{202E}drowssap hunter2", "\u{2066}\u{202E}[redacted]"),
+    ])
+    func invisibleBeforeKeyOrWord(input: String, expected: String) {
+        let output = redactor.redact(input)
+        #expect(Array(output.unicodeScalars) == Array(expected.unicodeScalars), "\(output.debugDescription)")
+    }
+
     @Test("prose, other scripts and quoted text stay as they are", arguments: [
         "Merhaba Kullanıcı giriş yaptı", "Straße naïve café", "заказ отправлен", "東京 ログイン成功", "iPhoneで決済しました",
         "say \"hi\" now", "[INFO] started in 12 ms", "keyboard layout changed", "tokenizer ready", "bypass mode",
