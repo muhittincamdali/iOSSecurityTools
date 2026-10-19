@@ -10,7 +10,9 @@ extension SensitiveDataRedactor {
     ///   `"[redacted]"`, and a string or name is written again escaped, so the output is still
     ///   valid JSON.
     /// - **Forms** (`application/x-www-form-urlencoded`): fields are split at `&` and at the first
-    ///   `=`, and names and values are decoded (`+` is a space, then percent-decoding as UTF-8).
+    ///   `=`, Unicode scalar by scalar as a server reads the bytes (also where a combining mark
+    ///   follows), and names and values are decoded (`+` is a space, then percent-decoding as
+    ///   UTF-8).
     ///   A field whose decoded name hides its value shows `name=[redacted]`; other values, names
     ///   and fields without `=` are read as free text.
     /// - **Multipart form data**: every part is written again with its field name and its
@@ -65,10 +67,13 @@ extension SensitiveDataRedactor {
 
     // MARK: Forms
 
+    /// Fields are split at `&` and `=` scalar by scalar, as a server reads the bytes: split by
+    /// `Character`, `&` or `=` followed by a combining mark would be one character and no
+    /// delimiter, and `note=hi&\u{301}status=hunter2` would read as one field.
     private func redactedForm(_ body: Data) -> String? {
         guard let text = String(data: body, encoding: .utf8) else { return nil }
         var fields: [String] = []
-        for field in text.split(separator: "&", omittingEmptySubsequences: false) {
+        for field in text.unicodeScalars.split(separator: "&", omittingEmptySubsequences: false) {
             guard let redacted = redactedFormField(field) else { return nil }
             fields.append(redacted)
         }
@@ -78,13 +83,14 @@ extension SensitiveDataRedactor {
     /// A field is a name, `=` and a value. The name is free text too, since it can hold a field or
     /// a card number of its own (`password%3Dhunter2=x`, `{"password":"…"}` sent as a form); a
     /// field without `=` is free text.
-    private func redactedFormField(_ field: Substring) -> String? {
+    private func redactedFormField(_ field: Substring.UnicodeScalarView) -> String? {
         guard let equals = field.firstIndex(of: "=") else {
-            guard let text = Self.formDecoded(field) else { return nil }
-            return shown(text, as: redact(text), raw: field)
+            let raw = Substring(field)
+            guard let text = Self.formDecoded(raw) else { return nil }
+            return shown(text, as: redact(text), raw: raw)
         }
-        let rawName = field[..<equals]
-        let rawValue = field[field.index(after: equals)...]
+        let rawName = Substring(field[..<equals])
+        let rawValue = Substring(field[field.index(after: equals)...])
         guard let name = Self.formDecoded(rawName), let value = Self.formDecoded(rawValue) else { return nil }
         let shownName = shown(name, as: redactedName(name), raw: rawName)
         if kinds.contains(.secretFields), FieldName.hidesValue(name.unicodeScalars) { return shownName + "=" + Self.replacement }

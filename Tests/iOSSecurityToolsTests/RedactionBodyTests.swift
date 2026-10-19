@@ -77,6 +77,24 @@ struct RedactionBodyTests {
         #expect(redact(body, "application/x-www-form-urlencoded") == expected)
     }
 
+    // A mark or a joiner after `&`, `=` or `+` forms one Character with it. A form is split and
+    // decoded scalar by scalar, as a server reads the bytes, so `\u{301}status` is a field of its
+    // own, not part of the value before it, and its name is not plain ASCII.
+    @Test("splits a form at & and = and decodes + scalar by scalar", arguments: [
+        ("note=hi&\u{301}status=hunter2", "note=hi&\u{301}status=[redacted]"),
+        ("x=1&\u{200D}status=hunter2", "x=1&\u{200D}status=[redacted]"),
+        ("user=bob&\u{20DD}token=abc", "user=bob&\u{20DD}token=[redacted]"),
+        ("a=1&\u{301}password=x", "a=1&\u{301}password=[redacted]"),
+        ("status=200&\u{301}=hunter2", "status=200&\u{301}=[redacted]"),
+        ("password=\u{301}x", "password=[redacted]"),
+        ("note=4111+\u{301}1111+1111+1111", "note=%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111"),
+        ("note=paid+4111+1111+1111+\u{301}1111", "note=paid+%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111"),
+    ])
+    func formScalars(body: String, expected: String) {
+        let output = redact(body, "application/x-www-form-urlencoded")
+        #expect(Array(output.unicodeScalars) == Array(expected.unicodeScalars), "\(output.debugDescription)")
+    }
+
     @Test("omits a form with a bad escape", arguments: ["password=%ZZ", "a=%", "a=%C3%28"])
     func malformedForm(body: String) {
         #expect(redact(body, "application/x-www-form-urlencoded") == "[body omitted: \(body.utf8.count) bytes, application/x-www-form-urlencoded]")

@@ -162,9 +162,11 @@ extension SensitiveDataRedactor {
     // MARK: Form encoding
 
     /// `+` as a space, then percent-decoding as UTF-8; nil for a bad `%` escape or bytes that are
-    /// not UTF-8.
+    /// not UTF-8. `+` is replaced scalar by scalar: `replacingOccurrences` compares characters and
+    /// leaves a `+` that a combining mark follows.
     static func formDecoded(_ text: some StringProtocol) -> String? {
-        text.replacingOccurrences(of: "+", with: " ").removingPercentEncoding
+        let spaced = text.unicodeScalars.map { $0 == "+" ? " " : $0 }
+        return String(String.UnicodeScalarView(spaced)).removingPercentEncoding
     }
 
     /// Percent-encodes what form decoding would change, keeping `[` and `]` readable.

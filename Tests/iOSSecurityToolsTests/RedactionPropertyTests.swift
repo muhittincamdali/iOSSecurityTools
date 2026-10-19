@@ -175,9 +175,12 @@ struct RedactionPropertyTests {
             let name = DisguisedName.make(using: &random)
             let value = Self.value(using: &random)
             let quoted = name.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+            // A mark or a joiner after `&` forms one Character with it; the form is still split there.
+            let glue = (DisguisedName.marks + ["\u{200D}", "\u{20DD}"]).randomElement(using: &random)!
             let bodies: [(String, String?)] = [
                 ("{\"\(DisguisedName.json(name))\":\"\(value)\",\"n\":[{\"\(DisguisedName.json(name))\":1}]}", "application/json"),
                 ("a=1&\(DisguisedName.form(name))=\(value)&b=2", "application/x-www-form-urlencoded"),
+                ("status=1&\(glue)\(DisguisedName.form(name))=\(value)&b=2", "application/x-www-form-urlencoded"),
                 ("a=1&\(DisguisedName.form(name))=\(value)", nil),
                 ("--B\r\nContent-Disposition: form-data; name=\"\(quoted)\"\r\n\r\n\(value)\r\n--B--", "multipart/form-data; boundary=B"),
             ]
