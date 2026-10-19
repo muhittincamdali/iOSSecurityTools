@@ -48,40 +48,70 @@ let redactor = SensitiveDataRedactor()
 logger.error("\(redactor.redact(error.localizedDescription), privacy: .public)")
 ```
 
-It finds card numbers (with the Luhn check), email addresses, JSON Web Tokens, bearer tokens and
-the values of fields named like secrets (`password`, `pass`, `token`, `api_key`, `authorization`,
-`session_id`, a field named exactly `session`, `PHPSESSID` or `JSESSIONID`, ...), also when the
-secret word is one part of a longer name (`SECRET_KEY`, `DB_PASS`, `aws_secret_access_key`,
-`passwordConfirm`, `dbpassword`, `apitoken`). Names that only describe a secret, such as
-`passwordHint`, `token_type` or `session_start`, are left alone.
+It finds card numbers (with the Luhn check), IBANs (with the mod-97 check), email addresses, JSON
+Web Tokens, bearer tokens, runs of 32 or more hex or base64 characters, the password in
+`user:password@host`, and the values of fields named like secrets. Its rule is that what it does
+not fully understand is hidden, never shown.
 
-### Plain-ASCII names are compared; any other name is redacted
+### A safety net, not a guarantee
+
+Redaction catches mistakes; it does not make it safe to log secrets. Keep passwords, tokens and
+personal data out of log calls in the first place, and treat the redactor as the net under that
+rule.
+
+What it writes: the text around the findings, the names of fields, the values of plain names that
+are not secret in JSON, form and multipart bodies, the values of the keys on
+``SensitiveDataRedactor/allowedTextKeys`` in free text, masks that keep the last four digits of a
+card number or an IBAN and the domain and first letter of an email address, and for a body it
+cannot parse a note with its size and content type. What it never writes: the value of a field it
+reads as secret or cannot read, a value in free text after a key that is not allowed, the rest of
+a line it cannot read, a body it cannot parse completely, the other digits of a card number or an
+IBAN, and the rest of the name in an email address.
+
+### Plain-ASCII keys are compared; any other key is redacted
 
 A secret name can be disguised with look-alike letters from other scripts, styled or full-width
 letters, combining marks, invisible format characters, escapes or punctuation, and no list of
-look-alikes is ever complete. So the redactor compares only plain-ASCII names — `A`–`Z`, `a`–`z`,
-`0`–`9`, `_` and `-`, with `_` and `-` folded away, so `PASS-WORD` reads as `password` — and
-redacts the value of every other name by default:
+look-alikes is ever complete. So the redactor compares only plain-ASCII keys — at most 256 of
+`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`, `.` and spaces, with the separators folded away, so
+`PASS-WORD` and `pass.word` read as `password` — and redacts the value of every other key by
+default:
 
 ```swift
-let redactor = SensitiveDataRedactor()
-redactor.redact("p\u{0430}ssword=hunter2 pass.word=hunter2 user[name]=bob user=bob")
-// "pаssword=[redacted] pass.word=[redacted] user[name]=[redacted] user=bob"
+let form = "p%D0%B0ssword=a&pass.word=b&user%5Bname%5D=c&user.name=bob"
+redactor.redact(body: Data(form.utf8), contentType: "application/x-www-form-urlencoded")
+// "p%D0%B0ssword=[redacted]&pass.word=[redacted]&user%5Bname%5D=[redacted]&user.name=bob"
 ```
 
-The cost is that a name written in another script, or with a dot or brackets, hides its value
-even when it holds nothing secret (`статус=ok`, `user.id=42`). A hidden value is hidden whole:
-a string, and an array or object with everything in it.
+The secret names are the list the redaction spec shares between packages — `password`, `passwd`,
+`pwd`, `secret`, `token`, `access_token`, `refresh_token`, `id_token`, `api_key`, `apikey`,
+`key`, `auth`, `authorization`, `cookie`, `set-cookie`, `session`, `sid`, `otp`, `pin`, `cvv`,
+`card`, `iban`, `ssn`, `private_key`, `client_secret`, `signature` — and `passphrase`,
+`passcode`, `credential`, `cvc`, `sessid`, `pw` and compounds such as `pin_code` or
+`verification_code`, also in the plural (`tokens`, `api_keys`). Long words count anywhere in a
+key (`dbpassword`), short ones as a word of it or at its end (`user_pin`, `X-Auth-Key`,
+`apitoken`), `pass`, `sid` and `pw` only as a word (`DB_PASS`, not `bypass`), and `session` as
+the last word (`laravel_session`, not `session_start`).
 
-### Structured input is parsed; what does not parse is omitted
+The cost is that a key that only describes a secret hides its value too — `passwordHint`,
+`token_type`, `key_path`, `pin_length` — and so does a key written in another script or with
+brackets or other punctuation (`статус`, `user[id]`), even when it holds nothing secret. A hidden
+value is hidden whole: a string, a number, and an array or object with everything in it.
+
+### Structured input is parsed; unparsed bodies are omitted
 
 A text that is a JSON object or array is read with a JSON parser and checked against
-`JSONSerialization`, so names are compared after their escapes are decoded (`"pass\u0077ord"`),
-at every depth, inside arrays and for every repetition of a name. Request and response bodies go
-through ``SensitiveDataRedactor/redact(body:contentType:)``, which reads JSON, form
-(`application/x-www-form-urlencoded`) and multipart form bodies with a parser chosen by the
-content type. A body it cannot parse completely — cut off, malformed, of another type such as XML,
-or a multipart body that servers could split differently — is omitted:
+`JSONSerialization`, so keys are compared after their escapes are decoded (`"pass\u0077ord"`),
+at every depth, inside arrays and for every repetition of a key. Strings are read as free text,
+so `{"note":"password=hunter2"}` and an escaped JSON document inside a string are redacted too,
+and so are the `value` of `{"name":"X-Api-Key","value":…}` (also with `key`, `field`, `k` and
+`val`, `v`) and the elements after `"password"` in `["password","…"]`.
+
+Request and response bodies go through ``SensitiveDataRedactor/redact(body:contentType:)``, which
+reads JSON, form (`application/x-www-form-urlencoded`), multipart form and plain-text bodies with
+a parser chosen by the content type. A body it cannot parse completely — cut off, malformed, of
+another type such as XML, larger than 1 MiB, or a multipart body that servers could split
+differently — is omitted:
 
 ```swift
 redactor.redact(body: Data(#"{"user":"bob","password":"hunter2"}"#.utf8), contentType: "application/json")
@@ -90,29 +120,95 @@ redactor.redact(body: Data("<password>hunter2</password>".utf8), contentType: "a
 // [body omitted: 28 bytes, application/xml]
 ```
 
-### Free text follows a documented rule
+URLs go through ``SensitiveDataRedactor/redact(url:)``, which reads them with `URLComponents`.
+The user name, password and fragment are never written. A query parameter keeps its value only
+when its name is plain ASCII and on ``SensitiveDataRedactor/allowedQueryParameters``, which is
+empty by default. A path segment that looks like an identifier or a secret becomes `:id`, and so
+does the segment after one that names a secret:
 
-Other text, such as a log line or an error message, is read as `name=value` and `name: value`
-fields with the same name rule. Separators include runs such as `:=` and `==`, characters whose
-Unicode compatibility form is `=` or `:` (`＝`, `︓`) and escaped forms (`%3D`, `&#61;`). The name
-is the quoted text or the word before the separator; words before it that only whitespace
-separates are read with it, so `pass word=` and `API key:` count. The value is a quoted string,
-a bracketed value up to its closing bracket, or the next word. Where the rule cannot tell where a
-name or a value ends, it hides more: the rest of the line after a separator with no name, after an
-unclosed quote, or after punctuation outside ASCII that follows a secret name (`password꞉…`).
-``SensitiveDataRedactor`` lists the details.
+```swift
+redactor.redact(url: URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")!)
+// https://example.com/users/:id/reset?code=[redacted]
+redactor.redact(url: URL(string: "https://example.com/v1/cards/4242/pin/4831")!)
+// https://example.com/v1/cards/:id/pin/:id
+```
 
-Card numbers, email addresses and tokens are found after Unicode compatibility normalization, so
-full-width digits, zero-width characters and Unicode spaces do not hide them. Scanning and
-replacing take time linear in the length of the text, without regular expressions, so a long or
-crafted input cannot slow it down.
+### Free text keeps a value only after an allowed key
 
-It cannot find a secret that has no label or a plain-ASCII label it does not know (`pin`,
-`credentials`), or text encoded as a whole, such as base64. In free text it does not read a value
-separated from its name only by whitespace (`password hunter2`), more than the first word of an
-unquoted value, XML `CDATA` sections or attribute values (`<input name="password" value="…">`).
-Keep secrets out of log calls in the first place, and treat the redactor as the net under that
-rule.
+A log line has no grammar, so name matching in it can always be bypassed. Free text is therefore
+read the other way round, like a query string: in `key=value`, `key: value` and `"key":"value"`
+the value is kept only when the key is plain ASCII and on
+``SensitiveDataRedactor/allowedTextKeys``. The default list holds harmless keys that logs use for
+numbers and routes (`status`, `status_code`, `method`, `path`, `duration`, `duration_ms`, `count`,
+`size`, `bytes`, `page`, `limit`, `offset`, `attempt`, `level`); pass your own to the
+initializer. A key that names a secret or is not plain ASCII is never allowed.
+
+```swift
+redactor.redact("login user=bob status=401 password=hunter2")
+// "login user=[redacted]"
+SensitiveDataRedactor(allowedTextKeys: ["user"]).redact("login user=bob status=401 password=hunter2")
+// "login user=bob status=401 password=[redacted]"
+```
+
+The rule in detail:
+
+- **Separators** are `=` and `:`, runs such as `:=`, `==` and `=>`, characters whose Unicode
+  compatibility form is `=` or `:` (`＝`, `︓`, `≠`) and escaped forms (`%3D`, `&#61;`, `%u003D`).
+  Punctuation and math symbols outside ASCII (`≔`, `꞉`, `→`, `·`) separate too where they follow
+  other text. A `:` between two digits, as in `12:30`, is part of a time.
+- **A value after a key that is not allowed** is hidden: a quoted value (`"`, `'` or a backtick)
+  up to its closing quote, a JSON object or array whole, and anything else to the end of its
+  line, because where an unquoted value ends cannot be told.
+- **Values go on below their line.** A quote that does not close on its line hides the lines up
+  to the one where it closes, and that line whole. After a value hidden to the end of its line,
+  the lines indented more (YAML blocks, folded headers) and the line after a trailing `\` are
+  hidden, and so is the next line with text when nothing but punctuation followed the key, the
+  line ends open (`(`, `:`, `<key>`, `"""`) or it ends at a line break other than LF and CRLF.
+- **A secret name without a separator** hides the rest of its line: `password hunter2`,
+  `PIN 1234`. Words are read after their escapes are decoded (`p&#97;ssword`, `pass%77ord`), with
+  punctuation inside them and a space, `|`, `,`, `;`, `&` or `?` between two of them read as a
+  separator (`pass~word`, `pass word`, `p|wd`), and a letter that has no ASCII form (`ɑ`, `ı`)
+  read as any one letter.
+- **When a word cannot be read, the rest of the line is hidden.** That is a word that mixes
+  scripts (`pаssword` with a Cyrillic `а`) or holds an invisible character other than a mark: a
+  format character such as a zero-width space or a soft hyphen, a filler such as U+3164 or
+  U+115F, an unassigned default-ignorable code point, or a control character such as `DEL`.
+- **JSON in a line** is parsed and redacted by the key rule for structured input; JSON that does
+  not parse hides the rest of the line and the lines below until its brackets close. **URLs**
+  with a scheme and `//` are written as ``SensitiveDataRedactor/redact(url:)`` writes them.
+
+```swift
+redactor.redact("password hunter2")                     // "password [redacted]"
+redactor.redact("p\u{0430}ssword=hunter2")              // "pаssword=[redacted]"
+redactor.redact("login pa\u{115F}ssword hunter2")       // "login [redacted]"
+redactor.redact("password: 'abc\n  hunter2'")           // "password: '[redacted]\n[redacted]"
+redactor.redact("| password | hunter2 |")               // "| password [redacted]"
+redactor.redact("git clone https://bob:hunter2@github.com/x/y.git")
+// "git clone https://github.com/x/y.git"
+```
+
+Card numbers, IBANs, email addresses and tokens are found after Unicode compatibility
+decomposition without marks, format characters, default-ignorable code points and control
+characters, so full-width digits, zero-width characters, fillers and Unicode spaces do not hide
+them. Scanning and replacing take time linear in the length of the text, without regular
+expressions, and a key is compared in time linear in its length.
+
+### What it does not find
+
+It cannot find a secret that has no label or a label it does not know, such as a word in another
+language, or a value encoded as a whole that is shorter than 32 characters. In free text, where no
+`=` or `:` follows a name, it does not read a name written wholly in another script that only
+looks Latin (Greek `ΡΙΝ`), one written in letters that have no ASCII form throughout (small
+capitals, enclosed letters), one spelled with digits and symbols (`p@ssword`, `passw0rd`), a name
+escaped as octal (`\163`), a value written before its name or glued to a flag (`-pSECRET`), and a
+name and value in two different JSON objects. It does not find card numbers grouped with dots or
+underscores, glued to letters or written as a JSON floating-point number. An XML element in free
+text is not read as a pair; only a secret name or a word that cannot be read in it hides what
+follows. The value of an allowed key is shown, also when it is repeated (`status==…`).
+
+Where it cannot tell, it hides more than it has to: everything after a key that is not allowed
+(`Error: connection refused` hides `connection refused`), the lines after a value that ends open,
+and a whole word with an invisible character in it.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
 `.public`; use the redactor for the values you do mark public, and for logs sent to your own
