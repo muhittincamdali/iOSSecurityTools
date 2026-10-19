@@ -10,44 +10,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `SensitiveDataRedactor.redact(body:contentType:)` redacts request and response bodies with a
-  parser chosen by the content type: JSON, `application/x-www-form-urlencoded` forms (also read
-  as split at `;`) and multipart form data, each part by its own type. A body that is not UTF-8,
-  has another type or does not parse completely is omitted as
+  parser chosen by the content type: JSON, `application/x-www-form-urlencoded` forms, multipart
+  form data (each part by its own type) and plain text. A body that is not UTF-8, has another
+  type, is larger than 1 MiB or does not parse completely is omitted as
   `[body omitted: N bytes, <type>]`; uploaded files are omitted the same way.
+- `SensitiveDataRedactor.redact(url:)` writes a URL read with `URLComponents` without its user
+  name, password and fragment. A query value is kept only for the names on
+  `allowedQueryParameters`, which is empty by default; a path segment that looks like an
+  identifier or a secret, and the segment after one that names a secret (`/pin/4831`), become
+  `:id`. With `URLDetail.hostOnly` only the scheme, host and port are written.
+- `allowedTextKeys` and `defaultAllowedTextKeys`: the keys whose values free text keeps.
 
 ### Changed
 
-- `SensitiveDataRedactor` compares only plain-ASCII field names (`A`–`Z`, `a`–`z`, `0`–`9`, `_`
-  and `-`, with `_` and `-` folded away) with its secret names, and hides the value of every
-  other name by default: names with letters outside ASCII, mixed scripts, combining marks,
-  format characters, spaces, dots, brackets, escapes or other punctuation. A value is hidden
-  whole: a string, and an array or object with everything in it. Values of names such as
-  `статус`, `café`, `user.id` and `user[name]` are now hidden too.
+- Keys of structured input (JSON names, form and multipart field names, query names) are compared
+  with the secret names only when they are plain ASCII (`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`, `.`
+  and spaces, with the separators folded away). Every other key has its value hidden by default:
+  letters outside ASCII, mixed scripts, marks, format characters, brackets, escapes or other
+  punctuation. A hidden value is hidden whole: a string, a number, and an array or object with
+  everything in it. A plain key that holds a secret word as a word hides its value even when it
+  only describes the secret (`passwordHint`, `token_type`, `pin_length`), and `pw` is a secret
+  word.
 - A text that is a JSON object or array is read with a JSON parser checked against
-  `JSONSerialization` instead of being scanned: names are compared after their escapes are
-  decoded, at every depth, inside arrays and for every repetition of a name, and hidden values
-  keep the document valid JSON (`"password":"[redacted]"` for an array or object as well).
-- Other text is read with a documented free-text rule. Words before a name that only whitespace
-  separates are read with it (`pass word=`); a separator with no name before it, an unclosed
-  quote and punctuation outside ASCII after a secret name hide the rest of the line; a value on
-  the line after its separator is hidden; an angle-bracketed value is hidden with its brackets.
-- `dbpassword`, `apitoken`, `dbpwd` and other names with a compound secret word anywhere, or with
-  `token`, `secret` or `pwd` at the end, now hide their value.
+  `JSONSerialization`: keys are compared after their escapes are decoded, at every depth, inside
+  arrays and for every repetition of a key, and the output stays valid JSON. The `value`, `val`
+  or `v` of an object whose `name`, `key`, `field`, `header`, `param`, `k` or `n` names a secret is
+  hidden too.
+- Free text keeps a value only after an allowed key: in `key=value`, `key: value` and
+  `"key":"value"` every other value is hidden, so `user=bob` becomes `user=[redacted]`. A quoted
+  value is hidden up to its closing quote, also on a later line; an unquoted one to the end of its
+  line, with the lines below that it may go on to. A word that holds a secret name hides the rest
+  of its line, also when it is escaped, split by punctuation or a space, or spelled with a letter
+  that has no ASCII form; a word that mixes scripts or holds an invisible character hides itself
+  and the rest of its line.
+- Default-ignorable code points (such as U+115F and U+3164) and control characters are left out
+  of the scanning copy, like format characters, so they no longer split a secret name, a card
+  number, an IBAN, a token or an email address.
 
 ### Removed
 
-- The table of look-alike letters from other scripts. It could never be complete; names that
+- The table of look-alike letters from other scripts. It could never be complete; keys that
   are not plain ASCII are hidden instead of being read as Latin.
 
 ### Fixed
 
-- Every one of the 51 inputs that got a secret past the 2.0.1 branch is hidden, among them
-  Cyrillic and Greek look-alike letters (`pаssword=`), styled letters (`𝐩𝐚𝐬𝐬𝐰𝐨𝐫𝐝=`, `ⓟassword=`),
-  separators and escapes inside a name (`pass.word=`, `pass%77ord=`, `p&#97;ssword=`,
-  `"pass\u0077ord":`), arrays and objects under a secret name, a value after a line break,
-  vertical tab or form feed, and `︓` as a separator. They are kept as tests, together with
-  tests that disguise secret names at random and check that no value shows, and tests that
-  plain names that are not secret keep their value.
+- The inputs that got a secret past the earlier designs of this release are hidden, apart from
+  the limitations the logging guide names: the 51 inputs of the second review, the 386 probes of
+  the adversarial set (one of them a limitation) and the 453 probes of the review of the redesign
+  (30 of them limitations). Among them are look-alike letters, styled letters, escapes,
+  separators inside a name, arrays and objects under a secret name, values that run over lines in
+  single quotes and backticks, fillers and control characters inside labels and card numbers, and
+  URL path segments after a secret label. They are kept as tests, together with property tests
+  that generate disguised secret names and random keys that are not allowed and check that no
+  value shows, and tests that allowed keys and plain names keep their value.
 
 ## [2.0.1] - 2026-10-15
 
