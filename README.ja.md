@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
+<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg" alt="iOSSecurityTools: Apple アプリ向けのキーチェーン、暗号化、証明書ピンニング、ワンタイムコード、整合性チェック。"></picture></p>
@@ -34,7 +34,7 @@ iOS、macOS、tvOS、watchOS、visionOS のアプリ向けに、セキュリテ�
 - **ユーザーを締め出さないピンニング** — `PinningPolicy` はバックアップ用のピンを必須とし、サブドメイン、有効期限、レポートのみのモードに対応します。そのうえで、システム標準の信頼評価に合格することも引き続き求めます。
 - **約束ではなくシグナル** — `IntegrityInspector` は、脱獄の痕跡ファイル、デバッガ、シミュレータ、フックするライブラリ、システムプロキシを `Codable` のレポートとして返します。攻撃者がどこまで隠せるかも、ドキュメントに明記しています。
 - **秘密情報をログとスクリーンショットから遠ざける** — `@Redacted` はどこで出力しても `<redacted>` と表示します。`SensitiveDataRedactor` は、カード番号、メールアドレス、token、秘密のフィールドを消去します。`.privacyShield()` は、App スイッチャーや画面収録中にビューを覆います。リダクタは純粋な ASCII のキーだけを秘密の名前と比較し、それ以外のキーはすべて既定でマスクします。JSON、フォーム、multipart の本文はパーサーで読み、解析できない本文は省略します。
-- **悪意ある入力に対するテスト済み** — RFC 4226、6238、5869 のテストベクトル、独立した実装が作成したエンベロープとハッシュ、テスト用 PKI の証明書チェーン、NaN と無限大の日付、`Int.min` と `Int.max`、過大な URI パラメータや重複した URI パラメータ。macOS と iPhone シミュレータで 222 件の Swift Testing テストを実行し、さらにサンプルアプリの中でキーチェーンのテストスイートも実行します。
+- **悪意ある入力に対するテスト済み** — RFC 4226、6238、5869 のテストベクトル、独立した実装が作成したエンベロープとハッシュ、テスト用 PKI の証明書チェーン、NaN と無限大の日付、`Int.min` と `Int.max`、過大な URI パラメータや重複した URI パラメータ。macOS と iPhone シミュレータで 280 件の Swift Testing テストを実行し、さらにサンプルアプリの中でキーチェーンのテストスイートも実行します。
 
 ### 含まれるもの
 
@@ -242,13 +242,13 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
 
-`SensitiveDataRedactor` が秘密の名前と比較するのは、純粋な ASCII のキー（`A`–`Z`、`a`–`z`、`0`–`9`、`_`、`-`）だけです。似た形の文字、不可視文字、エスケープで秘密の名前を偽装できるため、それ以外のキーの値は既定でマスクされます。JSON はパーサーで読み込み、`redact(body:contentType:)` は JSON、フォーム、multipart の本文を読みます。完全に解析できない本文は `[body omitted: N bytes, <type>]` として省略されます。自由形式のテキストに対する規則とその代償は[ログのガイド](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)で説明しています。
+`SensitiveDataRedactor` が秘密の名前と比較するのは、純粋な ASCII のキー（`A`–`Z`、`a`–`z`、`0`–`9`、`_`、`-`、`.`、空白）だけです。似た形の文字、不可視文字、エスケープで秘密の名前を偽装できるため、それ以外のキーの値は既定でマスクされます。JSON、フォーム、multipart の本文はパーサーで読み込み、完全に解析できない本文は `[body omitted: N bytes, <type>]` として省略されます。自由形式のテキストでは、許可されたキー（`status`、`method`、`path`、`duration_ms`、`count` と渡したキー）の後の値だけが残るため、`user=bob` は `user=[redacted]` になります。マスクは安全網であり、保証ではありません。自由形式のテキストに対する規則、その代償、見つけられないものは[ログのガイド](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)で説明しています。
 
 ### アカウントをデバイスに結び付ける
 

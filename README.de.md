@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
+<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -57,7 +57,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  222 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  280 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -283,20 +283,23 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
 
-`SensitiveDataRedactor` vergleicht nur reine ASCII-Schlüssel (`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`)
-mit seinen geheimen Namen. Der Wert jedes anderen Schlüssels wird standardmäßig geschwärzt, denn
-ähnlich aussehende Buchstaben, unsichtbare Zeichen und Escape-Sequenzen können einen geheimen
-Namen tarnen. JSON wird mit einem Parser gelesen, und `redact(body:contentType:)` liest JSON-,
-Formular- und Multipart-Bodys; einen Body, den es nicht vollständig parsen kann, lässt es als
-`[body omitted: N bytes, <type>]` aus. Der
+`SensitiveDataRedactor` vergleicht nur reine ASCII-Schlüssel (`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`,
+`.` und Leerzeichen) mit seinen geheimen Namen; der Wert jedes anderen Schlüssels wird
+standardmäßig geschwärzt, denn ähnlich aussehende Buchstaben, unsichtbare Zeichen und
+Escape-Sequenzen können einen geheimen Namen tarnen. JSON-, Formular- und Multipart-Bodys werden
+mit einem Parser gelesen; einen Body, den es nicht vollständig parsen kann, lässt es als
+`[body omitted: N bytes, <type>]` aus. Freier Text behält einen Wert nur nach einem erlaubten
+Schlüssel (`status`, `method`, `path`, `duration_ms`, `count` und die Schlüssel, die Sie
+übergeben), sodass aus `user=bob` `user=[redacted]` wird. Schwärzen ist ein Sicherheitsnetz,
+keine Garantie. Der
 [Logging-Leitfaden](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-beschreibt die Regel für freien Text und ihren Preis.
+beschreibt die Regel für freien Text, ihren Preis und was sie nicht findet.
 
 ### Ein Konto an das Gerät binden
 

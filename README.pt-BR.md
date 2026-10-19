@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
+<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -56,7 +56,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   podem ser analisados são omitidos.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 222
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 280
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -281,20 +281,22 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
 
 `SensitiveDataRedactor` compara com os nomes secretos apenas chaves em ASCII simples (`A`–`Z`,
-`a`–`z`, `0`–`9`, `_`, `-`). O valor de qualquer outra chave é ocultado por padrão, porque letras
-parecidas, caracteres invisíveis e sequências de escape podem disfarçar um nome secreto. O JSON
-é lido por um analisador, e `redact(body:contentType:)` lê corpos JSON, de formulário e
-multipart; um corpo que não consegue analisar por completo é omitido como
-`[body omitted: N bytes, <type>]`. O
+`a`–`z`, `0`–`9`, `_`, `-`, `.` e espaços); o valor de qualquer outra chave é ocultado por padrão,
+porque letras parecidas, caracteres invisíveis e sequências de escape podem disfarçar um nome
+secreto. Corpos JSON, de formulário e multipart são lidos por um analisador; um corpo que não
+consegue analisar por completo é omitido como `[body omitted: N bytes, <type>]`. Em texto livre,
+um valor só é mantido depois de uma chave permitida (`status`, `method`, `path`, `duration_ms`,
+`count` e as chaves que você passar), então `user=bob` vira `user=[redacted]`. A ocultação é uma
+rede de segurança, não uma garantia. O
 [guia de logs](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-descreve a regra para texto livre e o que ela custa.
+descreve a regra para texto livre, o que ela custa e o que ela não encontra.
 
 ### Vincular uma conta ao dispositivo
 

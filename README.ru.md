@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
+<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -57,7 +57,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   а тела, которые не удалось разобрать, пропускаются.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 222 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 280 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -281,19 +281,22 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
 
 `SensitiveDataRedactor` сравнивает с секретными именами только ключи из простого ASCII (`A`–`Z`,
-`a`–`z`, `0`–`9`, `_`, `-`). Значение любого другого ключа по умолчанию скрывается: похожие
-буквы, невидимые символы и escape-последовательности могут замаскировать секретное имя. JSON
-читается парсером, а `redact(body:contentType:)` читает тела JSON, форм и multipart; тело,
-которое не удаётся разобрать полностью, пропускается как `[body omitted: N bytes, <type>]`.
+`a`–`z`, `0`–`9`, `_`, `-`, `.` и пробелы); значение любого другого ключа по умолчанию
+скрывается: похожие буквы, невидимые символы и escape-последовательности могут замаскировать
+секретное имя. Тела JSON, форм и multipart читаются парсером; тело, которое не удаётся разобрать
+полностью, пропускается как `[body omitted: N bytes, <type>]`. В свободном тексте значение
+сохраняется только после разрешённого ключа (`status`, `method`, `path`, `duration_ms`, `count`
+и ключи, которые вы передадите), поэтому `user=bob` превращается в `user=[redacted]`. Скрытие —
+это страховка, а не гарантия.
 [Руководство по логам](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-описывает правило для свободного текста и его цену.
+описывает правило для свободного текста, его цену и то, чего оно не находит.
 
 ### Привязать учётную запись к устройству
 

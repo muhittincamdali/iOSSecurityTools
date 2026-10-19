@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d85e1352be9dabb1bbe6fbf3e0c8db25d4f237a4 status=reviewed -->
+<!-- i18n-source: README.md@d7364d618d789c2fc80a4d72014d95774c464b4f status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -59,7 +59,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  222 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  280 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -284,20 +284,23 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
 
 `SensitiveDataRedactor` ne compare à ses noms secrets que les clés en ASCII simple (`A`–`Z`,
-`a`–`z`, `0`–`9`, `_`, `-`). La valeur de toute autre clé est masquée par défaut, car des lettres
-semblables, des caractères invisibles et des séquences d’échappement peuvent déguiser un nom
-secret. Le JSON est lu par un analyseur, et `redact(body:contentType:)` lit les corps JSON, de
-formulaire et multipart ; un corps qu’il ne peut pas analyser entièrement est omis sous la forme
-`[body omitted: N bytes, <type>]`. Le
+`a`–`z`, `0`–`9`, `_`, `-`, `.` et espaces) ; la valeur de toute autre clé est masquée par
+défaut, car des lettres semblables, des caractères invisibles et des séquences d’échappement
+peuvent déguiser un nom secret. Les corps JSON, de formulaire et multipart sont lus par un
+analyseur ; un corps qu’il ne peut pas analyser entièrement est omis sous la forme
+`[body omitted: N bytes, <type>]`. Dans le texte libre, une valeur n’est gardée qu’après une clé
+autorisée (`status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez),
+donc `user=bob` devient `user=[redacted]`. Le masquage est un filet de sécurité, pas une
+garantie. Le
 [guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-décrit la règle pour le texte libre et ce qu’elle coûte.
+décrit la règle pour le texte libre, ce qu’elle coûte et ce qu’elle ne trouve pas.
 
 ### Lier un compte à l’appareil
 

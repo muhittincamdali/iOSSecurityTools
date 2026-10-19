@@ -50,7 +50,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   form and multipart bodies are parsed, and unparsed bodies are omitted.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 222 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 280 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -274,19 +274,21 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
 
-`SensitiveDataRedactor` compares only plain-ASCII keys (`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`)
-with its secret names. Any other key is redacted by default, because look-alike letters,
-invisible characters and escapes can disguise a secret name. JSON is read with a parser, and
-`redact(body:contentType:)` reads JSON, form and multipart bodies; a body it cannot parse
-completely is omitted as `[body omitted: N bytes, <type>]`. The
+`SensitiveDataRedactor` compares only plain-ASCII keys (`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`,
+`.` and spaces) with its secret names; any other key is redacted by default, because look-alike
+letters, invisible characters and escapes can disguise a secret name. JSON, form and multipart
+bodies are read with a parser, and a body it cannot parse completely is omitted as
+`[body omitted: N bytes, <type>]`. Free text keeps a value only after an allowed key (`status`,
+`method`, `path`, `duration_ms`, `count` and the keys you pass), so `user=bob` becomes
+`user=[redacted]`. Redaction is a safety net, not a guarantee. The
 [logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-describes the rule for free text and what it costs.
+describes the rule for free text, what it costs and what it does not find.
 
 ### Bind an account to the device
 
