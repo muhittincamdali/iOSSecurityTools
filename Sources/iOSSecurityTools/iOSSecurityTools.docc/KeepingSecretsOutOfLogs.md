@@ -110,14 +110,43 @@ and so are the `value` of `{"name":"X-Api-Key","value":…}` (also with `key`, `
 Request and response bodies go through ``SensitiveDataRedactor/redact(body:contentType:)``, which
 reads JSON, form (`application/x-www-form-urlencoded`), multipart form and plain-text bodies with
 a parser chosen by the content type. A body it cannot parse completely — cut off, malformed, of
-another type such as XML, larger than 1 MiB, or a multipart body that servers could split
-differently — is omitted:
+another type such as XML, or larger than 1 MiB — is omitted:
 
 ```swift
 redactor.redact(body: Data(#"{"user":"bob","password":"hunter2"}"#.utf8), contentType: "application/json")
 // {"user":"bob","password":"[redacted]"}
 redactor.redact(body: Data("<password>hunter2</password>".utf8), contentType: "application/xml")
 // [body omitted: 28 bytes, application/xml]
+```
+
+A body is also omitted when a common server parser — PHP, Werkzeug (Flask), Rack, Go or busboy —
+could split it into fields differently from the redactor, because a field the redactor did not see
+could show its value. Each parser reads only what all of them agree on:
+
+- **Multipart:** the content type has one unquoted `boundary` of at most 70 characters, and every
+  `--boundary` in the body, in any case, is a delimiter line of its own after a CRLF. PHP and
+  Werkzeug also split a part at `--boundary` after a bare LF, Werkzeug after a bare CR, so a part
+  holding `hi\n--boundary` and a second set of headers is omitted with the body. So are part
+  headers that end their lines with a bare LF, a boundary line with trailing spaces, and text
+  before the first boundary or after the closing one.
+- **Forms:** every character is printable ASCII other than `;`, every `%` starts an escape of two
+  hex digits, and no name is spelled two ways. Rack, Python before 3.9.2 and Go before 1.17 also
+  split at `;`, Rack drops spaces after a separator, servers keep, drop or reject a bare `%`, and
+  PHP reads `a.b`, `a b` and `a_b` as one name, as decoding makes `pass%77ord` into `password`.
+  A URL query that breaks these rules is written as `?[redacted]`.
+- **JSON:** the text is RFC 8259 and nothing more, and `JSONSerialization` reads the same tree;
+  a trailing comma, a comment, `NaN`, a lone surrogate escape or a second document after the
+  first is not. Every repetition of a name is compared, names are compared without case, and a
+  name that is not plain ASCII hides its value, so a name that Go binds without case or with
+  Unicode folding (`PASSWORD`, `paſſword`) hides its value too.
+- **Content type:** one `type/subtype` with `; name=value` parameters; a second type after a
+  comma, a space around `=` or two `charset` parameters make the body omitted.
+
+```swift
+let body = "--B0und\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nhi\n--B0und\r\n"
+    + "Content-Disposition: form-data; name=\"password\"\r\n\r\nhunter2\r\n--B0und--"
+redactor.redact(body: Data(body.utf8), contentType: "multipart/form-data; boundary=B0und")
+// [body omitted: 137 bytes, multipart/form-data]
 ```
 
 URLs go through ``SensitiveDataRedactor/redact(url:)``, which reads them with `URLComponents`.
@@ -175,6 +204,8 @@ The rule in detail:
   scripts (`pаssword` with a Cyrillic `а`) or holds an invisible character other than a mark: a
   format character such as a zero-width space or a soft hyphen, a filler such as U+3164 or
   U+115F, an unassigned default-ignorable code point, or a control character such as `DEL`.
+  Such a character right before a word or a key belongs to it: `\u{202E}drowssap` cannot be
+  read, and `\u{200D}status=200` is not the allowed key `status`.
 - **JSON in a line** is parsed and redacted by the key rule for structured input; JSON that does
   not parse hides the rest of the line and the lines below until its brackets close. **URLs**
   with a scheme and `//` are written as ``SensitiveDataRedactor/redact(url:)`` writes them.
