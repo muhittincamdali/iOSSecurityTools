@@ -10,25 +10,29 @@ extension SensitiveDataRedactor {
     ///   `"[redacted]"`, and a string or name is written again escaped, so the output is still
     ///   valid JSON.
     /// - **Forms** (`application/x-www-form-urlencoded`): fields are split at `&` and at the first
-    ///   `=`, Unicode scalar by scalar as a server reads the bytes (also where a combining mark
-    ///   follows), and names and values are decoded (`+` is a space, then percent-decoding as
-    ///   UTF-8).
+    ///   `=`, and names and values are decoded (`+` is a space, then percent-decoding as UTF-8).
     ///   A field whose decoded name hides its value shows `name=[redacted]`; other values, names
-    ///   and fields without `=` are read as free text.
+    ///   and fields without `=` are read as free text. The body is read only when it is strict:
+    ///   printable ASCII without `;`, every `%` the start of an escape, and no name spelled two
+    ///   ways (`a.b` and `a_b`, `pass%77ord` and `password`, `Note` and `note`).
     /// - **Multipart form data**: every part is written again with its field name and its
     ///   `type/subtype`; other part headers show `[redacted]` unless they are
     ///   `Content-Length` or `Content-Transfer-Encoding`. A part whose name hides its value
     ///   shows `[redacted]`, and any other part is read by its own content type (`text/plain`
     ///   when it has none). Uploaded files, nested multipart bodies, parts in a transfer encoding
     ///   other than `7bit`, `8bit` or `binary` and parts of other types are omitted like a body.
+    ///   The body is read only with a single unquoted `boundary` of at most 70 characters, and
+    ///   only when every `--boundary` in it, in any case, is a delimiter line that follows a CRLF.
     /// - **Plain text** (`text/plain`): free text, as ``redact(_:)`` reads it.
     /// - **No content type**: JSON when the whole body parses as a JSON object or array.
     ///
     /// Anything else is omitted: a body that is not UTF-8, has another content type (XML, HTML,
     /// binary data), is larger than ``maximumBodySize`` or cannot be parsed completely — cut off,
-    /// malformed, nested deeper than 256 levels, a multipart body servers could split differently.
-    /// The result is then a note such as `[body omitted: 1234 bytes, application/xml]`. Without a
-    /// parse, a secret in it cannot be found reliably.
+    /// malformed, nested deeper than 256 levels — and a body that a common server parser (PHP,
+    /// Werkzeug, Rack, Go, busboy) could split into fields differently, such as a multipart body
+    /// with `--boundary` after a bare LF or CR, or a form with a `;`. The result is then a note such
+    /// as `[body omitted: 1234 bytes, application/xml]`. Without a parse that every server agrees
+    /// with, a secret in it cannot be found reliably.
     ///
     /// - Parameters:
     ///   - body: The body as sent or received.
@@ -67,11 +71,10 @@ extension SensitiveDataRedactor {
 
     // MARK: Forms
 
-    /// Fields are split at `&` and `=` scalar by scalar, as a server reads the bytes: split by
-    /// `Character`, `&` or `=` followed by a combining mark would be one character and no
-    /// delimiter, and `note=hi&\u{301}status=hunter2` would read as one field.
+    /// Only a body that ``isStrictForm(_:)`` accepts is read, so no server splits it otherwise.
+    /// Fields are split at `&` and `=` scalar by scalar, as a server reads the bytes.
     private func redactedForm(_ body: Data) -> String? {
-        guard let text = String(data: body, encoding: .utf8) else { return nil }
+        guard let text = String(data: body, encoding: .utf8), Self.isStrictForm(text) else { return nil }
         var fields: [String] = []
         for field in text.unicodeScalars.split(separator: "&", omittingEmptySubsequences: false) {
             guard let redacted = redactedFormField(field) else { return nil }

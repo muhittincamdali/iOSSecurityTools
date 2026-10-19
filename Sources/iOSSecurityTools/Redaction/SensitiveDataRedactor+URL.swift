@@ -10,7 +10,10 @@ extension SensitiveDataRedactor {
     /// - **Query:** a parameter keeps its value only when its name, decoded, is plain ASCII and on
     ///   ``allowedQueryParameters``, which is empty by default; any other value is
     ///   `[redacted]`, and so is a parameter without `=` that is not on the list. A name that is not
-    ///   plain ASCII, or holds a card number, an address or a token, is `[redacted]` as well.
+    ///   plain ASCII, or holds a card number, an address or a token, is `[redacted]` as well. A
+    ///   query that servers could split into fields differently is written as `?[redacted]`, as
+    ///   ``redact(body:contentType:)`` describes for forms: one with a `;`, a `%` that does not
+    ///   start an escape, or a name spelled two ways.
     /// - **Path:** a segment that looks like an identifier or a secret becomes `:id`: a UUID, a
     ///   number of six or more digits, a token of 16 or more letters and digits, a run of 32 or more
     ///   hex or base64 characters, a JSON Web Token, anything the value detectors find, and text
@@ -19,7 +22,8 @@ extension SensitiveDataRedactor {
     ///   after a `;` are read like query parameters.
     /// - With ``URLDetail/hostOnly`` only the scheme, host and port are written.
     ///
-    /// The query and path rules above belong to ``Kinds/secretFields``. Without it the URL is read
+    /// The query and path rules above, apart from `?[redacted]` for a query servers could split
+    /// differently, belong to ``Kinds/secretFields``. Without it the URL is read
     /// the same way, but only the value detectors that ``kinds`` turns on run: a path segment in
     /// which they find something becomes `:id`, and what they find in a decoded query name or
     /// value is replaced and encoded again (`card=%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111`).
@@ -49,6 +53,7 @@ extension SensitiveDataRedactor {
         let hidesByName = kinds.contains(.secretFields)
         let path = components.percentEncodedPath
         result += hidesByName ? redacted(path: path) : scanned(path: path)
+        if let query = components.percentEncodedQuery, !Self.isStrictForm(query) { return result + "?" + Self.replacement }
         if let items = components.percentEncodedQueryItems {
             let parameters = items.map { item in
                 hidesByName ? redacted(parameter: item.name, value: item.value) : scanned(parameter: item.name, value: item.value)
@@ -160,6 +165,31 @@ extension SensitiveDataRedactor {
     }
 
     // MARK: Form encoding
+
+    /// Whether common servers all split a form body or URL query into the same fields with the
+    /// same names. Every character is printable ASCII other than `;`, every `%` starts an escape of
+    /// two hex digits, and no two fields spell one name differently. Each rule closes a split that
+    /// some server makes differently: Rack, Python before 3.9.2 and Go before 1.17 also split at
+    /// `;`; Rack drops spaces after a separator; servers keep, drop or reject a bare `%`; and PHP
+    /// reads `a.b`, `a b` and `a_b` as one name, which decoding (`pass%77ord`) and case can
+    /// also make one.
+    static func isStrictForm(_ text: String) -> Bool {
+        let scalars = Array(text.unicodeScalars)
+        for (i, scalar) in scalars.enumerated() {
+            guard (0x21...0x7E).contains(scalar.value), scalar != ";" else { return false }
+            guard scalar == "%" else { continue }
+            guard i + 2 < scalars.count, scalars[(i + 1)...(i + 2)].allSatisfy(\.properties.isASCIIHexDigit) else { return false }
+        }
+        var spellings: [String: Substring] = [:]
+        for field in text.unicodeScalars.split(separator: "&") {
+            let rawName = Substring(field.prefix { $0 != "=" })
+            guard let name = formDecoded(rawName) else { return false }
+            let folded: [Unicode.Scalar] = name.unicodeScalars.drop { $0 == " " }.map { $0 == " " || $0 == "." ? "_" : $0 }
+            let serverName = String(String.UnicodeScalarView(folded)).lowercased()
+            if let earlier = spellings.updateValue(rawName, forKey: serverName), earlier != rawName { return false }
+        }
+        return true
+    }
 
     /// `+` as a space, then percent-decoding as UTF-8; nil for a bad `%` escape or bytes that are
     /// not UTF-8. `+` is replaced scalar by scalar: `replacingOccurrences` compares characters and

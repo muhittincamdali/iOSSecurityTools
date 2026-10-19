@@ -2,11 +2,15 @@ import Foundation
 
 /// A `multipart/form-data` body, read as RFC 7578 and RFC 2046 describe it.
 ///
-/// The reader accepts only what servers agree on. It rejects text before the first boundary or
-/// after the closing one, a boundary line that goes on (`--boundaryX`), part headers that are not
-/// UTF-8, contain a bare CR or LF or continue on a folded line, a header name that is not a token,
-/// more than one `Content-Disposition` or `Content-Type` in a part, a disposition other than
-/// `form-data`, a missing or repeated `name`, `name*` and `filename*` parameters, and more than
+/// The reader accepts only what servers agree on. Every `--boundary` in the body, compared without
+/// case, has to be a delimiter line of its own after a CRLF: PHP and Werkzeug also split a part at
+/// one after a bare LF, Werkzeug at one after a bare CR, and a reader that missed such a split
+/// would take the next part's name and value for text. The reader also rejects text before the
+/// first boundary or after the closing one, a boundary line that goes on (`--boundaryX`,
+/// `--boundary ` before the CRLF), part headers that are not UTF-8, end their lines with a bare LF
+/// or CR or continue on a folded line, a header name that is not a token, more than one
+/// `Content-Disposition` or `Content-Type` in a part, a disposition other than `form-data`, a
+/// missing or repeated `name`, `name*` and `filename*` parameters, and more than
 /// ``maximumPartCount`` parts.
 struct MultipartBody {
     struct Part {
@@ -25,23 +29,23 @@ struct MultipartBody {
     init?(_ bytes: [UInt8], boundary: String) {
         let delimiter = Array("--\(boundary)".utf8)
         let lineBreak: [UInt8] = [13, 10]
-        guard bytes.starts(with: delimiter) else { return nil }
+        // Every match is a delimiter or the body is rejected, so no server finds a part this
+        // reader did not.
+        let starts = Self.occurrences(of: delimiter, in: bytes)
+        guard let last = starts.last, starts[0] == 0, starts.count - 1 <= Self.maximumPartCount else { return nil }
         var parts: [Part] = []
-        var position = delimiter.count
-        while true {
-            let rest = bytes[position...]
-            if rest.starts(with: [45, 45]) {
-                let after = rest.dropFirst(2)
-                guard after.isEmpty || after.elementsEqual(lineBreak) else { return nil }
-                break
-            }
-            guard rest.starts(with: lineBreak), parts.count < Self.maximumPartCount,
-                  let next = Self.firstIndex(of: lineBreak + delimiter, in: bytes, range: (position + 2)..<bytes.count),
-                  let part = Self.part(bytes, (position + 2)..<next)
+        for (start, next) in zip(starts, starts.dropFirst()) {
+            let partStart = start + delimiter.count + 2
+            guard bytes[(start + delimiter.count)...].starts(with: lineBreak), next - 2 >= partStart,
+                  bytes[(next - 2)..<next].elementsEqual(lineBreak),
+                  let part = Self.part(bytes, partStart..<(next - 2))
             else { return nil }
             parts.append(part)
-            position = next + 2 + delimiter.count
         }
+        let closing = bytes[(last + delimiter.count)...]
+        guard closing.starts(with: [45, 45]), closing.dropFirst(2).isEmpty || closing.dropFirst(2).elementsEqual(lineBreak),
+              starts.allSatisfy({ bytes[$0..<($0 + delimiter.count)].elementsEqual(delimiter) })
+        else { return nil }
         self.parts = parts
     }
 
@@ -122,5 +126,31 @@ struct MultipartBody {
             i += 1
         }
         return nil
+    }
+
+    /// Where the needle starts in the bytes, overlapping matches included, with ASCII letters
+    /// compared without case; in time linear in the length of both (Knuth–Morris–Pratt).
+    static func occurrences(of needle: [UInt8], in bytes: [UInt8]) -> [Int] {
+        let pattern = needle.map(ASCII.lowercased)
+        guard !pattern.isEmpty else { return [] }
+        var border = [0]
+        var length = 0
+        for byte in pattern.dropFirst() {
+            while length > 0, byte != pattern[length] { length = border[length - 1] }
+            if byte == pattern[length] { length += 1 }
+            border.append(length)
+        }
+        var starts: [Int] = []
+        length = 0
+        for (i, byte) in bytes.enumerated() {
+            let lowered = ASCII.lowercased(byte)
+            while length > 0, lowered != pattern[length] { length = border[length - 1] }
+            if lowered == pattern[length] { length += 1 }
+            if length == pattern.count {
+                starts.append(i + 1 - length)
+                length = border[length - 1]
+            }
+        }
+        return starts
     }
 }

@@ -8,12 +8,15 @@ extension SensitiveDataRedactor {
     /// The transfer encodings that leave the content as it is.
     private static let identityTransferEncodings: Set<String> = ["7bit", "8bit", "binary"]
 
+    /// The body is read only with one plain `boundary` parameter: servers differ in which of
+    /// several they take, and in whether they undo the quotes and `\` escapes of a quoted one.
     func redactedMultipart(_ body: Data, _ type: MediaType) -> String? {
-        let boundaries = type.values(of: "boundary")
-        guard boundaries.count == 1, let boundary = boundaries.first, MultipartBody.isValidBoundary(boundary),
-              !type.parameters.contains(where: { $0.name == "boundary*" }),
-              let multipart = MultipartBody(Array(body), boundary: boundary)
+        let parameters = type.parameters.filter { $0.name == "boundary" || $0.name == "boundary*" }
+        guard parameters.count == 1, let parameter = parameters.first, parameter.name == "boundary", !parameter.isQuoted,
+              MultipartBody.isValidBoundary(parameter.value),
+              let multipart = MultipartBody(Array(body), boundary: parameter.value)
         else { return nil }
+        let boundary = parameter.value
         var output = ""
         for part in multipart.parts {
             output += "--\(boundary)\r\n"

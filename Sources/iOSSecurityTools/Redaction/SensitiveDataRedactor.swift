@@ -40,7 +40,9 @@ import Foundation
 /// keys are compared after their escapes are decoded, at every depth, inside arrays and for every
 /// repetition of a key. The output stays valid JSON. URLs are read with `URLComponents` (see
 /// ``redact(url:)``), and ``redact(body:contentType:)`` reads JSON, form, multipart and plain-text
-/// bodies; a body it cannot parse completely is omitted.
+/// bodies; a body it cannot parse completely is omitted, and so is one that a common server
+/// parser could split into fields differently, such as a multipart body with `--boundary` after
+/// a bare LF or a form with a `;`.
 ///
 /// ## Free text
 ///

@@ -65,8 +65,6 @@ struct RedactionBodyTests {
         ("pass+word=hunter2", "pass+word=[redacted]"),
         ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]&user%5Bname%5D=[redacted]"),
         ("p%D0%B0ssword=hunter2", "p%D0%B0ssword=[redacted]"),
-        ("token;x=hunter2", "token;x=[redacted]"),
-        ("a=1;password=hunter2&b=2", "a=1%3Bpassword%3D[redacted]&b=2"),
         ("user=bob%20smith&note=paid+4111+1111+1111+1111", "user=bob%20smith&note=paid+%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111"),
         ("note=status%3D1+user%3Dbob", "note=status%3D1+user%3D[redacted]"),
         ("password=hunter2&password=again", "password=[redacted]&password=[redacted]"),
@@ -77,25 +75,22 @@ struct RedactionBodyTests {
         #expect(redact(body, "application/x-www-form-urlencoded") == expected)
     }
 
-    // A mark or a joiner after `&`, `=` or `+` forms one Character with it. A form is split and
-    // decoded scalar by scalar, as a server reads the bytes, so `\u{301}status` is a field of its
-    // own, not part of the value before it, and its name is not plain ASCII.
-    @Test("splits a form at & and = and decodes + scalar by scalar", arguments: [
-        ("note=hi&\u{301}status=hunter2", "note=hi&\u{301}status=[redacted]"),
-        ("x=1&\u{200D}status=hunter2", "x=1&\u{200D}status=[redacted]"),
-        ("user=bob&\u{20DD}token=abc", "user=bob&\u{20DD}token=[redacted]"),
-        ("a=1&\u{301}password=x", "a=1&\u{301}password=[redacted]"),
-        ("status=200&\u{301}=hunter2", "status=200&\u{301}=[redacted]"),
-        ("password=\u{301}x", "password=[redacted]"),
-        ("note=4111+\u{301}1111+1111+1111", "note=%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111"),
-        ("note=paid+4111+1111+1111+\u{301}1111", "note=paid+%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111"),
+    // A mark or a joiner after `&`, `=` or `+` forms one Character with it. Written as it is, such
+    // a form is not strict and is omitted; percent-encoded, it is decoded scalar by scalar after
+    // the split, so `%CC%81status` is a field of its own whose name is not plain ASCII.
+    @Test("reads percent-encoded marks and joiners after & and = as part of the next field", arguments: [
+        ("note=hi&%CC%81status=hunter2", "note=hi&%CC%81status=[redacted]"),
+        ("x=1&%E2%80%8Dstatus=hunter2", "x=1&%E2%80%8Dstatus=[redacted]"),
+        ("user=bob&%E2%83%9Dtoken=abc", "user=bob&%E2%83%9Dtoken=[redacted]"),
+        ("status=200&%CC%81=hunter2", "status=200&%CC%81=[redacted]"),
+        ("password=%CC%81x", "password=[redacted]"),
     ])
     func formScalars(body: String, expected: String) {
         let output = redact(body, "application/x-www-form-urlencoded")
         #expect(Array(output.unicodeScalars) == Array(expected.unicodeScalars), "\(output.debugDescription)")
     }
 
-    @Test("omits a form with a bad escape", arguments: ["password=%ZZ", "a=%", "a=%C3%28"])
+    @Test("omits a form with a bad escape", arguments: ["password=%ZZ", "a=%", "a=%C3%28", "a=1&b=%2", "%=x"])
     func malformedForm(body: String) {
         #expect(redact(body, "application/x-www-form-urlencoded") == "[body omitted: \(body.utf8.count) bytes, application/x-www-form-urlencoded]")
     }

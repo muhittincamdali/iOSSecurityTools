@@ -4,7 +4,7 @@ struct MediaType {
     /// `type/subtype` in lowercase, such as `application/json`.
     let essence: String
     /// The parameters in order, with lowercase names; quoted values without their quotes.
-    let parameters: [(name: String, value: String)]
+    let parameters: [HeaderValueReader.Parameter]
 
     init?(_ text: String) {
         var reader = HeaderValueReader(Array(text.unicodeScalars))
@@ -35,22 +35,31 @@ struct MediaType {
 /// Reads the `token`, `quoted-string` and parameter syntax shared by `Content-Type` and
 /// `Content-Disposition`.
 struct HeaderValueReader {
+    /// A `name=value` parameter: the name in lowercase, a quoted value without its quotes.
+    struct Parameter {
+        let name: String
+        let value: String
+        /// Whether the value was a quoted string.
+        let isQuoted: Bool
+    }
+
     private let scalars: [Unicode.Scalar]
     private var position = 0
 
     init(_ scalars: [Unicode.Scalar]) { self.scalars = scalars }
 
     /// `*( OWS ";" OWS name "=" value ) OWS` up to the end; nil when anything else is there.
-    mutating func parameters() -> [(name: String, value: String)]? {
-        var parameters: [(name: String, value: String)] = []
+    mutating func parameters() -> [Parameter]? {
+        var parameters: [Parameter] = []
         while true {
             skipWhitespace()
             if position == scalars.count { return parameters }
             guard consume(";") else { return nil }
             skipWhitespace()
             guard let name = token(), consume("=") else { return nil }
-            guard let value = scalars.indices.contains(position) && scalars[position] == "\"" ? quotedString() : token() else { return nil }
-            parameters.append((name.lowercased(), value))
+            let isQuoted = scalars.indices.contains(position) && scalars[position] == "\""
+            guard let value = isQuoted ? quotedString() : token() else { return nil }
+            parameters.append(Parameter(name: name.lowercased(), value: value, isQuoted: isQuoted))
         }
     }
 
