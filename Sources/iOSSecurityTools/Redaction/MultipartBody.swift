@@ -10,8 +10,8 @@ import Foundation
 /// ``maximumPartCount`` parts.
 struct MultipartBody {
     struct Part {
-        /// The header lines as sent, joined with CRLF.
-        let headers: String
+        /// The header fields in order, names as sent.
+        let headers: [(name: String, value: String)]
         let name: String
         let filename: String?
         let contentType: MediaType?
@@ -68,8 +68,10 @@ struct MultipartBody {
         guard let headers = String(bytes: bytes[range.lowerBound..<headerEnd], encoding: .utf8) else { return nil }
         var disposition: String?
         var contentType: String?
+        var fields: [(name: String, value: String)] = []
         for line in headers.isEmpty ? [] : headers.components(separatedBy: "\r\n") {
             guard let field = headerField(line) else { return nil }
+            fields.append(field)
             switch field.name.lowercased() {
             case "content-disposition":
                 guard disposition == nil else { return nil }
@@ -84,7 +86,7 @@ struct MultipartBody {
         guard let disposition, let (name, filename) = formDataNames(disposition) else { return nil }
         let mediaType = contentType.map(MediaType.init)
         if case .some(.none) = mediaType { return nil }
-        return Part(headers: headers, name: name, filename: filename, contentType: mediaType ?? nil, content: bytes[contentStart..<range.upperBound])
+        return Part(headers: fields, name: name, filename: filename, contentType: mediaType ?? nil, content: bytes[contentStart..<range.upperBound])
     }
 
     /// `name: value` on one line; nil for a folded line, a bare CR or LF or a name that is not a token.

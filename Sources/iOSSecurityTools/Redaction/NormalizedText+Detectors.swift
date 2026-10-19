@@ -11,7 +11,7 @@ extension NormalizedText {
                 i += 1
                 continue
             }
-            // Digit groups separated by up to three spaces or hyphens.
+            // Digit groups separated by up to three spaces, tabs or dashes.
             var groups: [Range<Int>] = []
             var groupStart = i
             var j = i
@@ -21,7 +21,7 @@ extension NormalizedText {
                     continue
                 }
                 var separatorEnd = j
-                while separatorEnd < count, separatorEnd - j < 3, bytes[separatorEnd] == UInt8(ascii: " ") || bytes[separatorEnd] == UInt8(ascii: "-") {
+                while separatorEnd < count, separatorEnd - j < 3, isCardSeparator(separatorEnd) {
                     separatorEnd += 1
                 }
                 guard separatorEnd > j, separatorEnd < count, isDigit(separatorEnd) else { break }
@@ -38,6 +38,10 @@ extension NormalizedText {
             i = max(j, i + 1)
         }
         return spans
+    }
+
+    private func isCardSeparator(_ i: Int) -> Bool {
+        bytes[i] == UInt8(ascii: " ") || bytes[i] == UInt8(ascii: "-") || bytes[i] == UInt8(ascii: "\t")
     }
 
     /// The longest run of consecutive groups starting at each group that holds 13 to 19 digits and
@@ -90,7 +94,8 @@ extension NormalizedText {
             var end = at + 1
             while end < count, isAlphanumeric(end) || bytes[end] == UInt8(ascii: ".") || bytes[end] == UInt8(ascii: "-") { end += 1 }
             while end > at + 1, bytes[end - 1] == UInt8(ascii: ".") || bytes[end - 1] == UInt8(ascii: "-") { end -= 1 }
-            guard start < at, end > at + 1, isDomain(at + 1..<end) else { continue }
+            // In `user:password@host` the text before `@` is a password, hidden on its own.
+            guard start < at, end > at + 1, isDomain(at + 1..<end), start == 0 || bytes[start - 1] != UInt8(ascii: ":") else { continue }
             spans.append(span(start..<end, .emailAddresses, Mask.email(string(start..<end))))
         }
         return spans
@@ -113,7 +118,8 @@ extension NormalizedText {
         var spans: [SensitiveDataRedactor.Span] = []
         var i = 0
         while i + 3 <= count {
-            guard bytes[i] == prefix[0], bytes[i + 1] == prefix[1], bytes[i + 2] == prefix[2], i == 0 || !isBase64URL(i - 1) else {
+            // A token glued to a word by `_` or `-` (`id_eyJ…`) is still a token.
+            guard bytes[i] == prefix[0], bytes[i + 1] == prefix[1], bytes[i + 2] == prefix[2], i == 0 || !isAlphanumeric(i - 1) else {
                 i += 1
                 continue
             }

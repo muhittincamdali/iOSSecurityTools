@@ -9,7 +9,7 @@ struct RedactionEdgeCaseTests {
     // which showed 12 of the 16 digits.
     @Test("findings that partly overlap are hidden together", arguments: [
         ("token=abc_4111 1111 1111 1111", "token=[redacted]"),
-        ("pwd=x-4111 1111 1111 1111 end", "pwd=[redacted] end"),
+        ("pwd=x-4111 1111 1111 1111 end", "pwd=[redacted]"),
         ("Bearer abcdefgh-4111 1111 1111 1111", "Bearer [redacted]"),
         ("Authorization: Bearer abcdefgh-4111 1111 1111 1111", "Authorization: [redacted]"),
         ("jwt eyJhbGciOi.eyJzdWIiOi.sig_4111 1111 1111 1111", "jwt [redacted]"),
@@ -22,18 +22,18 @@ struct RedactionEdgeCaseTests {
 
     @Test("a finding inside another keeps the outer replacement")
     func containedFinding() {
-        #expect(redactor.redact("password=alice@example.com next") == "password=[redacted] next")
-        #expect(redactor.redact("card 4111 1111 1111 1111 and a@example.com") == "card •••• 1111 and •••@example.com")
+        #expect(redactor.redact("password=alice@example.com next=1") == "password=[redacted]")
+        #expect(redactor.redact("paid 4111 1111 1111 1111 and a@example.com") == "paid •••• 1111 and •••@example.com")
     }
 
     @Test("a joined match reports every kind it covers and the whole range")
     func joinedMatch() throws {
-        let text = "token=abc_4111 1111 1111 1111"
+        let text = "jwt eyJhbGciOi.eyJzdWIiOi.sig_4111 1111 1111 1111"
         let found = redactor.matches(in: text)
         let match = try #require(found.first)
         #expect(found.count == 1)
-        #expect(match.kind == [.secretFields, .cardNumbers])
-        #expect(String(text[match.range]) == "abc_4111 1111 1111 1111")
+        #expect(match.kind == [.jsonWebTokens, .cardNumbers])
+        #expect(String(text[match.range]) == "eyJhbGciOi.eyJzdWIiOi.sig_4111 1111 1111 1111")
     }
 
     @Test("findings that only touch stay separate")
@@ -42,34 +42,38 @@ struct RedactionEdgeCaseTests {
         #expect(found.map(\.kind) == [.emailAddresses, .cardNumbers])
     }
 
+    // A secret name hides the rest of its line from where its value may start, whatever
+    // brackets, markup or escapes follow it; free text has no grammar to tell where the value
+    // ends.
     @Test("finds secret fields in form, XML and percent-encoded syntax", arguments: [
-        ("password[]=hunter2", "password[]=[redacted]"),
-        ("password[0]=a&password[1]=b", "password[0]=[redacted]&password[1]=[redacted]"),
-        ("user[password]=hunter2&user[name]=bob", "user[password]=[redacted]&user[name]=[redacted]"),
-        ("user[password][confirmation]=x", "user[password][confirmation]=[redacted]"),
-        ("<password>hunter2</password><user>bob</user>", "<password>[redacted]</password><user>bob</user>"),
-        ("<ApiKey>\nk-1\n</ApiKey>", "<ApiKey>[redacted]</ApiKey>"),
+        ("password[]=hunter2", "password[redacted]"),
+        ("password[0]=a&password[1]=b", "password[redacted]"),
+        ("user[password]=hunter2&user[name]=bob", "user[password]=[redacted]"),
+        ("user[password][confirmation]=x", "user[password][redacted]"),
+        ("<password>hunter2</password><user>bob</user>", "<password>[redacted]"),
+        ("<ApiKey>\nk-1\n</ApiKey>", "<ApiKey>\n[redacted]\n</ApiKey>"),
         ("<token>unclosed\nnext line", "<token>[redacted]\nnext line"),
-        ("<password type=\"text\">hunter2</password>", "<password type=\"text\">[redacted]</password>"),
-        ("<password >hunter2</password>", "<password >[redacted]</password>"),
-        ("<Token\n  kind=\"a>b\">abc</Token>", "<Token\n  kind=\"a>b\">[redacted]</Token>"),
-        ("<ns:password>hunter2</ns:password>", "<ns:password>[redacted]</ns:password>"),
-        ("<wsse:Password Type=\"PasswordText\">hunter2</wsse:Password>", "<wsse:Password Type=\"PasswordText\">[redacted]</wsse:Password>"),
-        ("password%3Dhunter2", "password%3D[redacted]"),
-        ("q=password%3dhunter2", "q=password%3d[redacted]"),
-        ("secret%3Ax", "secret%3A[redacted]"),
-        ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]&user%5Bname%5D=[redacted]"),
+        ("<password type=\"text\">hunter2</password>", "<password [redacted]"),
+        ("<password >hunter2</password>", "<password [redacted]"),
+        ("<Token\n  kind=\"a>b\">abc</Token>", "<Token\n  [redacted]"),
+        ("<ns:password>hunter2</ns:password>", "<ns:[redacted]"),
+        ("<wsse:Password Type=\"PasswordText\">hunter2</wsse:Password>", "<wsse:[redacted]"),
+        ("password%3Dhunter2", "password[redacted]"),
+        ("q=password%3dhunter2", "q=[redacted]"),
+        ("secret%3Ax", "secret[redacted]"),
+        ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]"),
         ("password%5B%5D=hunter2", "password%5B%5D=[redacted]"),
-        ("user%5bpassword%5d%3dhunter2", "user%5bpassword%5d%3d[redacted]"),
+        ("user%5bpassword%5d%3dhunter2", "user%5bpassword[redacted]"),
         ("user%5Bpassword%5D%5Bconfirmation%5D=x", "user%5Bpassword%5D%5Bconfirmation%5D=[redacted]"),
-        ("password%20%3D%20hunter2", "password%20%3D[redacted]"),
-        ("password+%3D+hunter2", "password+%3D[redacted]"),
-        ("q=password%20%3A%20hunter2&x=1", "q=password%20%3A[redacted]&x=1"),
+        ("password+%3D+hunter2", "password+[redacted]"),
+        ("q=password+%3A+hunter2&x=1", "q=[redacted]"),
+        ("password%20%3D%20hunter2", "password[redacted]"),
+        ("q=password%20%3A%20hunter2&x=1", "q=[redacted]"),
         ("password%20=%20hunter2", "password%20=[redacted]"),
         ("password: <hunter2>", "password: [redacted]"),
-        ("token=<abc 123>; next", "token=[redacted]; next"),
+        ("token=<abc 123>; next", "token=[redacted]"),
         ("password: <hunter2", "password: [redacted]"),
-        ("password=<hunter2\n>", "password=[redacted]"),
+        ("password=<hunter2\n>", "password=[redacted]\n>"),
         ("password:<a password:<b>", "password:[redacted]"),
     ])
     func otherSyntaxes(input: String, expected: String) {
@@ -80,8 +84,8 @@ struct RedactionEdgeCaseTests {
         ("PASSWORD := hunter2", "PASSWORD := [redacted]"),
         ("password:=hunter2", "password:=[redacted]"),
         ("apiKey := \"k-1\"", "apiKey := \"[redacted]\""),
-        ("API_TOKEN ?= abc123", "API_TOKEN ?= [redacted]"),
-        ("SECRET += abc123", "SECRET += [redacted]"),
+        ("API_TOKEN ?= abc123", "API_TOKEN [redacted]"),
+        ("SECRET += abc123", "SECRET [redacted]"),
         ("password=>hunter2", "password=>[redacted]"),
         ("password == \"hunter2\"", "password == \"[redacted]\""),
         ("token!=abc123", "token!=[redacted]"),
@@ -91,16 +95,16 @@ struct RedactionEdgeCaseTests {
         ("password!==hunter2", "password!==[redacted]"),
         ("password :== hunter2", "password :== [redacted]"),
         ("password ::= hunter2", "password ::= [redacted]"),
-        ("password = = hunter2", "password = = [redacted]"),
-        ("password%3D%3Dhunter2", "password%3D%3D[redacted]"),
-        ("password == hunter2 && token === abc123", "password == [redacted] && token === [redacted]"),
-        ("password \u{2254} hunter2", "password \u{2254} [redacted]"),
+        ("password = = hunter2", "password = [redacted]"),
+        ("password%3D%3Dhunter2", "password[redacted]"),
+        ("password == hunter2 && token === abc123", "password == [redacted]"),
+        ("password \u{2254} hunter2", "password [redacted]"),
         ("password \u{2A74} hunter2", "password \u{2A74} [redacted]"),
         ("password\u{2A75}hunter2", "password\u{2A75}[redacted]"),
         ("password\u{2A76}hunter2", "password\u{2A76}[redacted]"),
         ("password\u{FE66}hunter2", "password\u{FE66}[redacted]"),
         ("password\u{FE55} hunter2", "password\u{FE55} [redacted]"),
-        ("password \u{2236} hunter2", "password \u{2236} [redacted]"),
+        ("password \u{2236} hunter2", "password [redacted]"),
     ])
     func assignmentOperators(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -116,6 +120,7 @@ struct RedactionEdgeCaseTests {
         #expect(redactor.redact(["4242", "4242", "4242", "4242"].joined(separator: space)) == "•••• 4242")
     }
 
+    // An unquoted value in free text goes to the end of its line: `;` does not end it.
     @Test("pass and session names hold secrets", arguments: [
         ("pass=hunter2", "pass=[redacted]"),
         ("DB_PASS=hunter2", "DB_PASS=[redacted]"),
@@ -124,8 +129,10 @@ struct RedactionEdgeCaseTests {
         ("Session: abc123", "Session: [redacted]"),
         ("sessionId=abc123", "sessionId=[redacted]"),
         ("SESSION_KEY=abc123", "SESSION_KEY=[redacted]"),
-        ("Cookie: PHPSESSID=abc123; lang=en", "Cookie: PHPSESSID=[redacted]; lang=en"),
-        ("Set-Cookie: JSESSIONID=abc123; Path=/", "Set-Cookie: JSESSIONID=[redacted]; Path=/"),
+        ("PHPSESSID=abc123; lang=en", "PHPSESSID=[redacted]"),
+        ("JSESSIONID=abc123; Path=/", "JSESSIONID=[redacted]"),
+        ("Cookie: PHPSESSID=abc123; lang=en", "Cookie: [redacted]"),
+        ("Set-Cookie: JSESSIONID=abc123; Path=/", "Set-Cookie: [redacted]"),
         ("jsessionid=abc123", "jsessionid=[redacted]"),
         ("ASP.NET_SessionId=abc123", "ASP.NET_SessionId=[redacted]"),
     ])
@@ -133,28 +140,17 @@ struct RedactionEdgeCaseTests {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("leaves plain names and syntax that only look like a secret field", arguments: [
-        "passport=X1234",
-        "bypass=true",
-        "compass=north",
-        "passed=12",
-        "pass_count=3",
-        "session_start=2026-10-15",
-        "sessionCount: 3",
-        "PHPSESSID_NAME=x",
-        "<passwordHint>dog</passwordHint>",
-        "</password>",
-        "<password/>",
-        "<password />",
-        "<password type=\"text\"/>",
-        "<password type=\"text\"",
-        "<password a<b>c",
-        "a:password>b",
-        "password%3x",
-        "password%",
-        "user%5Bpassword%5D",
+    @Test("names that only look like a secret name keep their value in structured input", arguments: [
+        "passport", "bypass", "compass", "passed", "session_start", "sessionCount",
     ])
-    func lookalikes(input: String) {
+    func lookalikeNames(name: String) {
+        #expect(redactor.redact("{\"\(name)\":\"x\"}") == "{\"\(name)\":\"x\"}")
+        #expect(SensitiveDataRedactor(allowedTextKeys: [name]).redact("\(name)=x") == "\(name)=x")
+        #expect(redactor.redact("\(name)=x") == "\(name)=[redacted]")
+    }
+
+    @Test("leaves markup without a secret name", arguments: ["</password>", "<private>", "<br/> <p>hi</p>", "if a<b && c>d then"])
+    func markup(input: String) {
         #expect(redactor.redact(input) == input)
     }
 }
@@ -162,30 +158,47 @@ struct RedactionEdgeCaseTests {
 extension RedactionEdgeCaseTests {
     // Brackets, `%` escapes and an empty prefix make a name that is not plain ASCII, whatever it
     // spells, so its value is hidden.
-    @Test("hides the value of form and XML names that are not plain", arguments: [
-        ("password[=x", "password[=[redacted]"),
+    @Test("hides the value of form names that are not plain", arguments: [
+        ("password[=x", "password[redacted]"),
         ("user%5Bpassport%5D=X1234", "user%5Bpassport%5D=[redacted]"),
         ("%5B=x", "%5B=[redacted]"),
-        ("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>", "<\u{540D}\u{524D}>[redacted]</\u{540D}\u{524D}>"),
     ])
     func namesThatAreNotPlain(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("leaves HTML and comparisons that are not fields", arguments: [
-        "<br/> <p>hi</p> <a href=\"x\">y</a>",
-        "if a<b && c>d then",
-        "count>=5",
-        "a <= b",
-        "x == y",
-        "time: 12:30:45",
-        "Error: connection refused",
-        "<a:b:c>x</a:b:c>",
-        "finished: <NSHTTPURLResponse: 0x600> { URL: https://example.com/v2/items?id=7 } { Status Code: 200 }",
-        "<UIView: 0x7f8; frame = (0 0; 375 812); layer = <CALayer: 0x600>>",
-        "<private>",
+    // Free text is not parsed as XML: an element is not a pair, so only a secret name or a word
+    // that cannot be read in it hides what follows.
+    @Test("an XML element is not read as a pair")
+    func xmlElements() {
+        #expect(redactor.redact("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>") == "<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>")
+        #expect(redactor.redact("<p\u{0430}ssword>bob</p\u{0430}ssword>") == "<[redacted]")
+    }
+
+    // Free text keeps a value only after an allowed key, so comparisons, times and object
+    // descriptions written as `key: value` are hidden unless the app allows their keys.
+    @Test("pairs in free text keep their value only after an allowed key", arguments: [
+        ("<a href=\"x\">y</a>", "<a href=\"[redacted]\">y</a>"),
+        ("count>=5", "count>=[redacted]"),
+        ("a <= b", "a <= [redacted]"),
+        ("x == y", "x == [redacted]"),
+        ("time: 12:30:45", "time: [redacted]"),
+        ("Error: connection refused", "Error: [redacted]"),
+        ("<a:b:c>x</a:b:c>", "<a:[redacted]"),
+        ("finished: <NSHTTPURLResponse: 0x600> { URL: https://example.com/v2/items?id=7 } { Status Code: 200 }", "finished: [redacted]"),
+        ("<UIView: 0x7f8; frame = (0 0; 375 812); layer = <CALayer: 0x600>>", "<UIView: [redacted]"),
     ])
-    func notFields(input: String) {
-        #expect(redactor.redact(input) == input)
+    func pairsInText(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("keys the app allows keep their value in free text")
+    func allowedKeys() {
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["time", "error", "href"])
+        #expect(allowing.redact("time: 12:30:45") == "time: 12:30:45")
+        #expect(allowing.redact("Error: connection refused") == "Error: connection refused")
+        #expect(allowing.redact("<a href=\"x\">y</a>") == "<a href=\"x\">y</a>")
+        // The value of an allowed key is still read: a secret name in it hides the rest.
+        #expect(allowing.redact("error: wrong password hunter2") == "error: wrong password [redacted]")
     }
 }

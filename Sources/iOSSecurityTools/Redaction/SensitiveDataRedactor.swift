@@ -1,94 +1,74 @@
 import Foundation
 
-/// Finds card numbers, email addresses, tokens and the values of secret fields and hides them,
-/// for log messages, crash reports and analytics events.
+/// Finds card numbers, bank account numbers, email addresses, tokens and the values of secret
+/// keys and hides them, for log messages, crash reports and analytics events.
 ///
 /// ```swift
 /// let redactor = SensitiveDataRedactor()
 /// redactor.redact(#"POST /login {"user":"alice@example.com","password":"hunter2"}"#)
 /// // POST /login {"user":"a•••@example.com","password":"[redacted]"}
+/// redactor.redact("login failed user=alice status=401")
+/// // login failed user=[redacted]
 /// ```
 ///
-/// What it recognizes anywhere in a text:
+/// Redaction is a safety net for mistakes, not a guarantee: keep secrets out of log calls in the
+/// first place. The redactor follows one rule: what it does not fully understand is hidden, never
+/// shown.
 ///
-/// - **Card numbers**: 13 to 19 digits that pass the Luhn check, optionally grouped with spaces
-///   or hyphens. Shown as `•••• 4242`.
-/// - **Email addresses**: shown with ``Mask/email(_:)``.
-/// - **JSON Web Tokens**: `eyJ…​.…​.…` — replaced completely.
-/// - **Bearer tokens**: the token after `Bearer `.
-/// - **Secret fields**: the value of a field whose name hides it, described below.
+/// ## Keys
 ///
-/// ## Which names hide a value
+/// Keys are JSON member names, form and multipart field names and query parameter names. Only a
+/// plain-ASCII key is compared with the secret names: `A`–`Z`, `a`–`z`, `0`–`9` and the separators
+/// `_`, `-`, `.` and space, which are folded away (`PASS-WORD` reads as `password`). **Any other key
+/// has its value hidden**, whatever it says: one with a letter outside ASCII (`pаssword` with a
+/// Cyrillic `а`, `ｐａｓｓｗｏｒｄ`, `café`), a mark, an invisible format character, mixed scripts, an
+/// escape or other punctuation. No list of look-alikes is ever complete, so none is kept.
 ///
-/// Only plain-ASCII names are compared: names made of `A`–`Z`, `a`–`z`, `0`–`9`, `_` and `-`.
-/// `_` and `-` are folded away first, so `pass_word` and `PASS-WORD` read as `password`. A
-/// plain name hides its value when one of its words starts a secret word that ends with a word
-/// of the name — `password`, `pass`, `pwd`, `token`, `secret`, `api_key`, `authorization`,
-/// `session_id` and similar, as in `accessToken`, `client_secret`, `SECRET_KEY`, `DB_PASS`,
-/// `aws_secret_access_key` or `password2` — when it contains `password`, `passwd`, `passphrase`
-/// or another compound secret word anywhere (`dbpassword`), when it ends in `token`, `secret` or
-/// `pwd` (`apitoken`), or when it is `session`, `PHPSESSID` or `JSESSIONID`. Names that only
-/// describe a secret, such as `passwordHint`, `token_type`, `pass_count` or `session_start`, are
-/// left alone, and so is `pass` inside another word (`bypass`, `passport`, but also `mypass`).
+/// A plain key hides its value when it holds a secret word: the list the redaction spec shares
+/// between packages (`password`, `passwd`, `pwd`, `secret`, `token`, `access_token`, `api_key`,
+/// `key`, `auth`, `authorization`, `cookie`, `session`, `sid`, `otp`, `pin`, `cvv`, `card`, `iban`,
+/// `ssn`, `private_key`, `client_secret`, `signature`, …) and this library's extensions
+/// (`passphrase`, `passcode`, `credential`, `cvc`, `sessid`, `pin_code`, `verification_code`, …),
+/// also in the plural. Words of five or more letters count anywhere in a key (`dbPassword`),
+/// shorter ones as a word of it or at its end (`user_pin`, `X-Auth-Key`, `apitoken`), `pass` and
+/// `sid` only as a word, and `session` only as the last word. A hidden value is hidden whole: a
+/// string, a number, and an array or object with everything in it.
 ///
-/// **Any other name is redacted by default.** A name with a letter outside ASCII, a mark, an
-/// invisible format character, mixed scripts, a space, a dot, a bracket, an escape or other
-/// punctuation can be written to look like a secret name, and no list of look-alikes is
-/// complete, so its value is hidden whatever it says: `pаssword` with a Cyrillic `а`,
-/// `pass` and `word` with a zero-width space between them, `pass.word`, `pass%77ord` and
-/// `user[name]` all hide their value, and so do `статус` and `café`.
+/// ## Structured input
 ///
-/// A hidden value is hidden whole: a string, and an array or object with everything in it.
-///
-/// ## Structured text
-///
-/// A text that is a JSON object or array is read with a JSON parser and checked against
-/// `JSONSerialization`: names are compared after their escapes are decoded, at every depth,
-/// inside arrays and for every repetition of a name, and strings that hold JSON themselves are
-/// read too. ``redact(body:contentType:)`` reads JSON, form and multipart bodies the same way and
-/// omits a body it cannot parse completely.
+/// JSON is read with a JSON parser and used only when `JSONSerialization` reads the same tree:
+/// keys are compared after their escapes are decoded, at every depth, inside arrays and for every
+/// repetition of a key. The output stays valid JSON. URLs are read with `URLComponents` (see
+/// ``redact(url:)``), and ``redact(body:contentType:)`` reads JSON, form, multipart and plain-text
+/// bodies; a body it cannot parse completely is omitted.
 ///
 /// ## Free text
 ///
-/// Everything else, such as a log line, is read with the free-text rule:
+/// A log line has no grammar, so its keys are read the other way round, with an allowlist: in
+/// `key=value`, `key: value` and `"key":"value"` the value is kept only when the key is plain ASCII
+/// and on ``allowedTextKeys``. Strings inside JSON, form values and multipart text parts are free
+/// text too. ``redact(_:)`` describes the rule.
 ///
-/// - A field is a name, a separator and a value. Separators are `=` and `:` and runs of them
-///   (`:=`, `==`, `::=`, `= =`), `?=`, `!=`, `+=`, `<=`, `>=`, `=>`, characters whose Unicode
-///   compatibility form is made of `=` and `:` (`＝`, `：`, `︓`, `⩴`), `≔` and `∶`, and `=` or `:`
-///   written as an escape (`%3D`, `%253A`, `&#61;`, `&colon;`, `\u003D`).
-/// - The name is the text in the quotes right before the separator (`"password":`, `'token':`,
-///   `\"api_key\":`), or the word right before it, back to whitespace, a quote, `,`, `;`, `&`,
-///   `?` or another separator; a word that ends in a bracket keeps its brackets (`user[name]`).
-///   The words before a plain name, when only whitespace separates them, are read with it when a
-///   secret word could start there and end in the name, so `pass word=` and `API key:` hide
-///   their value; a word in those that is not plain ASCII could spell anything and counts as a
-///   match.
-/// - The value is the text in quotes, the text in brackets up to the bracket that closes it, or
-///   the word after the separator, up to whitespace, `,`, `;`, `&`, a closing bracket, `<`, a
-///   quote or a `:` before whitespace. A quoted part glued to the word (`x='…'`) belongs to it,
-///   and after `Bearer`, `Basic` and other authentication schemes the credentials that follow do
-///   too. With nothing after the separator on its line, the value is on the next line.
-/// - When the rule cannot tell, it hides: a separator with no name before it hides the rest of
-///   its line, an unclosed quote hides the rest of the line and an unclosed bracket the rest of
-///   the text. After a name that names a secret, punctuation or a symbol outside ASCII
-///   (`password꞉…`, `pass·word: …`) is taken as a separator and hides the rest of the line. In
-///   `<name …>value</name>` the element name is judged like a field name.
+/// ## Values
 ///
-/// When two findings partly overlap, such as a token that runs into a card number
-/// (`token=abc_4111 1111 1111 1111`), the whole stretch they cover becomes `[redacted]`. Card
-/// numbers, email addresses and tokens are found after Unicode compatibility normalization, so
-/// full-width digits, zero-width characters and Unicode spaces do not hide them. Scanning and
-/// replacing take time linear in the length of the text and do not use regular expressions.
+/// Values are also scanned for:
 ///
-/// Redaction is a safety net for mistakes, not a reason to log secrets. It cannot recognize a
-/// secret that is not labelled, a plain-ASCII label it does not know (`pin`, `credentials`), or
-/// text encoded as a whole, such as base64. In free text it does not read a value separated from
-/// its name only by whitespace (`password hunter2`), the words of an unquoted value after the
-/// first (`password=hunter 2`), a name split by `,`, `;`, `&`, `=` or `:`, XML `CDATA` sections,
-/// attribute values (`<input name="password" value="…">`), operators such as `->`, or a
-/// separator that only looks like `=` or `:` after a name written entirely in letters of other
-/// scripts. Values of names that are not plain ASCII are hidden even when they hold nothing
-/// secret.
+/// - **Card numbers**: 13 to 19 digits that pass the Luhn check, optionally grouped with spaces,
+///   tabs or dashes. Shown as `•••• 4242`.
+/// - **IBANs**: a country code, two check digits and up to 30 capital letters or digits that pass
+///   the mod-97 check, optionally grouped with spaces. Shown as `•••• 3000`.
+/// - **Email addresses**: shown with ``Mask/email(_:)``.
+/// - **JSON Web Tokens**: `eyJ…​.…​.…`, also glued to a word with `_` or `-`.
+/// - **Bearer tokens**: the token after `Bearer `.
+/// - **Long tokens**: runs of 32 or more hex digits, and of 32 or more base64 characters with
+///   letters and digits. UUIDs and paths are kept.
+/// - **Passwords in URLs**: the password in `user:password@host`.
+///
+/// They are found after Unicode compatibility decomposition without marks, format characters,
+/// default-ignorable code points and control characters, so full-width digits, zero-width
+/// characters, fillers such as U+3164, `DEL` and Unicode spaces do not hide them. When two
+/// findings overlap, the whole stretch they cover becomes `[redacted]`. Scanning takes time linear
+/// in the length of the text and uses no regular expressions.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -103,11 +83,16 @@ public struct SensitiveDataRedactor: Sendable {
         public static let jsonWebTokens = Kinds(rawValue: 1 << 2)
         /// Tokens after the word `Bearer`.
         public static let bearerTokens = Kinds(rawValue: 1 << 3)
-        /// Values of fields whose name hides them: secret names such as `password`, `token` or
-        /// `api_key`, and every name that is not plain ASCII.
+        /// Values hidden by their key: secret and non-ASCII keys in structured input, keys that are
+        /// not allowed in free text, the parts of URLs that ``redact(url:)`` hides, and the password
+        /// in `user:password@host`.
         public static let secretFields = Kinds(rawValue: 1 << 4)
+        /// International bank account numbers that pass the mod-97 check.
+        public static let ibans = Kinds(rawValue: 1 << 5)
+        /// Runs of 32 or more hexadecimal digits, or of base64 letters and digits.
+        public static let longTokens = Kinds(rawValue: 1 << 6)
         /// Everything above.
-        public static let all: Kinds = [.cardNumbers, .emailAddresses, .jsonWebTokens, .bearerTokens, .secretFields]
+        public static let all: Kinds = [.cardNumbers, .emailAddresses, .jsonWebTokens, .bearerTokens, .secretFields, .ibans, .longTokens]
     }
 
     /// A piece of sensitive data found in a text.
@@ -119,54 +104,104 @@ public struct SensitiveDataRedactor: Sendable {
         public let range: Range<String.Index>
     }
 
+    /// How much of a URL is recorded.
+    public enum URLDetail: Sendable, Hashable {
+        /// Scheme, host, port, path and query, redacted.
+        case full
+        /// Scheme, host and port only.
+        case hostOnly
+    }
+
     /// The text that replaces tokens and secret values.
     public static let replacement = "[redacted]"
 
-    /// The words that make a field name secret, in lowercase without `_` or `-`; a plain name
-    /// holds one when a word of the name starts it and a word of the name ends it.
-    static let secretFieldNames: [[UInt8]] = [
-        "authorization", "clientsecret", "refreshtoken", "accesstoken", "privatekey", "secretkey",
-        "sessionid", "sessionkey", "passphrase", "password", "idtoken", "apikey", "passwd", "secret",
-        "token", "pass", "pwd",
-    ].map { Array($0.utf8) }
+    /// The text that replaces a URL path segment that looks like an identifier or a secret.
+    public static let identifierPlaceholder = ":id"
 
-    /// Secret words that hold a secret wherever they are in a name (`dbpassword`,
-    /// `userapikey`): none of them is the start or end of a common word that is not secret.
-    static let unboundedSecretFieldNames: Set<[UInt8]> = Set([
-        "authorization", "clientsecret", "refreshtoken", "accesstoken", "privatekey", "secretkey",
-        "sessionid", "sessionkey", "passphrase", "password", "idtoken", "apikey", "passwd",
-    ].map { Array($0.utf8) })
+    /// What is recorded for a URL that `URLComponents` cannot parse.
+    public static let unparsedURL = "<unparsed URL>"
 
-    /// Secret words that hold a secret at the end of a name (`apitoken`, `appsecret`, `dbpwd`),
-    /// where they cannot be the start of another word (`tokenizer`, `secretary`).
-    static let trailingSecretFieldNames: Set<[UInt8]> = Set(["token", "secret", "pwd"].map { Array($0.utf8) })
+    /// Bodies larger than this are omitted without being parsed: 1 MiB.
+    public static let maximumBodySize = 1_048_576
 
-    /// Field names that hold a secret only when they are the whole name: a `session` cookie holds
-    /// the session, while `session_start` or `sessionCount` describe it. `PHPSESSID` and
-    /// `JSESSIONID` are the session cookies of PHP and Java servers.
-    static let wholeSecretFieldNames: Set<[UInt8]> = Set(["session", "phpsessid", "jsessionid"].map { Array($0.utf8) })
-
-    /// Words that, right after a secret word, make the field describe the secret instead of
-    /// holding it: `passwordHint`, `token_type`, `token_expires_in`.
-    static let describingWords: Set<[UInt8]> = Set([
-        "hint", "type", "expiry", "expires", "expiration", "ttl", "lifetime", "length", "policy",
-        "url", "uri", "endpoint", "count", "required", "rules", "strength", "changed", "updated",
-    ].map { Array($0.utf8) })
+    /// The keys whose values free text keeps: harmless names that logs use for numbers and routes.
+    /// The keys passed to the initializer are added to them.
+    public static let defaultAllowedTextKeys: [String] = [
+        "status", "status_code", "method", "path", "duration", "duration_ms", "count", "size", "bytes",
+        "page", "limit", "offset", "attempt", "level",
+    ]
 
     /// The kinds this redactor looks for.
     public let kinds: Kinds
 
+    /// The folded keys whose values free text keeps: ``defaultAllowedTextKeys`` and the keys passed
+    /// to the initializer, lowercased and without `_`, `-`, `.` and spaces.
+    public let allowedTextKeys: Set<String>
+
+    /// The folded names of the query parameters whose values a URL keeps. Empty by default.
+    public let allowedQueryParameters: Set<String>
+
+    /// How much of a URL is recorded.
+    public let urlDetail: URLDetail
+
     /// Creates a redactor.
     ///
-    /// - Parameter kinds: The kinds of data to look for; all of them by default.
-    public init(kinds: Kinds = .all) {
+    /// - Parameters:
+    ///   - kinds: The kinds of data to look for; all of them by default.
+    ///   - allowedTextKeys: Keys whose values free text keeps, in addition to
+    ///     ``defaultAllowedTextKeys``. A key that is not plain ASCII or names a secret is ignored.
+    ///   - allowedQueryParameters: Query parameters whose values URLs keep. A name that is not
+    ///     plain ASCII or names a secret is ignored.
+    ///   - urlDetail: How much of a URL is recorded.
+    public init(kinds: Kinds = .all, allowedTextKeys: [String] = [], allowedQueryParameters: [String] = [], urlDetail: URLDetail = .full) {
         self.kinds = kinds
+        self.allowedTextKeys = Self.allowableFolds(Self.defaultAllowedTextKeys + allowedTextKeys)
+        self.allowedQueryParameters = Self.allowableFolds(allowedQueryParameters)
+        self.urlDetail = urlDetail
+    }
+
+    private static func allowableFolds(_ names: [String]) -> Set<String> {
+        Set(names.compactMap { FieldName.allowableFold($0.unicodeScalars) })
     }
 
     /// Returns the text with every match replaced.
+    ///
+    /// The text is read as free text, on a scanning copy without invisible characters (format
+    /// characters, marks, default-ignorable code points such as U+3164, control characters) and
+    /// in Unicode compatibility form:
+    ///
+    /// - **Pairs.** In `key=value`, `key: value`, `key = value` and `"key":"value"` the value is
+    ///   kept only when the key is plain ASCII and on ``allowedTextKeys``. Any other value is
+    ///   replaced: a quoted one (`"`, `'` or a backtick) up to its closing quote, a JSON object or
+    ///   array whole, anything else with the rest of its line, because where it ends cannot be
+    ///   told. The separators are `=` and `:`, also as characters whose compatibility form is one
+    ///   (`＝`, `：`, `︓`) and as escapes (`%3D`, `&#61;`); a `:` between two digits, as in
+    ///   `12:30`, is part of a time. Punctuation and math symbols outside ASCII (`≔`, `꞉`, `→`,
+    ///   `·`) separate too, where they follow other text.
+    /// - **Secret names without a separator.** A word that holds a secret name hides the rest of
+    ///   its line: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`. Words are read
+    ///   after their escapes are decoded, with punctuation inside them (`pass~word`) and a space or
+    ///   `|` between two of them (`pass word`) read as a separator, and a letter that has no ASCII
+    ///   form (`ɑ`, `ı`) read as any letter.
+    /// - **Ambiguity.** A word that mixes scripts (`pаssword` with a Cyrillic `а`) or holds an
+    ///   invisible character other than a mark (`pa\u{115F}ssword`, a zero-width space, a control
+    ///   character) hides itself and the rest of its line.
+    /// - **Values that go on.** A quote that does not close on its line hides the lines up to the
+    ///   one where it closes, and that line whole. After a value hidden to the end of its line, the
+    ///   lines indented more and the line after a trailing `\` are hidden; so is the next line with
+    ///   text when nothing but punctuation followed the name, the line ends open (`(`, `:`, `<key>`,
+    ///   `"""`) or it ends at a break other than LF and CRLF.
+    /// - **Embedded JSON.** JSON in a line (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the
+    ///   key rule for structured input. JSON that does not parse hides the rest of the line, and the
+    ///   lines below until its brackets close.
+    /// - **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them.
+    /// - **Values** are scanned for card numbers, IBANs, email addresses and tokens everywhere.
+    ///
+    /// U+2028, U+2029, U+0085, vertical tab and form feed end a line and are written as line feeds,
+    /// so the result breaks lines where the rule did; CR and CRLF end a line too and are kept.
     public func redact(_ text: String) -> String {
         let scalars = Array(text.unicodeScalars)
-        let spans = spans(in: scalars, compatibility: CompatibilityText())
+        let spans = textSpans(in: scalars, compatibility: CompatibilityText())
         guard !spans.isEmpty else { return text }
         return Self.replacing(spans, in: scalars)
     }
@@ -174,7 +209,7 @@ public struct SensitiveDataRedactor: Sendable {
     /// Returns the sensitive data found in a text, in order, without overlaps.
     public func matches(in text: String) -> [Match] {
         let scalars = Array(text.unicodeScalars)
-        let spans = spans(in: scalars, compatibility: CompatibilityText())
+        let spans = textSpans(in: scalars, compatibility: CompatibilityText()).filter { !$0.kind.isEmpty }
         var indices: [String.Index] = []
         indices.reserveCapacity(scalars.count + 1)
         var index = text.unicodeScalars.startIndex
@@ -186,9 +221,10 @@ public struct SensitiveDataRedactor: Sendable {
         return spans.map { Match(kind: $0.kind, range: indices[$0.start]..<indices[$0.end]) }
     }
 
-    // MARK: - Scanning
+    // MARK: - Spans
 
-    /// A replacement, in offsets of the original scalars.
+    /// A replacement, in offsets of the original scalars. A span without a kind is no finding: it
+    /// writes a line separator as a line feed.
     struct Span {
         var start: Int
         var end: Int
@@ -213,34 +249,10 @@ public struct SensitiveDataRedactor: Sendable {
         return String(String.UnicodeScalarView(output))
     }
 
-    /// The findings in a text, in order and without overlaps. `document` is the text already
-    /// read as JSON, when the caller has done that.
-    func spans(in scalars: [Unicode.Scalar], compatibility: CompatibilityText, document: JSONDocument? = nil) -> [Span] {
-        var found: [Span] = []
-        if kinds.contains(.secretFields) {
-            if let document = document ?? Self.jsonDocument(scalars) {
-                found += document.secretSpans(using: self, compatibility: compatibility)
-            } else {
-                found += FreeTextFields(scalars: scalars, bounds: scalars.indices, compatibility: compatibility).spans()
-            }
-        }
-        if !kinds.isDisjoint(with: [.bearerTokens, .jsonWebTokens, .emailAddresses, .cardNumbers]) {
-            let text = NormalizedText(scalars, compatibility: compatibility)
-            if kinds.contains(.bearerTokens) { found += text.bearerSpans() }
-            if kinds.contains(.jsonWebTokens) { found += text.jsonWebTokenSpans() }
-            if kinds.contains(.emailAddresses) { found += text.emailSpans() }
-            if kinds.contains(.cardNumbers) { found += text.cardSpans() }
-        }
-        return Self.merged(found)
-    }
-
-    /// The text read as JSON when it is a JSON object or array.
-    private static func jsonDocument(_ scalars: [Unicode.Scalar]) -> JSONDocument? {
-        guard let first = scalars.first(where: { ![" ", "\t", "\n", "\r"].contains($0) }), first == "{" || first == "[" else { return nil }
-        return JSONDocument(scalars, allowsFragments: false)
-    }
-
-    private static func merged(_ spans: [Span]) -> [Span] {
+    /// The spans in order and without overlaps. A span inside a mask (an address, a card number)
+    /// turns the mask into ``replacement``, since the mask shows part of what it covers; spans that
+    /// partly overlap are joined into one ``replacement``.
+    static func merged(_ spans: [Span]) -> [Span] {
         let sorted = spans.sorted { $0.start != $1.start ? $0.start < $1.start : $0.end > $1.end }
         var result: [Span] = []
         for span in sorted {
@@ -248,9 +260,12 @@ public struct SensitiveDataRedactor: Sendable {
                 result.append(span)
                 continue
             }
-            guard span.end > last.end else { continue }
-            // The two overlap and neither contains the other ("token=abc_4111 1111 1111 1111"):
-            // dropping either would show part of it, so hide both as one region.
+            guard span.end > last.end else {
+                if last.replacement != replacement, !span.kind.isEmpty, span.kind != last.kind {
+                    result[result.count - 1] = Span(start: last.start, end: last.end, kind: last.kind.union(span.kind), replacement: replacement)
+                }
+                continue
+            }
             result[result.count - 1] = Span(start: last.start, end: span.end, kind: last.kind.union(span.kind), replacement: replacement)
         }
         return result

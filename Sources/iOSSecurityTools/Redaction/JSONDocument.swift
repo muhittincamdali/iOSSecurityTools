@@ -56,6 +56,18 @@ struct JSONDocument {
         self.root = root
     }
 
+    /// Reads the JSON object or array that starts at `start` in a longer text, such as a log line;
+    /// nil when there is none or `JSONSerialization` reads it differently. Ranges are offsets in
+    /// the whole text.
+    init?(_ scalars: [Unicode.Scalar], at start: Int) {
+        var reader = Reader(scalars: scalars, position: start)
+        guard let root = reader.value(), root.isContainer else { return nil }
+        let data = Data(String(String.UnicodeScalarView(scalars[root.range])).utf8)
+        guard let parsed = try? JSONSerialization.jsonObject(with: data), Self.agrees(root, with: parsed, in: scalars) else { return nil }
+        self.scalars = scalars
+        self.root = root
+    }
+
     /// The text of a string, with its escapes decoded.
     func text(of token: StringToken) -> [Unicode.Scalar] {
         token.decoded ?? Array(scalars[token.content])
@@ -124,13 +136,21 @@ extension JSONDocument {
         let scalars: [Unicode.Scalar]
         var position = 0
 
-        init(scalars: [Unicode.Scalar]) { self.scalars = scalars }
+        init(scalars: [Unicode.Scalar], position: Int = 0) {
+            self.scalars = scalars
+            self.position = position
+        }
 
         mutating func document() -> Node? {
             skipWhitespace()
             guard let root = value(depth: 0) else { return nil }
             skipWhitespace()
             return position == scalars.count ? root : nil
+        }
+
+        /// One value at the current position, with nothing read after it.
+        mutating func value() -> Node? {
+            value(depth: 0)
         }
 
         private mutating func value(depth: Int) -> Node? {

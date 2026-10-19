@@ -97,6 +97,31 @@ struct RedactionScalingTests {
         RepeatedText(unit: "::"),
         RepeatedText(unit: "=a "),
         RepeatedText(unit: "<a:"),
+        // Long names, read once; words that could spell a secret name, separators that only
+        // might be one, values that run on and lines below a value.
+        RepeatedText(unit: "passx", suffix: "=1"),
+        RepeatedText(prefix: "{\"", unit: "tokenx", suffix: "\":1}"),
+        RepeatedText(prefix: "secret", unit: "x", suffix: ": 1"),
+        RepeatedText(unit: "k\u{0131}"),
+        RepeatedText(unit: "Ka\u{0131}l "),
+        RepeatedText(unit: "p\u{0430}ss\u{A789}"),
+        RepeatedText(unit: "password  "),
+        RepeatedText(unit: "%5B"),
+        RepeatedText(unit: "password=a,"),
+        RepeatedText(unit: "a,"),
+        RepeatedText(unit: "(a"),
+        RepeatedText(unit: "pa(ss)word="),
+        RepeatedText(unit: "token\u{2192}"),
+        RepeatedText(unit: "\"a\": "),
+        RepeatedText(unit: "x=y "),
+        RepeatedText(prefix: "password=", unit: "a "),
+        RepeatedText(prefix: "password: |\n", unit: "  a\n"),
+        RepeatedText(prefix: "password=\"", unit: "a\n"),
+        RepeatedText(unit: "<key>password</key>"),
+        RepeatedText(unit: "- key: password\n"),
+        RepeatedText(unit: "</"),
+        RepeatedText(unit: "DE89 "),
+        RepeatedText(unit: "https://a:"),
         // JSON: nesting beyond the limit, many members and strings with escapes.
         RepeatedText(unit: "["),
         RepeatedText(prefix: "[", unit: "{\"password\":1},", suffix: "{}]"),
@@ -157,6 +182,27 @@ struct RedactionScalingTests {
             "\(contentType) body of \(unit.debugDescription)",
             small: { _ = redactor.redact(body: small, contentType: contentType) },
             large: { _ = redactor.redact(body: large, contentType: contentType) },
+            maximumRatio: 10
+        )
+    }
+
+    // A JSON or form name was compared in time quadratic in its length: 80,000 characters took
+    // 3 seconds, a megabyte about 8 minutes.
+    @Test("comparing a long JSON or form name takes time linear in its length")
+    func longNameScale() {
+        func json(_ length: Int) -> Data { Data(("{\"" + String(repeating: "tokenx", count: length / 6) + "\":1}").utf8) }
+        func form(_ length: Int) -> Data { Data((String(repeating: "secretx", count: length / 7) + "=1").utf8) }
+        let (smallJSON, largeJSON, smallForm, largeForm) = (json(20_000), json(80_000), form(20_000), form(80_000))
+        expectLinear(
+            "JSON body with a long name",
+            small: { _ = redactor.redact(body: smallJSON, contentType: "application/json") },
+            large: { _ = redactor.redact(body: largeJSON, contentType: "application/json") },
+            maximumRatio: 10
+        )
+        expectLinear(
+            "form body with a long name",
+            small: { _ = redactor.redact(body: smallForm, contentType: "application/x-www-form-urlencoded") },
+            large: { _ = redactor.redact(body: largeForm, contentType: "application/x-www-form-urlencoded") },
             maximumRatio: 10
         )
     }

@@ -81,12 +81,35 @@ enum ScalarClass {
         }
     }
 
-    /// Format characters and combining marks: invisible scalars that can be inserted into a
-    /// value without changing how it looks.
+    /// Scalars that can be put into a value without changing how it looks, and that the scanning
+    /// copy leaves out: format characters, marks, variation selectors, every default-ignorable
+    /// code point (fillers such as U+115F and U+3164, unassigned ones such as U+FFF0 and
+    /// U+E0080), and control characters other than tab and the line terminators.
     static func isInvisible(_ scalar: Unicode.Scalar) -> Bool {
-        switch scalar.properties.generalCategory {
-        case .format, .nonspacingMark, .enclosingMark: true
-        default: scalar.properties.isVariationSelector
+        let properties = scalar.properties
+        switch properties.generalCategory {
+        case .format, .nonspacingMark, .enclosingMark, .spacingMark: return true
+        case .control: return !isKeptControl(scalar)
+        default: return properties.isVariationSelector || properties.isDefaultIgnorableCodePoint
         }
+    }
+
+    /// The invisible scalars that only hide text: all of them but marks and variation selectors,
+    /// which belong to letters and emoji. A word of free text that holds one cannot be read with
+    /// certainty.
+    static func isHiding(_ scalar: Unicode.Scalar) -> Bool {
+        let properties = scalar.properties
+        switch properties.generalCategory {
+        case .format: return true
+        case .control: return !isKeptControl(scalar)
+        case .nonspacingMark, .enclosingMark, .spacingMark: return false
+        default: return properties.isDefaultIgnorableCodePoint && !properties.isVariationSelector
+        }
+    }
+
+    /// Tab, line feed, carriage return, vertical tab, form feed and U+0085: the control characters
+    /// that are white space or end a line.
+    private static func isKeptControl(_ scalar: Unicode.Scalar) -> Bool {
+        (0x09...0x0D).contains(scalar.value) || scalar.value == 0x85
     }
 }

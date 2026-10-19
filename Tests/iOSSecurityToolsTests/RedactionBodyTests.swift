@@ -22,7 +22,7 @@ struct RedactionBodyTests {
 
     @Test("compares JSON names after decoding their escapes")
     func jsonEscapedNames() {
-        #expect(redact(#"{"password":"hunter2","user":"bob"}"#, "application/json") == #"{"password":"[redacted]","user":"bob"}"#)
+        #expect(redact(#"{"pass\u0077ord":"hunter2","user":"bob"}"#, "application/json") == #"{"pass\u0077ord":"[redacted]","user":"bob"}"#)
         #expect(redact(#"{"pаssword":"hunter2"}"#, "application/problem+json") == #"{"pаssword":"[redacted]"}"#)
     }
 
@@ -66,7 +66,9 @@ struct RedactionBodyTests {
         ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]&user%5Bname%5D=[redacted]"),
         ("p%D0%B0ssword=hunter2", "p%D0%B0ssword=[redacted]"),
         ("token;x=hunter2", "token;x=[redacted]"),
-        ("a=1;password=hunter2&b=2", "a=[redacted]&b=2"),
+        ("a=1;password=hunter2&b=2", "a=1%3Bpassword%3D[redacted]&b=2"),
+        ("user=bob%20smith&note=paid+4111+1111+1111+1111", "user=bob%20smith&note=paid+%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111"),
+        ("note=status%3D1+user%3Dbob", "note=status%3D1+user%3D[redacted]"),
         ("password=hunter2&password=again", "password=[redacted]&password=[redacted]"),
         ("q=%7B%22password%22%3A%22hunter2%22%7D", "q=%7B%22password%22%3A%22[redacted]%22%7D"),
         ("flag&password=hunter2", "flag&password=[redacted]"),
@@ -80,11 +82,19 @@ struct RedactionBodyTests {
         #expect(redact(body, "application/x-www-form-urlencoded") == "[body omitted: \(body.utf8.count) bytes, application/x-www-form-urlencoded]")
     }
 
-    @Test("reads a body without a content type as JSON or as a form, or omits it")
+    @Test("reads a body without a content type as JSON when it parses as an object or array, and omits it otherwise")
     func noContentType() {
         #expect(redact(#"{"password":"hunter2"}"#, nil) == #"{"password":"[redacted]"}"#)
-        #expect(redact("user=bob&password=hunter2", nil) == "user=bob&password=[redacted]")
+        #expect(redact("user=bob&password=hunter2", nil) == "[body omitted: 25 bytes, no content type]")
         #expect(redact("password hunter2", nil) == "[body omitted: 16 bytes, no content type]")
+        #expect(redact(#""hunter2""#, nil) == "[body omitted: 9 bytes, no content type]")
+    }
+
+    @Test("omits a body larger than the maximum size without parsing it")
+    func oversized() {
+        let body = Data(("{\"a\":\"" + String(repeating: "x", count: SensitiveDataRedactor.maximumBodySize) + "\"}").utf8)
+        #expect(redactor.redact(body: body, contentType: "application/json") == "[body omitted: \(body.count) bytes, application/json]")
+        #expect(redactor.redact(body: body, contentType: nil) == "[body omitted: \(body.count) bytes, no content type]")
     }
 
     // MARK: Multipart
@@ -109,10 +119,29 @@ struct RedactionBodyTests {
             "Content-Disposition: form-data; name=\"p\u{0430}ssword\"\r\n\r\n[redacted]",
             "Content-Disposition: form-data; name=\"meta\"\r\nContent-Type: application/json\r\n\r\n{\"token\":\"[redacted]\",\"n\":1}",
             "Content-Disposition: form-data; name=\"note\"\r\n\r\nlogin with api_key=[redacted]",
-            "Content-Disposition: form-data; name=\"avatar\"; filename=\"a.png\"\r\nContent-Type: image/png\r\n\r\n[body omitted: 4 bytes, image/png]",
+            "Content-Disposition: form-data; name=\"avatar\"\r\nContent-Type: image/png\r\n\r\n[body omitted: 4 bytes, image/png]",
         ])
         // The output ends at the closing boundary, without the line break after it.
         #expect(redact(body, "multipart/form-data; boundary=XyZ") + "\r\n" == expected)
+    }
+
+    @Test("writes part headers again: the field name, the type, and other headers only when they are kept")
+    func multipartHeaders() {
+        let body = multipart([
+            "Content-Disposition: form-data; name=\"note\"; filename=\"alice-passport.txt\"\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nx",
+            "content-disposition: form-data; name=\"bio\"\r\nX-Secret: s3cr3t\r\nContent-Length: 2\r\n\r\nhi",
+            "Content-Disposition: form-data; name=\"data\"\r\nContent-Transfer-Encoding: base64\r\n\r\naHVudGVyMg==",
+            "Content-Disposition: form-data; name=\"a=b\"\r\n\r\nok",
+        ])
+        let expected = multipart([
+            "Content-Disposition: form-data; name=\"note\"\r\nContent-Type: text/plain\r\n\r\n[body omitted: 1 byte, text/plain]",
+            "Content-Disposition: form-data; name=\"bio\"\r\nX-Secret: [redacted]\r\nContent-Length: 2\r\n\r\nhi",
+            "Content-Disposition: form-data; name=\"data\"\r\nContent-Transfer-Encoding: base64\r\n\r\n[body omitted: 12 bytes, text/plain]",
+            "Content-Disposition: form-data; name=\"a=[redacted]\"\r\n\r\n[redacted]",
+        ])
+        let output = redact(body, "multipart/form-data; boundary=XyZ")
+        #expect(output + "\r\n" == expected)
+        #expect(!output.contains("passport") && !output.contains("s3cr3t") && !output.contains("aHVudGVyMg"))
     }
 
     @Test("omits multipart bodies that servers could split differently", arguments: [
@@ -148,7 +177,8 @@ struct RedactionBodyTests {
 
     @Test("reads plain text with the free-text rule")
     func plainText() {
-        #expect(redact("login password=hunter2 ok", "text/plain; charset=us-ascii") == "login password=[redacted] ok")
+        #expect(redact("login password=hunter2 ok=1", "text/plain; charset=us-ascii") == "login password=[redacted]")
+        #expect(redact("status=200 method=GET", "text/plain") == "status=200 method=GET")
     }
 
     @Test("omits bodies of other types and with unreadable content types", arguments: [

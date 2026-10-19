@@ -1,7 +1,16 @@
 extension JSONDocument {
-    /// The values to hide in the document: the whole value of every member whose name hides it
-    /// (see ``FieldName``), at any depth, inside arrays and for every repetition of a name, and
-    /// secret fields written inside the strings that are kept.
+    /// The replacements that redact the document. Every replacement covers one whole token or
+    /// value and is valid JSON in its place, so the redacted document is still JSON:
+    ///
+    /// - The value of every member whose name hides it (see ``FieldName``), at any depth, inside
+    ///   arrays and for every repetition of a name, becomes the string `"[redacted]"`, whatever its
+    ///   type. So does the `value`, `val` or `v` of an object whose `name`, `key`, `field`,
+    ///   `header`, `param`, `k` or `n` is such a name (`{"name":"X-Api-Key","value":…}`), and every
+    ///   element of an array after a string that names a secret or cannot be read
+    ///   (`["password","…"]`).
+    /// - Names and strings are free text: one in which anything is found is written again, escaped,
+    ///   with the free-text rule applied to its decoded text, which may hold JSON again.
+    /// - A number that holds a card number or a long token becomes a string with its mask.
     func secretSpans(using redactor: SensitiveDataRedactor, compatibility: CompatibilityText) -> [SensitiveDataRedactor.Span] {
         var spans: [SensitiveDataRedactor.Span] = []
         collect(root, into: &spans, redactor: redactor, compatibility: compatibility)
@@ -11,53 +20,80 @@ extension JSONDocument {
     private func collect(
         _ node: Node, into spans: inout [SensitiveDataRedactor.Span], redactor: SensitiveDataRedactor, compatibility: CompatibilityText
     ) {
+        let readsNames = redactor.kinds.contains(.secretFields)
         switch node.value {
         case .object(let members):
+            let hidesPairValue = readsNames && hidesPairValue(in: members)
             for member in members {
-                if FieldName.hidesValue(text(of: member.name)) {
-                    spans.append(hiding(member.value))
+                spans += stringSpans(member.name, role: .name, redactor: redactor, compatibility: compatibility)
+                let name = text(of: member.name)
+                if readsNames, FieldName.hidesValue(name) || (hidesPairValue && Self.isPairPart(name, Self.pairValueNames)) {
+                    spans.append(Self.hiding(member.value))
                 } else {
                     collect(member.value, into: &spans, redactor: redactor, compatibility: compatibility)
                 }
             }
         case .array(let elements):
-            for element in elements { collect(element, into: &spans, redactor: redactor, compatibility: compatibility) }
+            var hidesRest = false
+            for element in elements {
+                guard !hidesRest else {
+                    spans.append(Self.hiding(element))
+                    continue
+                }
+                collect(element, into: &spans, redactor: redactor, compatibility: compatibility)
+                if readsNames, case .string(let token) = element.value {
+                    hidesRest = FreeTextScanner.mentionsSecret(text(of: token), compatibility: compatibility)
+                }
+            }
         case .string(let token):
-            spans += stringSpans(token, redactor: redactor, compatibility: compatibility)
-        case .number, .boolean, .null:
+            spans += stringSpans(token, role: .text, redactor: redactor, compatibility: compatibility)
+        case .number:
+            spans += numberSpans(node, redactor: redactor, compatibility: compatibility)
+        case .boolean, .null:
             break
         }
     }
 
-    /// A string keeps its quotes and shows `[redacted]`; any other value becomes the string
-    /// `"[redacted]"`, so the document stays valid JSON.
-    private func hiding(_ node: Node) -> SensitiveDataRedactor.Span {
-        if case .string(let token) = node.value {
-            return SensitiveDataRedactor.Span(
-                start: token.content.lowerBound, end: token.content.upperBound, kind: .secretFields, replacement: SensitiveDataRedactor.replacement
-            )
+    private static let pairNameNames: Set<String> = ["name", "key", "field", "header", "param", "k", "n"]
+    private static let pairValueNames: Set<String> = ["value", "val", "v"]
+
+    /// Whether the object is a name and value pair, as HTTP archives write headers and
+    /// configurations write environment variables, whose name hides its value.
+    private func hidesPairValue(in members: [Member]) -> Bool {
+        members.contains { member in
+            guard Self.isPairPart(text(of: member.name), Self.pairNameNames), case .string(let token) = member.value.value else { return false }
+            return FieldName.hidesValue(text(of: token))
         }
-        return SensitiveDataRedactor.Span(
+    }
+
+    private static func isPairPart(_ name: [Unicode.Scalar], _ names: Set<String>) -> Bool {
+        name.count <= 6 && names.contains(String(String.UnicodeScalarView(name)).lowercased())
+    }
+
+    /// Any value, quotes and brackets included, becomes the string `"[redacted]"`.
+    private static func hiding(_ node: Node) -> SensitiveDataRedactor.Span {
+        SensitiveDataRedactor.Span(
             start: node.range.lowerBound, end: node.range.upperBound, kind: .secretFields, replacement: "\"\(SensitiveDataRedactor.replacement)\""
         )
     }
 
-    /// A string without escapes is read in place with the free-text rule. A string with escapes
-    /// is decoded and redacted as text of its own (which may be JSON again, as GraphQL clients
-    /// send `variables`); when anything in it is hidden, the whole string is written again.
+    /// A name or string whose decoded text the free-text rule changes is written again, escaped.
     private func stringSpans(
-        _ token: StringToken, redactor: SensitiveDataRedactor, compatibility: CompatibilityText
+        _ token: StringToken, role: FreeTextScanner.Role, redactor: SensitiveDataRedactor, compatibility: CompatibilityText
     ) -> [SensitiveDataRedactor.Span] {
-        guard let decoded = token.decoded else {
-            return FreeTextFields(scalars: scalars, bounds: token.content, compatibility: compatibility).spans()
-        }
-        let inner = redactor.spans(in: decoded, compatibility: compatibility)
-        guard !inner.isEmpty else { return [] }
-        let kind = inner.reduce(into: SensitiveDataRedactor.Kinds()) { $0.formUnion($1.kind) }
-        let redacted = SensitiveDataRedactor.replacing(inner, in: decoded)
-        return [SensitiveDataRedactor.Span(
-            start: token.content.lowerBound, end: token.content.upperBound, kind: kind, replacement: Self.escaped(redacted)
-        )]
+        guard let (redacted, kind) = redactor.redactedText(text(of: token), compatibility: compatibility, role: role) else { return [] }
+        return [SensitiveDataRedactor.Span(start: token.content.lowerBound, end: token.content.upperBound, kind: kind, replacement: Self.escaped(redacted))]
+    }
+
+    /// A number with a card number or a long token in it becomes a string with the mask, since a
+    /// mask is not a number.
+    private func numberSpans(_ node: Node, redactor: SensitiveDataRedactor, compatibility: CompatibilityText) -> [SensitiveDataRedactor.Span] {
+        let digits = Array(scalars[node.range])
+        let found = SensitiveDataRedactor.merged(redactor.detectorSpans(in: NormalizedText(digits, compatibility: compatibility)))
+        guard !found.isEmpty else { return [] }
+        let kind = found.reduce(into: SensitiveDataRedactor.Kinds()) { $0.formUnion($1.kind) }
+        let masked = SensitiveDataRedactor.replacing(found, in: digits)
+        return [SensitiveDataRedactor.Span(start: node.range.lowerBound, end: node.range.upperBound, kind: kind, replacement: "\"\(Self.escaped(masked))\"")]
     }
 
     /// The text as the content of a JSON string.
