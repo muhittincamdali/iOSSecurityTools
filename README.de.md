@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a4823044eb48b1a3327b2bdea9fd2180411db856 status=reviewed -->
+<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -53,11 +53,12 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
   geheime Felder, und `.privacyShield()` verdeckt Ansichten im App-Umschalter und während der
   Bildschirmaufnahme. Der Redactor vergleicht nur reine ASCII-Schlüssel mit seinen geheimen
   Namen und schwärzt jeden anderen Schlüssel standardmäßig; JSON-, Formular- und
-  Multipart-Bodys werden geparst, nicht parsbare Bodys werden ausgelassen.
+  Multipart-Bodys werden geparst, nicht parsbare Bodys werden ausgelassen, ebenso Bodys, die
+  ein Server anders in Felder aufteilen könnte.
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  282 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  296 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -294,7 +295,9 @@ func redactionSample() -> (request: String, log: String) {
 standardmäßig geschwärzt, denn ähnlich aussehende Buchstaben, unsichtbare Zeichen und
 Escape-Sequenzen können einen geheimen Namen tarnen. JSON-, Formular- und Multipart-Bodys werden
 mit einem Parser gelesen; einen Body, den es nicht vollständig parsen kann, lässt es als
-`[body omitted: N bytes, <type>]` aus. Freier Text behält einen Wert nur nach einem erlaubten
+`[body omitted: N bytes, <type>]` aus, ebenso einen Body, den ein verbreiteter Server-Parser
+anders in Felder aufteilen könnte, etwa mit einer Multipart-Grenze nach einem einzelnen
+Zeilenvorschub oder als Formular mit `;`. Freier Text behält einen Wert nur nach einem erlaubten
 Schlüssel (`status`, `method`, `path`, `duration_ms`, `count` und die Schlüssel, die Sie
 übergeben), sodass aus `user=bob` `user=[redacted]` wird. Schwärzen ist ein Sicherheitsnetz,
 keine Garantie. Der

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a4823044eb48b1a3327b2bdea9fd2180411db856 status=reviewed -->
+<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -54,10 +54,11 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   поля, а `.privacyShield()` закрывает экраны в переключателе приложений и во время записи
   экрана. Редактор сравнивает с секретными именами только ключи из простого ASCII, а значения
   любых других ключей по умолчанию скрывает; тела JSON, форм и multipart разбираются парсером,
-  а тела, которые не удалось разобрать, пропускаются.
+  а тела, которые не удалось разобрать или которые сервер мог бы разделить на поля иначе,
+  пропускаются.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 282 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 296 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -291,7 +292,9 @@ func redactionSample() -> (request: String, log: String) {
 `a`–`z`, `0`–`9`, `_`, `-`, `.` и пробелы); значение любого другого ключа по умолчанию
 скрывается: похожие буквы, невидимые символы и escape-последовательности могут замаскировать
 секретное имя. Тела JSON, форм и multipart читаются парсером; тело, которое не удаётся разобрать
-полностью, пропускается как `[body omitted: N bytes, <type>]`. В свободном тексте значение
+полностью, пропускается как `[body omitted: N bytes, <type>]`. Так же пропускается тело,
+которое распространённый серверный парсер мог бы разделить на поля иначе, например граница
+multipart после одиночного перевода строки или форма с `;`. В свободном тексте значение
 сохраняется только после разрешённого ключа (`status`, `method`, `path`, `duration_ms`, `count`
 и ключи, которые вы передадите), поэтому `user=bob` превращается в `user=[redacted]`. Скрытие —
 это страховка, а не гарантия.

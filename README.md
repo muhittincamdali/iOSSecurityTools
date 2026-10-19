@@ -47,10 +47,11 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   `SensitiveDataRedactor` scrubs card numbers, emails, tokens and secret fields, and
   `.privacyShield()` covers views in the app switcher and during screen recording. The redactor
   compares plain-ASCII keys with its secret names and redacts any other key by default; JSON,
-  form and multipart bodies are parsed, and unparsed bodies are omitted.
+  form and multipart bodies are parsed, and unparsed bodies are omitted, as are bodies that a
+  server could split into fields differently.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 282 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 296 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -284,7 +285,9 @@ func redactionSample() -> (request: String, log: String) {
 `.` and spaces) with its secret names; any other key is redacted by default, because look-alike
 letters, invisible characters and escapes can disguise a secret name. JSON, form and multipart
 bodies are read with a parser, and a body it cannot parse completely is omitted as
-`[body omitted: N bytes, <type>]`. Free text keeps a value only after an allowed key (`status`,
+`[body omitted: N bytes, <type>]`, and so is a body that a common server parser could split into
+fields differently, such as a multipart boundary after a bare line feed or a form with a `;`.
+Free text keeps a value only after an allowed key (`status`,
 `method`, `path`, `duration_ms`, `count` and the keys you pass), so `user=bob` becomes
 `user=[redacted]`. Redaction is a safety net, not a guarantee. The
 [logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)

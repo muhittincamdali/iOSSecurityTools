@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a4823044eb48b1a3327b2bdea9fd2180411db856 status=reviewed -->
+<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -54,11 +54,12 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
   token'ları ve gizli alanları siler, `.privacyShield()` ise uygulama değiştiricide ve ekran
   kaydı sırasında görünümleri örter. Maskeleyici yalnız düz ASCII anahtarları gizli adlarla
   karşılaştırır, diğer her anahtarı varsayılan olarak maskeler; JSON, form ve multipart
-  gövdeleri ayrıştırılır, ayrıştırılamayan gövdeler atlanır.
+  gövdeleri ayrıştırılır; ayrıştırılamayan gövdeler ve bir sunucunun alanlara farklı
+  bölebileceği gövdeler atlanır.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 282 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 296 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -294,7 +295,9 @@ func redactionSample() -> (request: String, log: String) {
 `_`, `-`, `.` ve boşluk) karşılaştırır; benzer harfler, görünmez karakterler ve kaçış dizileri bir
 gizli adı gizleyebildiği için diğer her anahtarın değeri varsayılan olarak maskelenir. JSON, form
 ve multipart gövdeleri bir ayrıştırıcıyla okunur; tamamen ayrıştıramadığı bir gövdeyi
-`[body omitted: N bytes, <type>]` olarak atlar. Serbest metin bir değeri yalnız izin verilen bir
+`[body omitted: N bytes, <type>]` olarak atlar. Yaygın bir sunucu ayrıştırıcısının alanlara
+farklı bölebileceği bir gövde de atlanır; örneğin tek başına bir satır sonundan sonra gelen
+multipart sınırı ya da `;` içeren bir form. Serbest metin bir değeri yalnız izin verilen bir
 anahtardan sonra korur (`status`, `method`, `path`, `duration_ms`, `count` ve sizin verdiğiniz
 anahtarlar); bu yüzden `user=bob`, `user=[redacted]` olur. Maskeleme bir güvenlik ağıdır, garanti
 değildir. Serbest metin kuralını, bedelini ve neleri bulmadığını

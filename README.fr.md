@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a4823044eb48b1a3327b2bdea9fd2180411db856 status=reviewed -->
+<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -55,11 +55,12 @@ dépendance.
   tokens et les champs secrets, et `.privacyShield()` recouvre les vues dans le sélecteur d’apps
   et pendant l’enregistrement de l’écran. Le masqueur ne compare à ses noms secrets que les clés
   en ASCII simple et masque par défaut toute autre clé ; les corps JSON, de formulaire et
-  multipart sont analysés, et les corps non analysables sont omis.
+  multipart sont analysés, et les corps non analysables sont omis, comme ceux qu’un serveur
+  pourrait découper autrement en champs.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  282 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  296 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -295,7 +296,9 @@ func redactionSample() -> (request: String, log: String) {
 défaut, car des lettres semblables, des caractères invisibles et des séquences d’échappement
 peuvent déguiser un nom secret. Les corps JSON, de formulaire et multipart sont lus par un
 analyseur ; un corps qu’il ne peut pas analyser entièrement est omis sous la forme
-`[body omitted: N bytes, <type>]`. Dans le texte libre, une valeur n’est gardée qu’après une clé
+`[body omitted: N bytes, <type>]`, de même qu’un corps qu’un analyseur de serveur courant
+pourrait découper autrement en champs, comme une limite multipart après un saut de ligne seul
+ou un formulaire contenant `;`. Dans le texte libre, une valeur n’est gardée qu’après une clé
 autorisée (`status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez),
 donc `user=bob` devient `user=[redacted]`. Le masquage est un filet de sécurité, pas une
 garantie. Le
