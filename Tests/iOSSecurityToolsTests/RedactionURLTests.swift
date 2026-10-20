@@ -58,7 +58,9 @@ struct RedactionURLTests {
         #expect(redactor.redact("go https://exa%ZZmple.com/?code=1") == "go \(SensitiveDataRedactor.unparsedURL)")
         #expect(redactor.redact("go https://x.com:abc/?code=1") == "go \(SensitiveDataRedactor.unparsedURL)")
         #expect(redactor.redact("go https://example.com/%ZZ?code=1") == "go https://example.com/%25ZZ?code=[redacted]")
-        #expect(redactor.redact("go https://例え.jp/パス?code=1") == "go https://%E4%BE%8B%E3%81%88.jp/%E3%83%91%E3%82%B9?code=[redacted]")
+        #expect(redactor.redact("go https://example.jp/パス?code=1") == "go https://example.jp/%E3%83%91%E3%82%B9?code=[redacted]")
+        // A host outside ASCII is not a name of ASCII labels: only the scheme is written.
+        #expect(redactor.redact("go https://例え.jp/パス?code=1") == "go https://[redacted]")
     }
 
     @Test("without secret fields the user info and fragment are still dropped and the detectors still run")
