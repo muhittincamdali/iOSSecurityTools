@@ -12,11 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SensitiveDataRedactor.redact(body:contentType:)` redacts request and response bodies with a
   parser chosen by the content type: JSON, `application/x-www-form-urlencoded` forms, multipart
   form data (each part by its own type) and plain text. A body that is not UTF-8, has another
-  type, is larger than 1 MiB (`maximumBodySize`), does not parse completely or could be split
-  into fields differently by a common server parser is omitted as
-  `[body omitted: N bytes, <type>]`; uploaded files are omitted the same way.
+  type, is larger than `maximumBodySize`, does not parse completely or could be split into
+  fields differently by a common server parser is omitted as `[body omitted: N bytes, <type>]`;
+  uploaded files are omitted the same way. The limit is 256 KiB (`defaultMaximumBodySize`)
+  unless the app passes another to `SensitiveDataRedactor(maximumBodySize:)`; a body of 256 KiB
+  takes less than 16 MB of memory in every shape tested, and the worst shapes take up to about
+  60 bytes for each byte, so a limit of 1 MiB can take 64 MB. A multipart part header name is
+  written only when it is one of the headers a part carries (`Content-Length`,
+  `Content-Transfer-Encoding`, `Content-ID`, `Content-Description`, `Content-Language`,
+  `Content-Location`, `Content-Encoding`); any other is `[redacted]` with its value.
 - `SensitiveDataRedactor.redact(url:)` writes a URL read with `URLComponents` without its user
-  name, password and fragment, whatever `kinds` holds. With `.secretFields` a query value is
+  name, password and fragment, whatever `kinds` holds. The host is written only when it is a name
+  of ASCII letters, digits and `-` in labels, an IPv4 address or an IPv6 address in brackets, and
+  the value detectors find nothing in it; any other host (`myapp://password=hunter2`,
+  `https://h.example;password=hunter2/db`, a card number or 32 hex digits as a label) is written
+  as `scheme://[redacted]`, in a URL, in a line and in a JSON string alike. With `.secretFields` a query value is
   kept only for the names on `allowedQueryParameters`, which is empty by default, and a path
   segment that looks like an identifier or a secret, and the segment after one that names a
   secret (`/pin/4831`), become `:id` (`identifierPlaceholder`); without it only the value
@@ -71,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   document a JSON string is in, and at most four documents (a JSON text, a URL, a body, a
   multipart part) are read one inside another. A JSON body deeper than that is omitted, and a
   string or other text inside a document that holds such JSON, or a URL one level too many, is
-  hidden whole; a body larger than 1 MiB is still omitted unread. Tests redact JSON quoted inside
+  hidden whole; a body larger than the body limit is still omitted unread. Tests redact JSON quoted inside
   JSON strings, URLs in query values and runs of brackets on a thread with 512 KiB of stack in
   debug and release builds, and check with `swift test -c release` that a megabyte of text,
   nested input or a body takes less than a second, also for ordinary shapes timed by the CPU time
@@ -81,7 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is not scanned, a URL path segment is read in a single pass, and a word is compared with each
   secret word in a single pass. JSON in free text is parsed up to 64 Ki scalars, and longer JSON
   cuts the text at its first bracket; a test run in a process of its own checks that a megabyte of
-  free text takes less than 16 MB more memory.
+  free text takes less than 16 MB more memory, and a body of 256 KiB less than 16 MB, in every
+  shape the reviews measured.
 - A reading budget bounds the time one redaction takes: the documents found inside an input
   (JSON in a line or a string, a URL in text, a multipart part) and the texts read inside them
   read at most four times the input's length in all. The input itself is read freely; a text past
@@ -89,22 +100,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   times in a body, or twice in a log line, has its innermost string hidden, and a chain of URLs
   each in the query of the one before is read two levels deep.
 - Free text is cut once: in free text, the first secret name hides everything after it in that
-  text; this over-hides on purpose. The triggers are a key that is not on `allowedTextKeys`
-  (`x=hunter2`, `Error: …`, a separator without a key, a key on the line before its separator), a
-  secret name with or without a separator, also escaped, split by punctuation or a space, or
-  spelled with one letter that has no ASCII form, a name written as a value (`name="password"`,
-  `<string name="api_key">`, `<key>Şifre</key>`, `Content-Disposition: form-data; name="pin"`), a
-  separator written escaped or as a look-alike (`%3D`, `&#61;`, `꞉`), a word that mixes scripts or
-  holds an invisible character, a quote or bracket left open, and JSON with a member that is not
-  allowed or that does not parse. Everything after the first one is hidden, to the end of the text
-  and not only of its line; a log message, a text/plain body, a JSON string, a form value, an
-  allowed query value and a multipart text part each count as one text. A text without a trigger
-  is written as it is, apart from the value detectors. Nothing is carried from line to line and no
-  line is read twice: the scan keeps a fixed number of positions and stops at the trigger. Free
-  text is a best effort, as the threat model in the README and the logging guide now says: a name
-  written without a separator and disguised with two or more letters that have no ASCII form
-  (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing before it cuts the text, and no
-  table of look-alikes is kept to chase it.
+  text; this over-hides on purpose. Over-hiding is by design. Five rules set the triggers, and
+  none keeps a list of variants:
+  - **A safe alphabet.** Free text is read only as far as it is written in letters, marks and
+    digits of any script (L, M, N), the ASCII space, tab, line feed and carriage return, and
+    printable ASCII. The first character outside it cuts the text: punctuation, a symbol or a
+    space outside ASCII (`꞉`, `≔`, `→`, `·`, `＝`, `—`, `€`, `、`, an emoji, U+00A0, U+2028), a
+    control or format character and every default-ignorable code point. A modifier letter
+    (`ː`, `ー`) counts as a letter only after a letter or digit outside ASCII.
+  - **Escapes.** No escape is decoded in free text: `%XX`, `%uXXXX`, `&#…;`, a named HTML
+    reference (`&colon;`, `&equals;`, `&amp;`, and `&` before a letter unless it starts the name
+    of a field before `=`), octal and CSS escapes (`\075`, `\3d`), `\xNN`, `\uNNNN`, `\u{…}`,
+    `\U…` and `\N{…}` cut the text at the start of the word they are in.
+  - **Opaque words.** A word longer than 256 characters cuts the text where it starts, so no
+    word is copied for reading at more than that length.
+  - **The key rule in every shape.** A key that is not on `allowedTextKeys` cuts the text at its
+    value: in `key=value` and `key: value` (also `x=hunter2` and `Error: …`, a separator without
+    a key and a key on the line before its separator), as a member of JSON in the text, as the
+    first string of a two-element array (`["user","…"]`, `[["X-User","…"]]`) and as the tag of an
+    element, whose text is cut (`<user>…</user>`).
+  - **Secret names**, with or without a separator, split by punctuation or a space or spelled with
+    one letter that has no ASCII form, and names written as values (`name="password"`,
+    `<string name="api_key">`, `Content-Disposition: form-data; name="pin"`).
+  A word that mixes scripts, a quote or bracket left open and JSON that does not parse cut the text
+  too. Everything after the first trigger is hidden, to the end of the text and not only of its
+  line; a log message, a text/plain body, a JSON string, a form value, an allowed query value and
+  a multipart text part each count as one text. A text without a trigger is written as it is,
+  apart from the value detectors. Nothing is carried from line to line and no line is read twice:
+  the scan keeps a fixed number of positions and stops at the trigger. Free text is a best
+  effort, as the threat model in the README and the logging guide now says: a name written
+  without a separator in letters of the safe alphabet and disguised with two or more letters that
+  have no ASCII form (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing before it
+  cuts the text, and no table of look-alikes is kept to chase it.
 - A secret name written as a value names what follows it. In free text it is a trigger; in a JSON
   object, a member whose value is such a name hides the values of the other members, apart from
   the members that hold names and a JSON Patch or SCIM `op`. A name that is not secret
@@ -208,11 +235,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SensitiveDataRedactor` turned `PASSWORD := hunter2` into `PASSWORD :[redacted] hunter2`,
   hiding the `=` and showing the password, and did the same with `password == hunter2`,
   `password === hunter2`, `password ::= hunter2` and `password = = hunter2`; it now reads `:=`,
-  `?=`, `+=`, `==`, `!=` and any further run of `=` and `:` as one separator, also when written
-  as one character such as `≔`.
+  `?=`, `+=`, `==`, `!=` and any further run of `=` and `:` as one separator; one written as a
+  character outside ASCII such as `≔` cuts the text there.
 - `SensitiveDataRedactor` printed a secret as is when an en space or another Unicode space
   outside U+00A0, U+2007, U+2009, U+202F and U+3000 stood around the `=`, inside a card number
-  or after `Bearer`; every Unicode space now counts as a space.
+  or after `Bearer`; the value detectors now read every Unicode space as a space, and free text
+  is cut at one.
 - `SensitiveDataRedactor` now finds secret values in form fields (`password[]=`,
   `user[password]=`, also with percent-encoded brackets as in `user%5Bpassword%5D=`), XML elements
   (`<password>…</password>`, also with attributes or a namespace prefix such as
@@ -226,9 +254,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it), the text after an element that holds nothing, JSON over several lines after `name=`, and a
   multipart label part in base64, as JSON or in another charset. The reading budget and a single
   pass per secret word bound the time; the others are hidden on every path. A connector glued
-  inside a word (`user‿bob`) separates a key from its value. The review's 475 probes are kept as
-  tests, 50 of them documented limitations, with property tests for the budget, for layouts over
-  lines and for the one-pass match.
+  inside a word (`user‿bob`) cuts the text. The review's 475 probes are kept as tests, 47 of them
+  documented limitations, with property tests for the budget, for layouts over lines and for the
+  one-pass match.
 - The twelfth review found that a secret name inside the value of another key, which that key
   hides, named nothing: `Content-Disposition: form-data; name="pin"` followed by a blank line and
   the part's value showed the value, in a log line, in a text/plain body
@@ -244,11 +272,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without `>` (`</pin 1234`) and an escaped separator inside a hidden value
   (`msg: name%3Dpassword`). The one cut replaces both readings and every carry. The probes of every
   review of the redesign, 2,906 of them, and 66 repros of the twelfth review are kept as one test
-  resource, 35 of them documented limitations, with a property test that no value after any
+  resource, 33 of them documented limitations, with a property test that no value after any
   trigger shows on any path that reads free text, a test that lines of allowed keys stay, and the
   memory test. Storing no offsets for text in which each scalar is one byte, masking the scanning
   copy without copying its offsets and joining the findings in one array bring a megabyte of
   addresses or URLs under 16 MB too.
+- The thirteenth review got values past free text one variant at a time, which the five rules
+  close as classes: a look-alike separator glued to a key and followed by a space or a line break
+  (`user꞉ hunter2`, `user≔\nhunter2`, `[INFO] user꞉ v done`, 67 inputs on every path that reads
+  free text, also `status꞉ v` after an allowed key), separators escaped as named references and
+  octal escapes (`user&colon;…`, `user&coloneq;…`, `user&amp;equals;…`, `user\075…`), the second
+  element of a two-element array in a line (`log [["user","…"]]`, `log ["user","…"]`), the text of
+  an element (`<user>…</user>`, which the guide said was hidden), the host of a URL
+  (`connect https://password=hunter2 ok`, `x://user=…`, `https://4111111111111111.example/`,
+  `myapp://token=eyJ…`, also in a JSON string) and the name of a multipart part header
+  (`4111111111111111: 1`, `X-<JSON Web Token>: 1`). It also measured a megabyte word of free text
+  at up to 36 MB, as the reading of a word copied it eight bytes for each byte, a megabyte of
+  `4242 ` card digit groups at 18.8 MB, and bodies of a megabyte at up to 67 MB (a form of one
+  field repeated). Words are read only up to 256 characters, card digit groups through a window
+  of the groups a card number can span, a form field by field without keeping its fields, and
+  bodies up to 256 KiB by default: every free-text shape of the review now takes at most 12 MB
+  for a megabyte and every body shape at most 10 MB at the limit. The review's 579 probes and 245
+  inputs of its second lens are kept as tests, checked claim by claim (14 of them limitations or
+  values shown by design), with property tests that no value after a character outside the safe
+  alphabet, an escape, a long word, an unallowed key of a pair or a tag, an unknown part header
+  name or a host that is not an address shows, and that text in the safe alphabet without a
+  trigger and allowed pairs, tags, part headers and hosts stay.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
