@@ -51,7 +51,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   server could split into fields differently.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 331 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 351 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -295,6 +295,10 @@ Patch or SCIM operation on `/password` or `[["Authorization","…"]]`, has its v
 when the name is secret or not plain ASCII. A URL with more than 64 path segments or 128
 parameters is recorded as its scheme and host only, and an email address shows only the first
 letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes `a•••@gmail.com`).
+A secret name written as a value, as in `name="password"`, `<string name="api_key">…</string>`
+or `<key>password</key>`, hides what follows it: the rest of its line, in XML or HTML also the
+element's other attribute values and its lines up to the end tag, and in a JSON object the values
+of the other members.
 Free text keeps a value only after an allowed key (`status`,
 `method`, `path`, `duration_ms`, `count` and the keys you pass), so `user=bob` becomes
 `user=[redacted]`. Redaction is a safety net, not a guarantee. The

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
+<!-- i18n-source: README.md@7f2232f6110eda04e383d2a0b2cadbfafead4407 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -60,7 +60,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  331 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  351 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -309,6 +309,10 @@ Un champ dont le nom est à un endroit et la valeur à un autre, comme dans
 ASCII simple. Une URL de plus de 64 segments de chemin ou de 128 paramètres n’est enregistrée
 qu’avec son schéma et son hôte, et une adresse e-mail ne montre que la première lettre de son nom,
 dans n’importe quelle écriture (`ayşe.yılmaz@gmail.com` devient `a•••@gmail.com`).
+Un nom secret écrit comme valeur, comme dans `name="password"`,
+`<string name="api_key">…</string>` ou `<key>password</key>`, masque ce qui le suit : le reste
+de sa ligne, en XML ou HTML aussi les autres valeurs d’attribut de l’élément et ses lignes jusqu’à
+la balise de fin, et dans un objet JSON les valeurs des autres membres.
 Dans le texte libre, une valeur n’est gardée qu’après une clé
 autorisée (`status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez),
 donc `user=bob` devient `user=[redacted]`. Le masquage est un filet de sécurité, pas une

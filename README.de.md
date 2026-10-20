@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
+<!-- i18n-source: README.md@7f2232f6110eda04e383d2a0b2cadbfafead4407 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -58,7 +58,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  331 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  351 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -307,6 +307,10 @@ Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wi
 reines ASCII ist. Eine URL mit mehr als 64 Pfadsegmenten oder 128 Parametern wird nur mit Schema
 und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in jeder Schrift nur den ersten Buchstaben
 ihres Namens (`ayşe.yılmaz@gmail.com` wird zu `a•••@gmail.com`).
+Ein geheimer Name, der als Wert geschrieben ist, etwa in `name="password"`,
+`<string name="api_key">…</string>` oder `<key>password</key>`, verbirgt, was ihm folgt: den Rest
+seiner Zeile, in XML oder HTML auch die übrigen Attributwerte des Elements und seine Zeilen bis
+zum End-Tag, und in einem JSON-Objekt die Werte der übrigen Mitglieder.
 Freier Text behält einen Wert nur nach einem erlaubten
 Schlüssel (`status`, `method`, `path`, `duration_ms`, `count` und die Schlüssel, die Sie
 übergeben), sodass aus `user=bob` `user=[redacted]` wird. Schwärzen ist ein Sicherheitsnetz,

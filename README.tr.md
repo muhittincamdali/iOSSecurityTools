@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
+<!-- i18n-source: README.md@7f2232f6110eda04e383d2a0b2cadbfafead4407 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -59,7 +59,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 331 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 351 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -307,6 +307,10 @@ ya da düz ASCII değilse değeri bütünüyle maskelenir. 64'ten fazla yol böl
 parametresi olan bir URL yalnız şeması ve host'u ile kaydedilir; bir e-posta adresinde, hangi yazı
 sisteminde olursa olsun, adın yalnız ilk harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com`
 olur).
+Değer olarak yazılmış gizli bir ad — `name="password"`, `<string name="api_key">…</string>` ya da
+`<key>password</key>` gibi — kendisinden sonra geleni gizler: satırın geri kalanını, XML ya da
+HTML'de ayrıca öğenin diğer öznitelik değerlerini ve kapanış etiketine kadarki satırlarını, bir
+JSON nesnesinde de diğer üyelerin değerlerini.
 Serbest metin bir değeri yalnız izin verilen bir
 anahtardan sonra korur (`status`, `method`, `path`, `duration_ms`, `count` ve sizin verdiğiniz
 anahtarlar); bu yüzden `user=bob`, `user=[redacted]` olur. Maskeleme bir güvenlik ağıdır, garanti

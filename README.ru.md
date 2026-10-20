@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
+<!-- i18n-source: README.md@7f2232f6110eda04e383d2a0b2cadbfafead4407 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -58,7 +58,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   пропускаются.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 331 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 351 тест
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -304,6 +304,10 @@ multipart после одиночного перевода строки или �
 простого ASCII. URL, в котором больше 64 сегментов пути или 128 параметров, записывается только
 как схема и хост, а у адреса электронной почты видна только первая буква имени, в любой
 письменности (`ayşe.yılmaz@gmail.com` превращается в `a•••@gmail.com`).
+Секретное имя, записанное как значение, например в `name="password"`,
+`<string name="api_key">…</string>` или `<key>password</key>`, скрывает то, что идёт после него:
+остаток строки, в XML или HTML также остальные значения атрибутов элемента и его строки до
+закрывающего тега, а в объекте JSON — значения остальных членов.
 В свободном тексте значение
 сохраняется только после разрешённого ключа (`status`, `method`, `path`, `duration_ms`, `count`
 и ключи, которые вы передадите), поэтому `user=bob` превращается в `user=[redacted]`. Скрытие —
