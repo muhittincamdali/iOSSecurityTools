@@ -159,6 +159,18 @@ struct RedactionWrittenURLTests {
         #expect(SensitiveDataRedactor().redact(segments) == "see https://x.example ok")
     }
 
+    @Test("a URL in a quoted key is read as a key is: one that is not clean cuts the text where it starts")
+    func quotedKeys() {
+        let redactor = SensitiveDataRedactor()
+        #expect(redactor.redact("see \"https://x.example/a?token=abc\": 1") == "see \"[redacted]")
+        #expect(redactor.redact("see \\\"https://x.example/a?token=abc\\\": 1") == "see \\\"[redacted]")
+        #expect(redactor.redact("\"https://x.example/users/123456789\": 1") == "\"https://x.example/users/:id\": [redacted]")
+        #expect(redactor.redact("see \"user=bob\": 1") == "see \"user=[redacted]")
+        // The words of a key are not triggers, as in JSON: the value after it is hidden.
+        #expect(redactor.redact("\"password hint\": 1") == "\"password hint\": [redacted]")
+        #expect(redactor.redact("\"status\": \"ok\"") == "\"status\": \"ok\"")
+    }
+
     @Test("the same text without a scheme is cut as it was")
     func withoutScheme() {
         #expect(SensitiveDataRedactor().redact("GET /v1/items?api_key='X1' 200") == "GET /v1/items?api_key=[redacted]")

@@ -209,7 +209,8 @@ struct FreeTextScanner {
     }
 
     /// A `"` that opens a quoted key (`"user": …`) or quoted text. Text in quotes is read like any
-    /// other, for the keys and names written in it.
+    /// other, for the keys and names written in it; a quoted key is read as a key (see
+    /// ``readQuotedKey(_:)``).
     private mutating func quote() {
         let open = position
         let escaped = isEscaped(open)
@@ -217,8 +218,10 @@ struct FreeTextScanner {
             let next = nextNonBlank(from: close + 1)
             if next < text.count, isSeparator(next) {
                 // In escaped JSON (`\"key\":`) the backslash before the closing quote is not the key's.
-                pendingKey = (open + 1)..<(escaped ? close - 1 : close)
+                let key = (open + 1)..<(escaped ? close - 1 : close)
+                pendingKey = key
                 position = close + 1
+                readQuotedKey(key)
                 return
             }
         }
