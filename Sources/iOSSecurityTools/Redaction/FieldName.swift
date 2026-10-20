@@ -38,6 +38,7 @@ struct PlainName {
     let letters: [UInt8]
     /// Whether a word starts at each letter.
     private let startsWord: [Bool]
+    private let hasWildcard: Bool
 
     /// Stands for a letter of free text that has no ASCII form (`ɑ`, `ı`) in a loose reading: it
     /// matches any one letter of a secret word.
@@ -81,6 +82,7 @@ struct PlainName {
         guard !letters.isEmpty else { return nil }
         self.letters = letters
         self.startsWord = startsWord
+        hasWildcard = !wildcards.isEmpty
     }
 
     /// The letters and digits as a string, for allowlists.
@@ -111,14 +113,31 @@ struct PlainName {
     }
 
     /// Where `word` ends when it is spelled at `start`, with at most one ``wildcard`` and a plural
-    /// `s` after it.
+    /// `s` after it. The wildcard stands for one letter of the word or, between two of its letters,
+    /// for none (`passꞏword`, with a letter that has no ASCII form put in).
     private func matchEnd(of word: [UInt8], at start: Int) -> Int? {
-        var end = start + word.count
+        if let end = spelledEnd(of: word, at: start, skipping: nil) { return end }
+        guard hasWildcard, word.count > 1 else { return nil }
+        for k in (start + 1)..<min(start + word.count, letters.count) where letters[k] == Self.wildcard {
+            if let end = spelledEnd(of: word, at: start, skipping: k) { return end }
+        }
+        return nil
+    }
+
+    /// Where `word` ends when it is spelled at `start` with the wildcard at `skipped` read as no
+    /// letter.
+    private func spelledEnd(of word: [UInt8], at start: Int, skipping skipped: Int?) -> Int? {
+        var end = start + word.count + (skipped == nil ? 0 : 1)
         guard end <= letters.count else { return nil }
-        var usedWildcard = false
-        for (letter, expected) in zip(letters[start..<end], word) where letter != expected {
-            guard letter == Self.wildcard, !usedWildcard else { return nil }
-            usedWildcard = true
+        var usedWildcard = skipped != nil
+        var k = start
+        for expected in word {
+            if k == skipped { k += 1 }
+            if letters[k] != expected {
+                guard letters[k] == Self.wildcard, !usedWildcard else { return nil }
+                usedWildcard = true
+            }
+            k += 1
         }
         if end < letters.count, letters[end] == UInt8(ascii: "s"), !startsWord[end], endsWord(end + 1) { end += 1 }
         return end
