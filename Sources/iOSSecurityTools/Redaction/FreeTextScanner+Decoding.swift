@@ -18,7 +18,9 @@ extension FreeTextScanner {
     /// Whether a word cannot be read with certainty: it holds a character that only hides text
     /// (see ``ScalarClass/isHiding(_:)``) or mixes scripts (see ``ScriptMix``).
     static func isAmbiguous(_ scalars: some Collection<Unicode.Scalar>) -> Bool {
-        scalars.contains(where: ScalarClass.isHiding) || ScriptMix.mixesScripts(scalars)
+        // Printable ASCII hides nothing and is all one script; most words are read here.
+        if scalars.allSatisfy({ $0.isASCII && !ASCII.isHidingControl(UInt8($0.value)) }) { return false }
+        return scalars.contains(where: ScalarClass.isHiding) || ScriptMix.mixesScripts(scalars)
     }
 
     /// Where a value written into a word with escapes starts: at an escaped `=` or `:`
@@ -37,7 +39,12 @@ extension FreeTextScanner {
     /// it are hidden, as such a word hides the rest of a line, and in a URL path the segment after
     /// such a segment is hidden.
     static func mentionsSecret(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) -> Bool {
-        let text = NormalizedText(scalars, compatibility: compatibility)
+        guard !SensitiveDataRedactor.isQuietWord(scalars) else { return false }
+        return mentionsSecret(scalars, text: NormalizedText(scalars, compatibility: compatibility), compatibility: compatibility)
+    }
+
+    /// ``mentionsSecret(_:compatibility:)`` on a scanning copy that is already made.
+    static func mentionsSecret(_ scalars: [Unicode.Scalar], text: NormalizedText, compatibility: CompatibilityText) -> Bool {
         // Only words are read here, never JSON or URLs, so no nesting is entered.
         let scanner = FreeTextScanner(source: scalars, text: text, redactor: .standard, compatibility: compatibility, nesting: .text)
         var start = 0
@@ -60,8 +67,11 @@ extension FreeTextScanner {
 /// `Authorizɑtion` and, read with the next word, `pass word` hold a secret word.
 struct LooseReading {
     private let name: PlainName
-    /// The byte of the scanned text each letter came from.
-    private let positions: [Int]
+    /// The bytes read, with the byte of the scanned text each came from and those read as any
+    /// letter. Where a letter came from is looked up only when a secret word is found.
+    private let bytes: [UInt8]
+    private let origins: [Int]
+    private let wildcards: Set<Int>
 
     /// Reads the bytes of `ranges` of `text`, in order, as one word with a separator between the
     /// ranges. `source` is the text `text` was made from.
@@ -82,17 +92,32 @@ struct LooseReading {
         }
         guard let name = PlainName(looseBytes: bytes, wildcards: wildcards) else { return nil }
         self.name = name
-        positions = bytes.indices.filter { ASCII.isAlphanumeric(bytes[$0]) || wildcards.contains($0) }.map { origins[$0] }
+        self.bytes = bytes
+        self.origins = origins
+        self.wildcards = wildcards
     }
+
+    private func isLetter(at k: Int) -> Bool { ASCII.isAlphanumeric(bytes[k]) || wildcards.contains(k) }
 
     /// The number of letters that come from bytes before `byte`.
     func letterCount(before byte: Int) -> Int {
-        positions.firstIndex { $0 >= byte } ?? positions.count
+        var letters = 0
+        for k in bytes.indices where isLetter(at: k) {
+            if origins[k] >= byte { break }
+            letters += 1
+        }
+        return letters
     }
 
     /// The byte after the last letter of the first secret word that `accepts` takes.
     func secretEnd(where accepts: (Range<Int>) -> Bool) -> Int? {
-        name.firstSecret(where: accepts).map { positions[$0.upperBound - 1] + 1 }
+        guard let secret = name.firstSecret(where: accepts) else { return nil }
+        var letters = 0
+        for k in bytes.indices where isLetter(at: k) {
+            if letters == secret.upperBound - 1 { return origins[k] + 1 }
+            letters += 1
+        }
+        return nil
     }
 
     private static func isLetter(_ scalar: Unicode.Scalar) -> Bool {

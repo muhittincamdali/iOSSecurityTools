@@ -6,18 +6,24 @@
 /// that Latin goes with Han, kana and Hangul, as Japanese, Chinese and Korean text writes them
 /// (`iPhoneで`). This sorts scripts by their Unicode blocks; it is not a table of look-alikes.
 enum ScriptMix {
-    private enum Group: CaseIterable {
-        case latin, greek, cyrillic, armenian, cherokee, eastAsian, other
+    /// Each group is a bit, so the groups seen in a word fit in one byte.
+    private enum Group: UInt8 {
+        case latin = 1, greek = 2, cyrillic = 4, armenian = 8, cherokee = 16, eastAsian = 32, other = 64
     }
 
     static func mixesScripts(_ scalars: some Sequence<Unicode.Scalar>) -> Bool {
-        var seen: Set<Group> = []
+        var seen: UInt8 = 0
         for scalar in scalars {
+            if scalar.isASCII {
+                if ASCII.isLetter(UInt8(scalar.value)) { seen |= Group.latin.rawValue }
+                continue
+            }
             guard let group = group(of: scalar) else { continue }
-            seen.insert(group)
+            seen |= group.rawValue
         }
-        seen.remove(.eastAsian)
-        return seen.count > 1
+        seen &= ~Group.eastAsian.rawValue
+        // More than one bit is set.
+        return seen & (seen &- 1) != 0
     }
 
     private static func group(of scalar: Unicode.Scalar) -> Group? {

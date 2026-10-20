@@ -2,8 +2,15 @@ extension SensitiveDataRedactor {
     /// The findings in free text, in order and without overlaps. `nesting` says which documents
     /// the text is in; a text inside one whose JSON or URL goes past a limit is one finding.
     func textSpans(in scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text, nesting: Nesting) -> [Span] {
+        guard !scalars.isEmpty, !kinds.isEmpty, !Self.isQuietWord(scalars) else { return [] }
+        return textSpans(in: scalars, text: NormalizedText(scalars, compatibility: compatibility), compatibility: compatibility, role: role, nesting: nesting)
+    }
+
+    /// ``textSpans(in:compatibility:role:nesting:)`` on a scanning copy that is already made.
+    func textSpans(
+        in scalars: [Unicode.Scalar], text: NormalizedText, compatibility: CompatibilityText, role: FreeTextScanner.Role = .text, nesting: Nesting
+    ) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty else { return [] }
-        let text = NormalizedText(scalars, compatibility: compatibility)
         guard kinds.contains(.secretFields) else { return Self.merged(detectorSpans(in: text)) }
         var scanner = FreeTextScanner(source: scalars, text: text, redactor: self, compatibility: compatibility, role: role, nesting: nesting)
         scanner.run()
@@ -13,6 +20,25 @@ extension SensitiveDataRedactor {
         let detectorText = regions.isEmpty ? text : NormalizedText(scalars, compatibility: compatibility, masked: regions)
         let folds = Self.lineSeparatorFolds(in: scalars, outside: regions)
         return Self.merged(scanner.spans + detectorSpans(in: detectorText) + folds)
+    }
+
+    /// The longest text ``isQuietWord(_:)`` takes: the shortest card number has 13 digits, an
+    /// IBAN 15 characters and a long token 32.
+    static let quietWordLength = 12
+
+    /// Whether a text is one word of at most ``quietWordLength`` ASCII letters and digits with no
+    /// secret word in it, such as most JSON strings, path segments and query names. No rule and
+    /// no detector finds anything in such a word, so it is not scanned; reading every one of them
+    /// took most of the time of a JSON array of short strings and of a URL of many segments.
+    static func isQuietWord(_ scalars: [Unicode.Scalar]) -> Bool {
+        guard scalars.count <= quietWordLength else { return false }
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(scalars.count)
+        for scalar in scalars {
+            guard scalar.isASCII, ASCII.isAlphanumeric(UInt8(scalar.value)) else { return false }
+            bytes.append(UInt8(scalar.value))
+        }
+        return PlainName(bytes: bytes, maximumLength: nil)?.namesSecret == false
     }
 
     /// The findings of the value detectors this redactor's kinds turn on.
