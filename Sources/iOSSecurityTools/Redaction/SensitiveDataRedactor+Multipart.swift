@@ -5,6 +5,12 @@ extension SensitiveDataRedactor {
     /// The part headers whose values are kept, besides the field name and the content type.
     private static let keptPartHeaders: Set<String> = ["content-length", "content-transfer-encoding"]
 
+    /// The names of the other part headers that are written; any other name is a key that is not
+    /// allowed, so it is written as `[redacted]` with its value.
+    private static let namedPartHeaders: Set<String> = keptPartHeaders.union([
+        "content-description", "content-encoding", "content-id", "content-language", "content-location",
+    ])
+
     /// The transfer encodings that leave the content as it is.
     private static let identityTransferEncodings: Set<String> = ["7bit", "8bit", "binary"]
 
@@ -29,16 +35,19 @@ extension SensitiveDataRedactor {
     }
 
     /// The disposition with only the field name, read as free text; the content type as
-    /// `type/subtype`; other headers by name, their values hidden unless they are kept. A file
-    /// name is never written.
+    /// `type/subtype`; other headers by name when the name is one of ``namedPartHeaders`` and as
+    /// `[redacted]` otherwise, their values hidden unless they are kept. A file name is never
+    /// written. Header names are keys of the part: a name outside the list, such as one that holds
+    /// a card number or a token, is never written.
     private func renderedHeaders(of part: MultipartBody.Part, nesting: Nesting) -> [String] {
         var lines = ["Content-Disposition: form-data; name=\"\(Self.quotedStringContent(redactedName(part.name, nesting: nesting)))\""]
         if let contentType = part.contentType { lines.append("Content-Type: " + contentType.essence) }
         for header in part.headers {
             let name = header.name.lowercased()
             guard name != "content-disposition", name != "content-type" else { continue }
+            let shownName = Self.namedPartHeaders.contains(name) ? header.name : Self.replacement
             let value = header.value.trimmingCharacters(in: .whitespaces)
-            lines.append(header.name + ": " + (Self.keptPartHeaders.contains(name) ? redact(value, nesting: nesting) : Self.replacement))
+            lines.append(shownName + ": " + (Self.keptPartHeaders.contains(name) ? redact(value, nesting: nesting) : Self.replacement))
         }
         return lines
     }

@@ -153,7 +153,7 @@ struct RedactionBodyTests {
         ])
         let expected = multipart([
             "Content-Disposition: form-data; name=\"note\"\r\nContent-Type: text/plain\r\n\r\n[body omitted: 1 byte, text/plain]",
-            "Content-Disposition: form-data; name=\"bio\"\r\nX-Secret: [redacted]\r\nContent-Length: 2\r\n\r\nhi",
+            "Content-Disposition: form-data; name=\"bio\"\r\n[redacted]: [redacted]\r\nContent-Length: 2\r\n\r\nhi",
             "Content-Disposition: form-data; name=\"data\"\r\nContent-Transfer-Encoding: base64\r\n\r\n[body omitted: 12 bytes, text/plain]",
             "Content-Disposition: form-data; name=\"a=[redacted]\"\r\n\r\n[redacted]",
         ])
@@ -165,7 +165,24 @@ struct RedactionBodyTests {
     @Test("finds the colon of a part header among the scalars, also before a mark")
     func multipartHeaderColon() {
         let body = multipart(["Content-Disposition: form-data; name=\"bio\"\r\nX-Note:\u{301}s3cr3t\r\n\r\nhi"])
-        let expected = multipart(["Content-Disposition: form-data; name=\"bio\"\r\nX-Note: [redacted]\r\n\r\nhi"])
+        let expected = multipart(["Content-Disposition: form-data; name=\"bio\"\r\n[redacted]: [redacted]\r\n\r\nhi"])
+        #expect(redact(body, "multipart/form-data; boundary=XyZ") + "\r\n" == expected)
+        let named = multipart(["Content-Disposition: form-data; name=\"bio\"\r\nContent-ID:\u{301}s3cr3t\r\n\r\nhi"])
+        let namedExpected = multipart(["Content-Disposition: form-data; name=\"bio\"\r\nContent-ID: [redacted]\r\n\r\nhi"])
+        #expect(redact(named, "multipart/form-data; boundary=XyZ") + "\r\n" == namedExpected)
+    }
+
+    // A part header name is a key of the part: only the names of the headers a part may carry are
+    // written, so a name that holds a card number, an IBAN or a token never shows.
+    @Test("writes a part header name only when it is one a part carries", arguments: [
+        "4111111111111111", "X-4111111111111111", "DE89370400440532013000",
+        "X-eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJlLXZhbHVl", "X-Zk9aB8cD7eF6gH5iJ4kL3mN2oP1qR0sT9uV8wX7y",
+        "X-Api-Key", "Authorization",
+    ])
+    func multipartHeaderNames(name: String) {
+        let body = multipart(["Content-Disposition: form-data; name=\"a\"\r\n\(name): 1\r\nContent-Length: 1\r\n\r\nx"])
+        let expected = multipart(["Content-Disposition: form-data; name=\"a\"\r\n[redacted]: [redacted]\r\nContent-Length: 1\r\n\r\nx"])
+        #expect(redact(body, "multipart/form-data; boundary=XyZ") + "\r\n" == expected)
         #expect(redact(body, "multipart/form-data; boundary=XyZ") + "\r\n" == expected)
     }
 

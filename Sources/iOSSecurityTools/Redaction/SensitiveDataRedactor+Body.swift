@@ -16,11 +16,15 @@ extension SensitiveDataRedactor {
     ///   printable ASCII without `;`, every `%` the start of an escape, and no name spelled two
     ///   ways (`a.b` and `a_b`, `pass%77ord` and `password`, `Note` and `note`).
     /// - **Multipart form data**: every part is written again with its field name and its
-    ///   `type/subtype`; other part headers show `[redacted]` unless they are
-    ///   `Content-Length` or `Content-Transfer-Encoding`. A part whose name hides its value
-    ///   shows `[redacted]`, and any other part is read by its own content type (`text/plain`
-    ///   when it has none). Uploaded files, nested multipart bodies, parts in a transfer encoding
-    ///   other than `7bit`, `8bit` or `binary` and parts of other types are omitted like a body.
+    ///   `type/subtype`; other part headers show their value only when they are
+    ///   `Content-Length` or `Content-Transfer-Encoding`, and their name only when it is one of
+    ///   the headers a part carries (`Content-ID`, `Content-Description`, `Content-Language`,
+    ///   `Content-Location`, `Content-Encoding` and those two): any other name is a key that is not
+    ///   allowed, written as `[redacted]`, so a card number or a token in it never shows. A part
+    ///   whose name hides its value shows `[redacted]`, and any other part is read by its own
+    ///   content type (`text/plain` when it has none). Uploaded files, nested multipart bodies,
+    ///   parts in a transfer encoding other than `7bit`, `8bit` or `binary` and parts of other
+    ///   types are omitted like a body.
     ///   A part that holds a name (`label`, `name`, `type`, …) names a secret unless its content
     ///   is plain UTF-8 text naming none: one in base64, as JSON, in another charset or a file
     ///   cannot be read as a name, and hides the values of the other parts.
