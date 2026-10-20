@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@7f2232f6110eda04e383d2a0b2cadbfafead4407 status=reviewed -->
+<!-- i18n-source: README.md@11ec70dec2156a538ac6e4575521e28c286390b1 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -59,7 +59,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  351 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  367 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -310,6 +310,9 @@ Un nombre secreto escrito como valor, como en `name="password"`,
 `<string name="api_key">…</string>` o `<key>password</key>`, oculta lo que le sigue: el resto de
 su línea, en XML o HTML también los demás valores de atributo del elemento y sus líneas hasta la
 etiqueta de cierre, y en un objeto JSON los valores de los demás miembros.
+Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
+oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
+`Şifre`, `ⓟⓘⓝ` o `🔑`, y también lo que sigue a `label="Пароль"` en una línea.
 En texto libre, un valor
 solo se conserva después de una clave permitida (`status`, `method`, `path`,
 `duration_ms`, `count` y las claves que usted pase), así que `user=bob` queda como

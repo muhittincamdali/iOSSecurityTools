@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@7f2232f6110eda04e383d2a0b2cadbfafead4407 status=reviewed -->
+<!-- i18n-source: README.md@11ec70dec2156a538ac6e4575521e28c286390b1 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -57,7 +57,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   campos de outro jeito.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 351
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 367
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -308,6 +308,9 @@ Um nome secreto escrito como valor, como em `name="password"`,
 `<string name="api_key">…</string>` ou `<key>password</key>`, oculta o que vem depois dele: o
 resto da linha, em XML ou HTML também os outros valores de atributo do elemento e suas linhas até
 a tag de fechamento, e em um objeto JSON os valores dos outros membros.
+Nomes que não são ASCII simples contam como secretos mesmo quando escritos como valores: o valor ao
+lado de um campo que guarda um nome (`name`, `label`, `type`, `id`, …), como `Şifre`, `ⓟⓘⓝ` ou `🔑`,
+é ocultado, assim como o que vem depois de `label="Пароль"` em uma linha.
 Em texto livre,
 um valor só é mantido depois de uma chave permitida (`status`, `method`, `path`, `duration_ms`,
 `count` e as chaves que você passar), então `user=bob` vira `user=[redacted]`. A ocultação é uma

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@7f2232f6110eda04e383d2a0b2cadbfafead4407 status=reviewed -->
+<!-- i18n-source: README.md@11ec70dec2156a538ac6e4575521e28c286390b1 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -58,7 +58,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  351 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  367 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -311,6 +311,10 @@ Ein geheimer Name, der als Wert geschrieben ist, etwa in `name="password"`,
 `<string name="api_key">…</string>` oder `<key>password</key>`, verbirgt, was ihm folgt: den Rest
 seiner Zeile, in XML oder HTML auch die übrigen Attributwerte des Elements und seine Zeilen bis
 zum End-Tag, und in einem JSON-Objekt die Werte der übrigen Mitglieder.
+Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert
+geschrieben sind: Der Wert neben einem Feld, das einen Namen trägt (`name`, `label`, `type`, `id`,
+…), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt, ebenso alles nach `label="Пароль"` in einer
+Zeile.
 Freier Text behält einen Wert nur nach einem erlaubten
 Schlüssel (`status`, `method`, `path`, `duration_ms`, `count` und die Schlüssel, die Sie
 übergeben), sodass aus `user=bob` `user=[redacted]` wird. Schwärzen ist ein Sicherheitsnetz,
