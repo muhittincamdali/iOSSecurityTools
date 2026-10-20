@@ -25,6 +25,10 @@ struct FreeTextScanner {
         /// trigger pass read: the lines are hidden until its brackets close, and the rest of that
         /// line with them.
         case brackets(depth: Int, indent: Int)
+        /// A secret name was written in a header of a multipart part (`Content-Disposition:
+        /// form-data; name="pin"`): the part's other headers and its value are hidden (see
+        /// ``continuePart(delimiter:state:lineStart:lineEnd:)``).
+        case part(delimiter: [UInt8]?, state: PartState)
         /// A secret name was written in an element that is still open: the lines below that hold
         /// markup or are indented more than `indent` are hidden up to the element's end (see
         /// ``MarkupReader``). Other lines go on as `fallback`, what the name would leave open
@@ -75,6 +79,8 @@ struct FreeTextScanner {
     var pass = Pass.hiding
     /// In the hiding pass: the first byte of the line that was hidden without being read.
     var unreadFrom: Int?
+    /// The last line that may be a multipart delimiter (`--boundary`), as its bytes.
+    var multipartDelimiter: [UInt8]?
     /// In the trigger pass: the secret names found on the line, the last one that was not
     /// followed (see ``maximumNamesFollowed``), and the markup read up to the last name followed.
     var namesFound = 0
@@ -104,6 +110,7 @@ struct FreeTextScanner {
                 lineIndent = indentation(from: lineStart, to: end)
                 pendingKey = nil
                 pairedQuotes = []
+                noteDelimiter(from: lineStart, to: end)
                 if continueCarry(lineStart: lineStart, lineEnd: end) { scan(to: end) }
             } else {
                 scan(to: end)

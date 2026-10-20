@@ -110,6 +110,8 @@ extension FreeTextScanner {
             return continueElement(element, indent: indent, fallback: fallback, lineStart: lineStart, lineEnd: lineEnd)
         case .brackets(let depth, let indent):
             return continueBrackets(depth: depth, indent: indent, lineStart: lineStart, lineEnd: lineEnd)
+        case .part(let delimiter, let state):
+            return continuePart(delimiter: delimiter, state: state, lineStart: lineStart, lineEnd: lineEnd)
         case .openQuote(let quote, let escaped, let indent):
             // The line where the value closes is hidden whole: what follows the closing quote
             // cannot be told from the rest of the value (`msg="a=` / `"b"…`).

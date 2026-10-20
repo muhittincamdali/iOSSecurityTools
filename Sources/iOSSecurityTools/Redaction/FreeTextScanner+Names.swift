@@ -5,7 +5,8 @@ extension FreeTextScanner {
     /// (see ``carryAfterHiding(from:valueStart:lineEnd:indent:)``). In markup (see
     /// ``MarkupReader``) the values of the other attributes of the start tag that holds the name go
     /// too, and the lines below that hold markup or are indented more, up to the end of the element
-    /// that holds the name or of the element after it.
+    /// that holds the name or of the element after it. In a header of a multipart part, the part's
+    /// other headers and its value go too (see ``continuePart(delimiter:state:lineStart:lineEnd:)``).
     ///
     /// The trigger pass follows up to ``maximumNamesFollowed`` names on a line this way, and joins
     /// what each leaves open; the detection pass stops at the first.
@@ -31,7 +32,8 @@ extension FreeTextScanner {
     mutating func followName(at nameStart: Int, from start: Int, valueStart: Int, lineEnd: Int, markup: MarkupReader) {
         if start < lineEnd { hide(fromByte: start, toLineEnd: lineEnd) }
         if pass == .hiding { position = max(position, lineEnd) }
-        let fallback = carryAfterHiding(from: start, valueStart: valueStart, lineEnd: lineEnd, indent: lineIndent)
+        var fallback = carryAfterHiding(from: start, valueStart: valueStart, lineEnd: lineEnd, indent: lineIndent)
+        if isPartHeader(nameStart: nameStart) { fallback = fallback.joined(with: .part(delimiter: multipartDelimiter, state: .headers)) }
         guard var element = markup.followingElement() else {
             setCarry(fallback)
             return

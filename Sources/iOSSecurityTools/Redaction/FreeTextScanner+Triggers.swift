@@ -122,10 +122,10 @@ extension FreeTextScanner {
 
 extension FreeTextScanner.Carry {
     /// What two carries leave open together, as one carry. Markup is followed with the other as
-    /// its fallback. An open quote and JSON over lines hide every line until they end, and so the
-    /// next line with text, which goes before the lines indented more; when both carries are such,
-    /// the first goes on as it is, so a name found in the trigger pass never ends what the hiding
-    /// pass carries.
+    /// its fallback. An open quote, JSON over lines and a part of a multipart body hide every line
+    /// until they end, and so the next line with text, which goes before the lines indented more;
+    /// when both carries are such, the first goes on as it is, so a name found in the trigger pass
+    /// never ends what the hiding pass carries.
     func joined(with other: Self) -> Self {
         switch (self, other) {
         case (.none, _): return other
