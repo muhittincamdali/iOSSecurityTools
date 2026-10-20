@@ -163,6 +163,9 @@ struct NamingFields {
         for field in fields { read(field, compatibility: compatibility) }
     }
 
+    /// Whether a field read so far names a secret.
+    var hasNamingField: Bool { !naming.isEmpty }
+
     /// Reads the next field.
     mutating func read(_ field: Field, compatibility: CompatibilityText) {
         if Self.namesSecret(field, compatibility: compatibility) { naming.append(count) }

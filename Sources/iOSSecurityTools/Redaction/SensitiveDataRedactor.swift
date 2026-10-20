@@ -325,8 +325,15 @@ public struct SensitiveDataRedactor: Sendable {
     /// under "Limits"; JSON that does not parse, or is longer than 64 Ki scalars, cuts the text at
     /// its first bracket.
     ///
-    /// **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them, and the text
-    /// is read on after them.
+    /// **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them, but a URL is
+    /// not a safe place to read on from: its path parameters (`;`), query (`?`) or fragment (`#`)
+    /// cut the text right after their mark unless every parameter in them is on
+    /// ``allowedQueryParameters`` and has a value in the URL (`?page=2` with `page` allowed), and a
+    /// URL that ends in `=` or `:`, or whose last path segment, or host when it has no path, names a
+    /// secret, cannot be read or is not plain ASCII, cuts the text after it
+    /// (`see https://x.example/a?token= hunter2` keeps `see https://x.example/a?`). A URL that
+    /// `URLComponents` cannot read cuts the text where it starts, one whose host is not written
+    /// after its scheme, and one past the limits of ``redact(url:)`` after its host.
     public func redact(_ text: String) -> String {
         redact(text, nesting: .text(length: text.unicodeScalars.count))
     }
