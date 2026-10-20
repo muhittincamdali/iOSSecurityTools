@@ -106,27 +106,42 @@ A text that is a JSON object or array is read with a JSON parser and checked aga
 at every depth, inside arrays and for every repetition of a key. Strings are read as free text,
 so `{"note":"password=hunter2"}` and an escaped JSON document inside a string are redacted too.
 
-Some objects carry a field's name in one member and its value in another. When the `name`, `key`,
-`field`, `header`, `param`, `path`, `k` or `n` of an object is a name whose value the key rule
-hides — a secret name or one that is not plain ASCII — every `value`, `val`, `values`, `content`,
-`data`, `secret` and `v` of that object is hidden whole. Of a `path`, the part after its last `/`
-is the name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it, and a secret part
-before it hides the value too, which goes inside that field (`/apiKeys/0`). The second element of a
-two-element array is hidden the same way (`[["Authorization","…"]]`, as fetch headers and
-`URLSearchParams` entries are written), and so are the elements after `"password"` in
-`["password","…"]`. A member whose value is a name that names a secret or cannot be read hides
-the values of the other members of its object, whatever they are called, as
-`{"label":"Password","value":…}`, `{"type":"password","input":…}` and CloudFormation's
-`{"ParameterKey":"DbPassword","ParameterValue":…}` write a field: an object has no order, so what
-belongs to the name cannot be told. A name here is a string without `:`, `=`, `,`, `;`, quotes or
-brackets inside it, so a sentence (`"Error: token expired"`) or JSON in a string is read as free
-text instead; the members that hold names (`name`, `key`, `path`, …) and an `op` that names a JSON
-Patch or SCIM operation stay. Names that are plain and not secret keep their values:
+Some objects carry a field's name in one member and its value in another, and names are
+classified by default too: non-ASCII names count as secret even when they are written as values.
+The value of a member that holds a name — `name`, `key`, `field`, `label`, `type`, `header`,
+`param`, `path`, `id`, `k` or `n`, or a member whose own name is not plain ASCII and may be one of
+them disguised — is read by the key rule, as a key is. It names a secret unless it is a plain-ASCII
+name without a secret word: `Şifre`, `Пароль`, a name in symbols, emoji, circled or squared letters
+(`ⓟⓘⓝ`, `🄿🄸🄽`, `🔑`) or mathematical letters, a name with other punctuation (`Password:`), an
+empty name and an array or object there all count as secret. Of a `path`, every part between `/`
+is such a name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it: `/user/password`
+and `/apiKeys/0` hide the value, `/status` and `/tags/-` keep it. A member whose value is a name
+that names a secret or cannot be read counts wherever it is, as `{"type":"password","input":…}` and
+CloudFormation's `{"ParameterKey":"DbPassword","ParameterValue":…}` write a field; a name there is
+a string without `:`, `=`, `,`, `;`, quotes or brackets inside it, in which a symbol whose
+compatibility form is a letter (`ⓟ`, `🄿`) counts as one, so a sentence (`"Error: token expired"`)
+or JSON in a string is read as free text instead. In an object with such a name, the values of the
+other members are hidden whole, whatever they are called: an object has no order, so what belongs
+to the name cannot be told. The names of pairs (`name`, `key`, `field`, `header`, `param`, `path`,
+`k`, `n` with a string) and an `op` that names a JSON Patch or SCIM operation stay. The second
+element of a two-element array whose first is such a held name is hidden whole
+(`[["Authorization","…"]]`, as fetch headers and `URLSearchParams` entries are written), and so
+are the elements after `"password"` in `["password","…"]`. The fields of a form, the parameters of
+a URL query and the parts of a multipart body are read the same way: `label=Password&value=…`
+hides `value`.
+
+The cost is that a name in another script hides what is beside it, whatever it holds:
+`{"label":"Şifre","value":…}` hides the value on purpose, `{"name":"Ayşe","role":"admin"}` hides
+`role`, and `{"type":"image/png","data":…}` hides `data`. Names that are plain and not secret keep
+their values:
 
 ```swift
 let patch = #"[{"op":"replace","path":"/user/password","value":"hunter2"},{"op":"replace","path":"/status","value":"active"}]"#
 redactor.redact(body: Data(patch.utf8), contentType: "application/json-patch+json")
 // [{"op":"replace","path":"/user/password","value":"[redacted]"},{"op":"replace","path":"/status","value":"active"}]
+let fields = #"[{"label":"Şifre","value":"hunter2"},{"label":"ⓟⓘⓝ","value":"1234"},{"label":"status","value":"ok"}]"#
+redactor.redact(body: Data(fields.utf8), contentType: "application/json")
+// [{"label":"Şifre","value":"[redacted]"},{"label":"ⓟⓘⓝ","value":"[redacted]"},{"label":"status","value":"ok"}]
 ```
 
 Request and response bodies go through ``SensitiveDataRedactor/redact(body:contentType:)``, which
@@ -257,19 +272,25 @@ The rule in detail:
 - **A secret name written as a value** names what follows it. A quoted value that holds a secret
   name or a word that cannot be read — `name="password"`, `key='token'`, `id: "pin"`,
   `header="Authorization"`, `label="API Key"` — hides the rest of its line after the closing
-  quote, and the next line with text when nothing follows it. In XML and HTML the values of the
+  quote, and the next line with text when nothing follows it. After a key that holds a name
+  (`name`, `key`, `field`, `label`, `type`, `header`, `param`, `id`, `k`, `n`) a name that is not
+  plain ASCII counts as secret too, as in JSON (`label="Пароль"`, `name='ⓟⓘⓝ'`), and so does JSON
+  there (`name=["pin"]`), also when the key is allowed; `path=` is the route of a request in a
+  log line and is not read this way. In XML and HTML the values of the
   other attributes of its start tag go too (`<input path="…" name="password">`), and so do the
   lines below up to the element's end tag while they hold markup or are indented more, or all of
   them when an end tag of the element comes later in the text
-  (`<string name="api_key">…</string>`, `<entry key="db.password">`). A secret name in the text
-  of an element names the element after it, as a property list writes a key and its value
-  (`<key>password</key><string>…</string>`). A name that is not secret (`name="status"`) keeps
+  (`<string name="api_key">…</string>`, `<entry key="db.password">`). A start tag that closes
+  itself holds no value, so after `<string name="password" />` the next line with text is hidden
+  unless it starts with markup.
+  A secret name in the text of an element names the element after it, as a property list writes a
+  key and its value (`<key>password</key><string>…</string>`), also when that element is empty. A name that is not secret (`name="status"`) keeps
   what follows it.
 - **A secret name without a separator** hides the rest of its line: `password hunter2`,
   `PIN 1234`. Words are read after their escapes are decoded (`p&#97;ssword`, `pass%77ord`), with
   punctuation inside them and a space, `|`, `,`, `;`, `&` or `?` between two of them read as a
   separator (`pass~word`, `pass word`, `p|wd`), and a letter that has no ASCII form (`ɑ`, `ı`)
-  read as any one letter.
+  read as any one letter or, between two letters, as none (`passꞏword`).
 - **When a word cannot be read, the rest of the line is hidden.** That is a word that mixes
   scripts (`pаssword` with a Cyrillic `а`) or holds an invisible character other than a mark: a
   format character such as a zero-width space or a soft hyphen, a filler such as U+3164 or

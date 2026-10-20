@@ -42,14 +42,19 @@ import Foundation
 ///
 /// Some objects carry a field's name in one member and its value in another: HTTP archives write
 /// `{"name":"X-Api-Key","value":…}`, JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write
-/// `{"op":"replace","path":"/password","value":…}`. When the `name`, `key`, `field`, `header`,
-/// `param` or `path` (its part after the last `/`, or any part before it) is a name whose value
-/// the key rule hides, the `value`, `values`, `content`, `data` or `secret` beside it is hidden
-/// whole. So is the second
-/// element of a two-element array such as `["Authorization", "…"]`, as fetch headers and
-/// `URLSearchParams` entries are written. A member whose value is a name that names a secret or
-/// cannot be read (`{"label":"Password","input":…}`) hides the values of the other members of
-/// its object, apart from the members that hold names and a JSON Patch or SCIM `op`.
+/// `{"op":"replace","path":"/password","value":…}`, forms write `{"label":"Password","input":…}`.
+/// Names are classified by default too: the value of a member that holds a name (`name`, `key`,
+/// `field`, `label`, `type`, `header`, `param`, `path` with every part between `/`, `id`, `k`,
+/// `n`, or a member whose own name is not plain ASCII) is read by the key rule, so non-ASCII
+/// names count as secret even when they are written as values: `Şifre`, `ⓟⓘⓝ`, `🔑`, an empty
+/// name, or an array or object there. When such a name or a secret one is held, or any member's
+/// value is a name that names a secret or cannot be read (`{"type":"password","input":…}`), the
+/// values of the other members of the object are hidden whole, apart from the names of pairs
+/// (`name`, `key`, `field`, `header`, `param`, `path`, `k`, `n`) and a JSON Patch or SCIM `op`.
+/// The second element of a two-element array whose first is such a name is hidden whole
+/// (`["Authorization", "…"]`, as fetch headers and `URLSearchParams` entries are written). Form
+/// fields, URL query parameters and multipart parts follow the same rule
+/// (`label=Password&value=…`).
 ///
 /// URLs are read with `URLComponents` (see ``redact(url:)``), and ``redact(body:contentType:)``
 /// reads JSON, form, multipart and plain-text bodies; a body it cannot parse completely is
@@ -243,7 +248,7 @@ public struct SensitiveDataRedactor: Sendable {
     ///   its line: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`. Words are read
     ///   after their escapes are decoded, with punctuation inside them (`pass~word`) and a space or
     ///   `|` between two of them (`pass word`) read as a separator, and a letter that has no ASCII
-    ///   form (`ɑ`, `ı`) read as any letter.
+    ///   form (`ɑ`, `ı`) read as any letter or, between two letters, as none (`passꞏword`).
     /// - **Ambiguity.** A word that mixes scripts (`pаssword` with a Cyrillic `а`) or holds an
     ///   invisible character other than a mark (`pa\u{115F}ssword`, a zero-width space, a control
     ///   character) hides itself and the rest of its line.
@@ -254,10 +259,14 @@ public struct SensitiveDataRedactor: Sendable {
     ///   `"""`) or it ends at a break other than LF and CRLF.
     /// - **Secret names written as values.** A quoted value that names a secret or cannot be read
     ///   (`name="password"`, `<string name="api_key">`) hides the rest of its line after the
-    ///   closing quote. In XML and HTML the other attribute values of its start tag are hidden too,
-    ///   and the lines below up to the end of the element; a secret name in an element's text
-    ///   (`<key>password</key>`) names the element after it. A name that is not secret keeps what
-    ///   follows it.
+    ///   closing quote. After a key that holds a name (`name=`, `key=`, `label=`, `id=`, … but not
+    ///   `path=`, the route of a request) a name that is not plain ASCII counts as secret, as in
+    ///   JSON (`label="Пароль"`), and so does JSON there (`name=["pin"]`). In XML and HTML the
+    ///   other attribute values of its start tag are hidden too, and the lines below up to the end
+    ///   of the element, or the next line with text that is not markup after a start tag that
+    ///   closes itself; a secret
+    ///   name in an element's text (`<key>password</key>`) names the element after it. A name that
+    ///   is plain and not secret keeps what follows it.
     /// - **Embedded JSON.** JSON in a line (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the
     ///   key rule for structured input, within the limits listed under "Limits". JSON that does not
     ///   parse hides the rest of the line, and the lines below until its brackets close.
