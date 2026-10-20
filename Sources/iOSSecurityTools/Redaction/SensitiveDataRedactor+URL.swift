@@ -36,7 +36,7 @@ extension SensitiveDataRedactor {
     /// ```
     public func redact(url: URL) -> String {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return Self.unparsedURL }
-        return redacted(components, nesting: .document)
+        return redacted(components, nesting: .document(length: url.absoluteString.unicodeScalars.count))
     }
 
     /// A URL written in text, recorded as ``redact(url:)`` records it. `nesting` is the URL's own:

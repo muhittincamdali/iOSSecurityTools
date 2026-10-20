@@ -97,18 +97,23 @@ import Foundation
 ///
 /// ## Limits
 ///
-/// Input is read within fixed limits, which bound the stack that hostile input can use:
+/// Input is read within fixed limits, which bound the stack and the time that hostile input can
+/// use:
 ///
 /// - A body larger than ``maximumBodySize`` (1 MiB) is omitted unread.
 /// - JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
 ///   document a JSON string is in: JSON in a string inside one object may open 63 more.
 /// - At most four documents are read one inside another. A JSON text, a URL, a body and a
 ///   multipart part each count: in a JSON body, JSON in a string is the second.
+/// - The documents found inside one input read at most four times its length, all together.
+///   Each document found in it (JSON in a line or a string, a URL in text, a multipart part)
+///   counts its length, and so does each text read inside such a document.
 ///
 /// JSON that goes past a limit is not read. A body is then omitted, and a string or other text
-/// inside a document that holds such JSON, or a URL one level too many, is hidden whole. In a log
-/// line, JSON nested deeper than 64 levels hides the line from its first bracket, like JSON that
-/// does not parse.
+/// inside a document that holds such JSON, or a URL one level too many, is hidden whole, as is
+/// a text inside a found document that the reading budget no longer covers. In a log line, JSON
+/// nested deeper than 64 levels hides the line from its first bracket, like JSON that does not
+/// parse.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -276,13 +281,13 @@ public struct SensitiveDataRedactor: Sendable {
     /// U+2028, U+2029, U+0085, vertical tab and form feed end a line and are written as line feeds,
     /// so the result breaks lines where the rule did; CR and CRLF end a line too and are kept.
     public func redact(_ text: String) -> String {
-        redact(text, nesting: .text)
+        redact(text, nesting: .text(length: text.unicodeScalars.count))
     }
 
     /// Returns the sensitive data found in a text, in order, without overlaps.
     public func matches(in text: String) -> [Match] {
         let scalars = Array(text.unicodeScalars)
-        let spans = textSpans(in: scalars, compatibility: CompatibilityText(), nesting: .text).filter { !$0.kind.isEmpty }
+        let spans = textSpans(in: scalars, compatibility: CompatibilityText(), nesting: .text(length: scalars.count)).filter { !$0.kind.isEmpty }
         var indices: [String.Index] = []
         indices.reserveCapacity(scalars.count + 1)
         var index = text.unicodeScalars.startIndex

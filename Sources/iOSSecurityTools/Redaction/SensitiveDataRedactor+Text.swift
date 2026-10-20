@@ -9,16 +9,19 @@ extension SensitiveDataRedactor {
     /// ``textSpans(in:compatibility:role:nesting:)`` on a scanning copy that is already made.
     /// With `detectsInRegions` the value detectors also read the JSON and URLs in the text, which
     /// a path segment needs: a URL in one keeps its host, and a token in the host must still make
-    /// the segment `:id`.
+    /// the segment `:id`. A text inside a document found in the input that the reading budget no
+    /// longer covers (see ``ReadingBudget``) is one finding.
     func textSpans(
         in scalars: [Unicode.Scalar], text: NormalizedText, compatibility: CompatibilityText, role: FreeTextScanner.Role = .text,
         nesting: Nesting, detectsInRegions: Bool = false
     ) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty else { return [] }
         guard kinds.contains(.secretFields) else { return Self.merged(detectorSpans(in: text)) }
+        let whole = [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)]
+        guard nesting.reads(scalars.count) else { return whole }
         var scanner = FreeTextScanner(source: scalars, text: text, redactor: self, compatibility: compatibility, role: role, nesting: nesting)
         scanner.run()
-        if scanner.hidesWholeText { return [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] }
+        if scanner.hidesWholeText { return whole }
         // JSON and URLs were redacted by their own rules; the detectors do not read them again.
         let regions = scanner.regions
         let folds = Self.lineSeparatorFolds(in: scalars, outside: regions)

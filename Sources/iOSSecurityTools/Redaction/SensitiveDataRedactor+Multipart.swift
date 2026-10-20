@@ -43,7 +43,9 @@ extension SensitiveDataRedactor {
         return lines
     }
 
-    /// The content of a part, read as a body one level inside the multipart body.
+    /// The content of a part, read as a body one level inside the multipart body. A part is a
+    /// document found in the body, so it takes its length from the reading budget, and is omitted
+    /// when the budget does not cover it.
     private func redactedContent(of part: MultipartBody.Part, nesting: Nesting) -> String {
         if kinds.contains(.secretFields), FieldName.hidesValue(part.name.unicodeScalars) { return Self.replacement }
         let defaultType = part.filename == nil ? "text/plain" : "application/octet-stream"
@@ -52,7 +54,7 @@ extension SensitiveDataRedactor {
         let encodings = part.headers.filter { $0.name.lowercased() == "content-transfer-encoding" }
             .map { $0.value.trimmingCharacters(in: .whitespaces).lowercased() }
         guard part.filename == nil, !type.essence.hasPrefix("multipart/"), encodings.allSatisfy(Self.identityTransferEncodings.contains),
-              encodings.count <= 1, let inner = nesting.enteringDocument()
+              encodings.count <= 1, let inner = nesting.enteringDocument(), inner.reads(Self.scalarCount(part.content))
         else {
             return Self.omitted(part.content.count, type.essence)
         }

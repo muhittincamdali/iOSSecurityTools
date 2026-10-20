@@ -17,6 +17,8 @@ struct JSONDocument {
         case invalid
         /// It opens more objects and arrays one inside another than the nesting leaves.
         case tooDeep
+        /// It goes on past the scalars that the reading budget leaves (see ``ReadingBudget``).
+        case overBudget
     }
 
     struct Node {
@@ -72,8 +74,12 @@ struct JSONDocument {
 
     /// Reads the JSON object or array that starts at `start` in a longer text, such as a log line.
     /// Ranges are offsets in the whole text.
-    init(_ scalars: [Unicode.Scalar], at start: Int, nesting: Nesting) throws(ReadError) {
-        var reader = Reader(scalars: scalars, position: start, depthLimit: nesting.depthLeft)
+    /// - Parameter lengthLimit: The most scalars the object or array may take; one that goes on
+    ///   past them is not read (``ReadError/overBudget``).
+    init(_ scalars: [Unicode.Scalar], at start: Int, nesting: Nesting, lengthLimit: Int = .max) throws(ReadError) {
+        let (limit, overflow) = start.addingReportingOverflow(lengthLimit)
+        let end = overflow ? scalars.count : min(scalars.count, limit)
+        var reader = Reader(scalars: scalars, position: start, end: end, depthLimit: nesting.depthLeft)
         guard let root = reader.value() else { throw reader.failure }
         guard root.isContainer else { throw .invalid }
         let data = Data(String(String.UnicodeScalarView(scalars[root.range])).utf8)
@@ -147,27 +153,34 @@ extension JSONDocument.Node {
 
 extension JSONDocument {
     /// A recursive descent reader for RFC 8259 that opens at most `depthLimit` objects and arrays
-    /// one inside another, so its recursion is bounded by the nesting budget.
+    /// one inside another, so its recursion is bounded by the nesting budget, and reads no
+    /// scalar from `end` on.
     private struct Reader {
         let scalars: [Unicode.Scalar]
         var position = 0
+        let end: Int
         let depthLimit: Int
         private var reachedDepthLimit = false
 
-        init(scalars: [Unicode.Scalar], position: Int = 0, depthLimit: Int) {
+        init(scalars: [Unicode.Scalar], position: Int = 0, end: Int? = nil, depthLimit: Int) {
             self.scalars = scalars
             self.position = position
+            self.end = end ?? scalars.count
             self.depthLimit = depthLimit
         }
 
-        /// Why the last read returned nil.
-        var failure: ReadError { reachedDepthLimit ? .tooDeep : .invalid }
+        /// Why the last read returned nil: a value that ran into `end` before the text ends went
+        /// past the budget.
+        var failure: ReadError {
+            if reachedDepthLimit { return .tooDeep }
+            return position >= end && end < scalars.count ? .overBudget : .invalid
+        }
 
         mutating func document() -> Node? {
             skipWhitespace()
             guard let root = value(depth: 0) else { return nil }
             skipWhitespace()
-            return position == scalars.count ? root : nil
+            return position == end ? root : nil
         }
 
         /// One value at the current position, with nothing read after it.
@@ -177,7 +190,7 @@ extension JSONDocument {
 
         /// A value inside `depth` objects and arrays.
         private mutating func value(depth: Int) -> Node? {
-            guard position < scalars.count else { return nil }
+            guard position < end else { return nil }
             let start = position
             let opensContainer = scalars[position] == "{" || scalars[position] == "["
             if opensContainer, depth >= depthLimit {
@@ -204,7 +217,7 @@ extension JSONDocument {
             if consume("}") { return .object(members) }
             repeat {
                 skipWhitespace()
-                guard position < scalars.count, scalars[position] == "\"", let name = string() else { return nil }
+                guard position < end, scalars[position] == "\"", let name = string() else { return nil }
                 skipWhitespace()
                 guard consume(":") else { return nil }
                 skipWhitespace()
@@ -235,7 +248,7 @@ extension JSONDocument {
             let start = position
             var decoded: [Unicode.Scalar] = []
             var hasEscapes = false
-            while position < scalars.count {
+            while position < end {
                 let scalar = scalars[position]
                 if scalar == "\"" {
                     position += 1
@@ -256,7 +269,7 @@ extension JSONDocument {
 
         /// The character a `\` escape stands for; a surrogate pair is one character.
         private mutating func escape() -> Unicode.Scalar? {
-            guard position + 1 < scalars.count else { return nil }
+            guard position + 1 < end else { return nil }
             let kind = scalars[position + 1]
             position += 2
             switch kind {
@@ -272,14 +285,14 @@ extension JSONDocument {
             guard let unit = hexadecimalUnit() else { return nil }
             if (0xDC00...0xDFFF).contains(unit) { return nil }
             guard (0xD800...0xDBFF).contains(unit) else { return Unicode.Scalar(unit) }
-            guard position + 1 < scalars.count, scalars[position] == "\\", scalars[position + 1] == "u" else { return nil }
+            guard position + 1 < end, scalars[position] == "\\", scalars[position + 1] == "u" else { return nil }
             position += 2
             guard let low = hexadecimalUnit(), (0xDC00...0xDFFF).contains(low) else { return nil }
             return Unicode.Scalar(0x10000 + ((unit - 0xD800) << 10) + (low - 0xDC00))
         }
 
         private mutating func hexadecimalUnit() -> UInt32? {
-            guard position + 4 <= scalars.count else { return nil }
+            guard position + 4 <= end else { return nil }
             var value: UInt32 = 0
             for scalar in scalars[position..<position + 4] {
                 guard let digit = Character(scalar).hexDigitValue, scalar.isASCII else { return nil }
@@ -307,25 +320,25 @@ extension JSONDocument {
 
         private mutating func digits() -> Int {
             let start = position
-            while position < scalars.count, ("0"..."9").contains(scalars[position]) { position += 1 }
+            while position < end, ("0"..."9").contains(scalars[position]) { position += 1 }
             return position - start
         }
 
         private mutating func literal(_ word: String) -> Bool {
             let letters = Array(word.unicodeScalars)
-            guard position + letters.count <= scalars.count, Array(scalars[position..<position + letters.count]) == letters else { return false }
+            guard position + letters.count <= end, Array(scalars[position..<position + letters.count]) == letters else { return false }
             position += letters.count
             return true
         }
 
         private mutating func consume(_ scalar: Unicode.Scalar) -> Bool {
-            guard position < scalars.count, scalars[position] == scalar else { return false }
+            guard position < end, scalars[position] == scalar else { return false }
             position += 1
             return true
         }
 
         private mutating func skipWhitespace() {
-            while position < scalars.count, [" ", "\t", "\n", "\r"].contains(scalars[position]) { position += 1 }
+            while position < end, [" ", "\t", "\n", "\r"].contains(scalars[position]) { position += 1 }
         }
     }
 }

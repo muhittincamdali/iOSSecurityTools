@@ -67,15 +67,14 @@ struct RedactionNestingTests {
         let url = "see https://example.com/a?status=ok"
         #expect(redact(Self.noted(url, times: 3)) == Self.noted("see https://example.com/a?status=[redacted]", times: 3))
         #expect(redact(Self.noted(url, times: 4)) == Self.noted(#"{"note":"[redacted]"}"#, times: 3))
-        // Each URL writes the redacted value of the next one encoded again; the fifth is hidden.
+        // Each URL writes the redacted value of the next one encoded again. Every URL of a chain
+        // holds all the URLs after it, so reading them goes past the reading budget (four times
+        // the line) at the third, whose value is hidden whole; two fit.
         let allowed = SensitiveDataRedactor(allowedQueryParameters: ["q"])
         let chain = String(repeating: "https://a.example/?q=", count: 5) + "x"
-        #expect(
-            allowed.redact(chain) == "https://a.example/?q=https%3A%2F%2Fa.example%2F%3Fq%3Dhttps%253A%252F%252Fa.example%252F%253Fq%253D"
-                + "https%25253A%25252F%25252Fa.example%25252F%25253Fq%25253D[redacted]"
-        )
-        let four = String(repeating: "https://a.example/?q=", count: 4) + "x"
-        #expect(allowed.redact(four) == four)
+        #expect(allowed.redact(chain) == "https://a.example/?q=https%3A%2F%2Fa.example%2F%3Fq%3Dhttps%253A%252F%252Fa.example%252F%253Fq%253D[redacted]")
+        let two = String(repeating: "https://a.example/?q=", count: 2) + "x"
+        #expect(allowed.redact(two) == two)
     }
 
     @Test("a multipart part is a document inside the body")

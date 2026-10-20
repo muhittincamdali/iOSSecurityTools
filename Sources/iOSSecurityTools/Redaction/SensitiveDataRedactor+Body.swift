@@ -44,14 +44,21 @@ extension SensitiveDataRedactor {
         let mediaType = contentType.flatMap(MediaType.init)
         let described = contentType == nil ? "no content type" : mediaType?.essence ?? "unreadable content type"
         guard body.count <= Self.maximumBodySize else { return Self.omitted(body.count, described) }
+        let nesting = Nesting.document(length: Self.scalarCount(body))
         let result = contentType == nil
-            ? redactedJSON(body, allowsFragments: false, nesting: .document)
-            : mediaType.flatMap { redacted(body, as: $0, nesting: .document) }
+            ? redactedJSON(body, allowsFragments: false, nesting: nesting)
+            : mediaType.flatMap { redacted(body, as: $0, nesting: nesting) }
         return result ?? Self.omitted(body.count, described)
     }
 
     static func omitted(_ count: Int, _ type: String) -> String {
         "[body omitted: \(count) \(count == 1 ? "byte" : "bytes"), \(type)]"
+    }
+
+    /// The number of scalars in UTF-8 bytes: the bytes that do not continue a scalar. Bytes that
+    /// are not UTF-8 count as one scalar each, as they would decode to one replacement character.
+    static func scalarCount(_ bytes: some Sequence<UInt8>) -> Int {
+        bytes.reduce(0) { $0 + ($1 & 0xC0 == 0x80 ? 0 : 1) }
     }
 
     /// A body of a known type, or nil when it is omitted. `nesting` is the body's own: a body

@@ -25,7 +25,8 @@ extension FreeTextScanner {
 
     /// JSON in a line, parsed and redacted by the key rule for structured input. JSON that does
     /// not parse cannot be read with certainty and is hidden. In a text inside a document, JSON
-    /// one level too many or deeper than the depth left hides the whole text.
+    /// one level too many, deeper than the depth left or longer than the reading budget leaves
+    /// (see ``ReadingBudget``) hides the whole text.
     mutating func embeddedJSON(lineEnd: Int) {
         let start = text.offsets[position]
         guard let inner = nesting.enteringDocument() else {
@@ -34,8 +35,11 @@ extension FreeTextScanner {
         }
         let document: JSONDocument
         do {
-            document = try JSONDocument(source, at: start, nesting: inner)
+            document = try JSONDocument(source, at: start, nesting: inner, lengthLimit: inner.lengthLeft)
         } catch .tooDeep where nesting.isEmbedded {
+            hideWholeText()
+            return
+        } catch .overBudget where nesting.isEmbedded {
             hideWholeText()
             return
         } catch {
@@ -43,6 +47,8 @@ extension FreeTextScanner {
             return
         }
         let region = start..<document.root.range.upperBound
+        // The reader stopped within what the budget leaves, so this always fits.
+        _ = inner.reads(region.count)
         record(spans: document.secretSpans(using: redactor, compatibility: compatibility), region: region)
         position = text.byteIndex(atOrAfter: region.upperBound)
     }
@@ -107,13 +113,19 @@ extension FreeTextScanner {
     }
 
     /// A URL, recorded as ``SensitiveDataRedactor/redact(url:)`` records it. A URL one level too
-    /// many hides the whole text it is in.
+    /// many, or longer than the reading budget leaves, hides the whole text it is in; in a line
+    /// that is not inside a document, only the URL is hidden then.
     mutating func url(to end: Int) {
-        guard let inner = nesting.enteringDocument() else {
-            hideWholeText()
+        let region = text.original(position..<end)
+        guard let inner = nesting.enteringDocument(), inner.reads(region.count) else {
+            if nesting.isEmbedded {
+                hideWholeText()
+            } else {
+                record(spans: [SensitiveDataRedactor.Span(start: region.lowerBound, end: region.upperBound, kind: .secretFields, replacement: SensitiveDataRedactor.replacement)], region: region)
+                position = end
+            }
             return
         }
-        let region = text.original(position..<end)
         let written = String(String.UnicodeScalarView(source[region]))
         let redacted = redactor.redactedURL(written, nesting: inner)
         let span = SensitiveDataRedactor.Span(start: region.lowerBound, end: region.upperBound, kind: .secretFields, replacement: redacted)
