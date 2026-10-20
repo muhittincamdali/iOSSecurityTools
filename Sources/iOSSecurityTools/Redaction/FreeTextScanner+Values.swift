@@ -49,8 +49,14 @@ extension FreeTextScanner {
             hideSimplyQuoted(open: start, key: key, lineEnd: lineEnd)
         } else if byte == UInt8(ascii: "{") || byte == UInt8(ascii: "[") {
             hideJSONValue(from: start, lineEnd: lineEnd)
-            if let key, WrittenName.holdsNameInText(key), position < lineEnd, case .none = carry {
+            guard let key, WrittenName.holdsNameInText(key), case .none = carry else { return }
+            // JSON where a name is held cannot be read as a name, so what follows it is hidden: to
+            // the end of the line where the JSON closes, also when it spans lines
+            // (`name=[` / `"pin"` / `] …`), and the next line with text when nothing follows it.
+            if position <= lineEnd {
                 hideAfterName(at: start, from: position, valueStart: position, lineEnd: lineEnd)
+            } else {
+                hideRestOfLine(from: position, valueStart: position, lineEnd: self.lineEnd(from: position))
             }
         } else {
             // Where an unquoted value ends cannot be told: everything after the separator on the
