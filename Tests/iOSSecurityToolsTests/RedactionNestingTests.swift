@@ -87,6 +87,14 @@ struct RedactionNestingTests {
         #expect(redact(body, "multipart/form-data; boundary=B") == expected)
     }
 
+    @Test("the logging guide's examples of the limits")
+    func guideExamples() {
+        let deep = String(repeating: "[", count: 65) + String(repeating: "]", count: 65)
+        #expect(redact(deep) == "[body omitted: 130 bytes, application/json]")
+        let note = #"{"note":""# + String(repeating: "[", count: 64) + String(repeating: "]", count: 64) + #" ok"}"#
+        #expect(redact(note) == #"{"note":"[redacted]"}"#)
+    }
+
     @Test("JSON deeper than the limit in a log line hides the line from its first bracket")
     func deepJSONInFreeText() {
         let line = "note " + Self.brackets(65, around: "\"status=ok\"") + " status=200\nstatus=200"
