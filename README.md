@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 467 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 478 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -310,11 +310,16 @@ variants: the first character outside a safe alphabet (letters, marks and digits
 the ASCII space, tab and line breaks, and printable ASCII), so a look-alike separator such as `꞉`
 or `→`, an emoji or a control character cuts it; any escape (`%3D`, `&colon;`, `\075`), which is
 never decoded; a word longer than 256 characters; a key that is not allowed (any key but
-`status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also as the first string
-of a two-element array or as the tag of an element; and a secret name, with or without a
-separator, also one written as a value such as `name="password"`. The text is cut to its end and
-not only to the end of the line: `login user=bob status=401` becomes `login user=[redacted]`, and
-a multipart body or a property list written to a log is hidden from its first header or key.
+`status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also in quotes, where it
+cuts the text at the opening quote (`cache miss for "session Qz9Wk7rX": refetching` becomes
+`cache miss for [redacted]`), as the first string of a two-element array or as the tag of an
+element; and a secret name, with or without a separator, also one written as a value such as
+`name="password"`. A word is compared by its ASCII skeleton: the letters that have no ASCII form
+are left out, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and a name
+also counts with one letter missing where one was left out (`pɑssword`). The text is cut to its
+end and not only to the end of the line: `login user=bob status=401` becomes
+`login user=[redacted]`, and a multipart body or a property list written to a log is hidden from
+its first header or key.
 A URL in free text is shown only when it is clean — `scheme://host` and an optional path of ASCII
 letters, digits, `.`, `_`, `-` and `/`, whose host and segments name no secret, followed by white
 space, a line break or punctuation that ends a sentence — and any other URL cuts the text where it
@@ -323,9 +328,10 @@ applies only to `redact(url:)`). A `:` between digits is part of a number only a
 (`12:30`, `10.0.0.1:8080`); after a key that ends in digits (`user1:2345`) it is a separator.
 Redaction is a safety net, not a guarantee: it is built for secrets logged by accident.
 Structured input (JSON, forms, multipart bodies and their part headers, URLs and their hosts) is
-default-safe, and what the redactor does not understand there is redacted. In free text, a name
-written without a separator and disguised with two or more look-alike letters
-(`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing before it cuts the text. The
+default-safe, and what the redactor does not understand there is redacted; structured key names
+are shown, and only the values under them are hidden. In free text, a name written without a
+separator with two or more of its letters replaced by look-alike letters (`pɑsswoʀd hunter2`) is
+not guaranteed to be found when nothing before it cuts the text. The
 [logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describes the rules for free text, what they cost and what they do not find.
 
