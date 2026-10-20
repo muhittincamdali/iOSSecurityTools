@@ -23,7 +23,7 @@ extension NormalizedText {
     private func isIBANCharacter(_ i: Int) -> Bool { isDigit(i) || isUppercase[i] }
 
     private func startsIBAN(at i: Int) -> Bool {
-        (i == 0 || !isAlphanumeric(i - 1)) && isUppercase[i] && isUppercase[i + 1] && isDigit(i + 2) && isDigit(i + 3)
+        (i == 0 || !gluesToWord(i - 1)) && isUppercase[i] && isUppercase[i + 1] && isDigit(i + 2) && isDigit(i + 3)
     }
 
     /// The end of the longest IBAN that starts at `start` and ends where its group ends.
@@ -45,7 +45,7 @@ extension NormalizedText {
         guard characters.count >= Self.ibanLength.lowerBound else { return nil }
         for length in stride(from: characters.count, through: Self.ibanLength.lowerBound, by: -1) {
             let end = ends[length - 1]
-            guard end == count || !isAlphanumeric(end) else { continue }
+            guard end == count || !gluesToWord(end) else { continue }
             if Self.ibanRemainder(characters[..<length]) == 1 { return end }
         }
         return nil

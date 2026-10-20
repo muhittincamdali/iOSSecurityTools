@@ -140,12 +140,20 @@ struct NormalizedText {
         return byte == 0x0A || byte == 0x0D || byte == 0x0B || byte == 0x0C
     }
 
-    /// Whether a word starts at `i`: after a non-alphanumeric character, or at a lowercase to
-    /// uppercase change (`accessToken`).
+    /// Whether a word starts at `i`: after a character that does not glue to it (see
+    /// ``gluesToWord(_:)``), or at a lowercase to uppercase change (`accessToken`).
     func isWordStart(_ i: Int) -> Bool {
         guard i > 0 else { return true }
-        if !isAlphanumeric(i - 1) { return true }
+        if !gluesToWord(i - 1) { return true }
         return isUppercase[i] && isLetter(i - 1) && !isUppercase[i - 1]
+    }
+
+    /// Whether byte `i` is a letter or digit written in ASCII, which makes the digits or the token
+    /// next to it part of a word (`id4242…`, `xeyJ…`) that the value detectors leave alone. A letter
+    /// read from another character (`é`, `𝐚`, `№`) does not: the detectors find a card number or a
+    /// token after it, as 2.0.0 did.
+    func gluesToWord(_ i: Int) -> Bool {
+        isAlphanumeric(i) && source[offsets[i]].isASCII
     }
 
     func matches(_ word: [UInt8], at i: Int) -> Bool {

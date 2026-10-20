@@ -7,7 +7,7 @@ extension NormalizedText {
         var spans: [SensitiveDataRedactor.Span] = []
         var i = 0
         while i < count {
-            guard isDigit(i), i == 0 || !isAlphanumeric(i - 1) else {
+            guard isDigit(i), i == 0 || !gluesToWord(i - 1) else {
                 i += 1
                 continue
             }
@@ -30,7 +30,7 @@ extension NormalizedText {
                 j = separatorEnd
             }
             groups.append(groupStart..<j)
-            if j < count, isLetter(j) {
+            if j < count, isLetter(j), gluesToWord(j) {
                 // Digits that run into letters are an identifier, not a card number.
                 groups.removeLast()
             }
@@ -98,9 +98,11 @@ extension NormalizedText {
             var end = at + 1
             while end < count, isAnyAlphanumeric(end) || bytes[end] == UInt8(ascii: ".") || bytes[end] == UInt8(ascii: "-") { end += 1 }
             while end > at + 1, bytes[end - 1] == UInt8(ascii: ".") || bytes[end - 1] == UInt8(ascii: "-") { end -= 1 }
-            // In `user:password@host` the text before `@` is a password, hidden on its own.
-            guard start < at, end > at + 1, isDomain(at + 1..<end), start == 0 || bytes[start - 1] != UInt8(ascii: ":") else { continue }
-            spans.append(span(start..<end, .emailAddresses, Mask.email(shown(start..<end))))
+            guard start < at, end > at + 1, isDomain(at + 1..<end) else { continue }
+            // After a `:` the name may be the password of `user:password@host`: none of it is shown.
+            let followsColon = start > 0 && bytes[start - 1] == UInt8(ascii: ":")
+            let mask = followsColon ? Mask.email("x@" + shown((at + 1)..<end)) : Mask.email(shown(start..<end))
+            spans.append(span(start..<end, .emailAddresses, mask))
         }
         return spans
     }
@@ -123,7 +125,7 @@ extension NormalizedText {
         var i = 0
         while i + 3 <= count {
             // A token glued to a word by `_` or `-` (`id_eyJ…`) is still a token.
-            guard bytes[i] == prefix[0], bytes[i + 1] == prefix[1], bytes[i + 2] == prefix[2], i == 0 || !isAlphanumeric(i - 1) else {
+            guard bytes[i] == prefix[0], bytes[i + 1] == prefix[1], bytes[i + 2] == prefix[2], i == 0 || !gluesToWord(i - 1) else {
                 i += 1
                 continue
             }
