@@ -17,7 +17,7 @@ extension SensitiveDataRedactor {
               let multipart = MultipartBody(Array(body), boundary: parameter.value)
         else { return nil }
         let boundary = parameter.value
-        let naming = kinds.contains(.secretFields) ? Self.namingFields(multipart.parts.map { ($0.name, Self.plainText(of: $0)) }) : nil
+        let naming = kinds.contains(.secretFields) ? Self.namingParts(multipart.parts) : nil
         var output = ""
         for (index, part) in multipart.parts.enumerated() {
             output += "--\(boundary)\r\n"
@@ -50,9 +50,7 @@ extension SensitiveDataRedactor {
         if kinds.contains(.secretFields), FieldName.hidesValue(part.name.unicodeScalars) { return Self.replacement }
         let defaultType = part.filename == nil ? "text/plain" : "application/octet-stream"
         guard let type = part.contentType ?? MediaType(defaultType) else { return Self.omitted(part.content.count, defaultType) }
-        // Servers differ in which of several transfer encodings they read.
-        let encodings = part.headers.filter { $0.name.lowercased() == "content-transfer-encoding" }
-            .map { $0.value.trimmingCharacters(in: .whitespaces).lowercased() }
+        let encodings = Self.transferEncodings(of: part)
         guard part.filename == nil, !type.essence.hasPrefix("multipart/"), encodings.allSatisfy(Self.identityTransferEncodings.contains),
               encodings.count <= 1, let inner = nesting.enteringDocument(), inner.reads(Self.scalarCount(part.content))
         else {
@@ -61,11 +59,32 @@ extension SensitiveDataRedactor {
         return redacted(Data(part.content), as: type, nesting: inner) ?? Self.omitted(part.content.count, type.essence)
     }
 
-    /// The content of a field sent as plain text, which may name the field another part holds
-    /// (`label` and `value` parts); nil for a file or a part of another type.
+    /// The parts that name the field another part holds (`label` and `value` parts). A part's
+    /// content is read as a name only when it is plain UTF-8 text without a transfer encoding;
+    /// any other content of a part that holds a name (`label` in base64, as JSON, in another
+    /// charset, as a file) cannot be read as one, so it counts as naming a secret, as an array or
+    /// object does in JSON.
+    private static func namingParts(_ parts: [MultipartBody.Part]) -> NamingFields {
+        NamingFields(parts.map { part in
+            let value: NamingFields.Value = plainText(of: part).map { .string(Array($0.unicodeScalars)) } ?? .structure
+            return (Array(part.name.unicodeScalars), value)
+        }, compatibility: CompatibilityText())
+    }
+
+    /// The content of a field sent as plain UTF-8 text without a transfer encoding; nil for a
+    /// file, a part of another type or charset, or encoded content.
     private static func plainText(of part: MultipartBody.Part) -> String? {
-        guard part.filename == nil, part.contentType.map(\.isPlainText) ?? true else { return nil }
+        guard part.filename == nil, part.contentType.map(\.isPlainText) ?? true, part.contentType?.isUTF8 ?? true else { return nil }
+        let encodings = transferEncodings(of: part)
+        guard encodings.count <= 1, encodings.allSatisfy(identityTransferEncodings.contains) else { return nil }
         return String(bytes: part.content, encoding: .utf8)
+    }
+
+    /// The transfer encodings a part names, lowercased; servers differ in which of several they
+    /// read.
+    private static func transferEncodings(of part: MultipartBody.Part) -> [String] {
+        part.headers.filter { $0.name.lowercased() == "content-transfer-encoding" }
+            .map { $0.value.trimmingCharacters(in: .whitespaces).lowercased() }
     }
 
     /// The text with `"` and `\` escaped, for a quoted header parameter.

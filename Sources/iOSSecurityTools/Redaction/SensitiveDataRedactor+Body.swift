@@ -21,6 +21,9 @@ extension SensitiveDataRedactor {
     ///   shows `[redacted]`, and any other part is read by its own content type (`text/plain`
     ///   when it has none). Uploaded files, nested multipart bodies, parts in a transfer encoding
     ///   other than `7bit`, `8bit` or `binary` and parts of other types are omitted like a body.
+    ///   A part that holds a name (`label`, `name`, `type`, …) names a secret unless its content
+    ///   is plain UTF-8 text naming none: one in base64, as JSON, in another charset or a file
+    ///   cannot be read as a name, and hides the values of the other parts.
     ///   The body is read only with a single unquoted `boundary` of at most 70 characters, and
     ///   only when every `--boundary` in it, in any case, is a delimiter line that follows a CRLF.
     /// - **Plain text** (`text/plain`): free text, as ``redact(_:)`` reads it.
