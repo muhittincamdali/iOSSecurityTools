@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@216cadc5f186191841d5d46a358755bfe2461326 status=reviewed -->
+<!-- i18n-source: README.md@7f32b9c6808f9063527af1053a4fb1e3799889af status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  467 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  478 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -328,8 +328,13 @@ ligne, et l’ASCII imprimable), si bien qu’un séparateur ressemblant comme `
 un caractère de contrôle le coupe ; toute séquence d’échappement (`%3D`, `&colon;`, `\075`), qui
 n’est jamais décodée ; un mot de plus de 256 caractères ; une clé qui n’est pas autorisée (toute
 clé sauf `status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez), aussi
-comme première chaîne d’un tableau de deux éléments ou comme balise d’un élément ; et un nom
-secret, avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Le texte est
+entre guillemets, où elle coupe le texte au guillemet ouvrant
+(`cache miss for "session Qz9Wk7rX": refetching` devient `cache miss for [redacted]`), comme
+première chaîne d’un tableau de deux éléments ou comme balise d’un élément ; et un nom secret,
+avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Un mot est comparé par
+son squelette ASCII : les lettres sans forme ASCII sont omises, si bien que `piꞏn`, `tokeın` et
+`tokenꞏs` se lisent `pin`, `token` et `tokens`, et un nom compte aussi avec une lettre en moins là
+où une lettre a été omise (`pɑssword`). Le texte est
 coupé jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401`
 devient `login user=[redacted]`, et un corps multipart ou une property list écrits dans un journal
 sont masqués à partir de leur premier en-tête ou de leur première clé.
@@ -343,8 +348,10 @@ une clé qui se termine par des chiffres (`user1:2345`), c’est un séparateur.
 Le masquage est un filet de
 sécurité, pas une garantie : il est conçu pour les secrets journalisés par accident. L’entrée
 structurée (JSON, formulaires, corps multipart et en-têtes de leurs parties, URL et leurs hôtes)
-est sûre par défaut, et ce qu’il n’y comprend pas est masqué. Dans le texte libre, un nom écrit
-sans séparateur et déguisé avec deux lettres ressemblantes ou plus (`pɑsswoʀd hunter2`) n’est pas
+est sûre par défaut, et ce qu’il n’y comprend pas est masqué ; les noms des clés structurées sont
+affichés et seules les valeurs qu’elles portent sont masquées. Dans le texte libre, un nom écrit
+sans séparateur dont deux lettres ou plus sont remplacées par des lettres ressemblantes
+(`pɑsswoʀd hunter2`) n’est pas
 forcément trouvé quand rien avant lui ne coupe le texte. Le
 [guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 décrit les règles pour le texte libre, ce qu’elles coûtent et ce qu’elles ne trouvent pas.

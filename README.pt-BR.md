@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@216cadc5f186191841d5d46a358755bfe2461326 status=reviewed -->
+<!-- i18n-source: README.md@7f32b9c6808f9063527af1053a4fb1e3799889af status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 467
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 478
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -323,8 +323,13 @@ o ASCII imprimível), de modo que um separador parecido como `꞉` ou `→`, um 
 controle o cortam; qualquer sequência de escape (`%3D`, `&colon;`, `\075`), que nunca é
 decodificada; uma palavra com mais de 256 caracteres; uma chave que não é permitida (qualquer chave
 além de `status`, `method`, `path`, `duration_ms`, `count` e das chaves que você passar), também
-como primeira string de um array de dois elementos ou como tag de um elemento; e um nome secreto,
-com ou sem separador, também escrito como valor, como `name="password"`. O texto é cortado até o
+entre aspas, onde corta o texto na aspa de abertura
+(`cache miss for "session Qz9Wk7rX": refetching` vira `cache miss for [redacted]`), como
+primeira string de um array de dois elementos ou como tag de um elemento; e um nome secreto, com
+ou sem separador, também escrito como valor, como `name="password"`. Uma palavra é comparada pelo
+seu esqueleto ASCII: as letras sem forma ASCII são omitidas, de modo que `piꞏn`, `tokeın` e
+`tokenꞏs` são lidos como `pin`, `token` e `tokens`, e um nome também conta com uma letra a menos
+onde uma foi omitida (`pɑssword`). O texto é cortado até o
 fim dele e não só até o fim da linha: `login user=bob status=401` vira `login user=[redacted]`, e um
 corpo multipart ou uma property list escritos em um log são ocultados a partir do primeiro
 cabeçalho ou chave.
@@ -338,8 +343,9 @@ chave que termina em dígitos (`user1:2345`), ele é um separador.
 A ocultação é uma rede de segurança, não uma garantia: ela foi feita para
 segredos registrados por acidente. A entrada estruturada (JSON, formulários, corpos multipart e os
 cabeçalhos das partes, URLs e os hosts delas) é segura por padrão, e o que o redator não entende ali
-é ocultado. Em texto livre, um nome escrito sem separador e disfarçado com duas ou mais letras
-parecidas (`pɑsswoʀd hunter2`) não tem garantia de ser encontrado quando nada antes dele corta o
+é ocultado; os nomes das chaves estruturadas são mostrados e só os valores sob eles são
+ocultados. Em texto livre, um nome escrito sem separador com duas ou mais letras trocadas por
+letras parecidas (`pɑsswoʀd hunter2`) não tem garantia de ser encontrado quando nada antes dele corta o
 texto. O
 [guia de logs](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 descreve as regras para texto livre, o que elas custam e o que elas não encontram.

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@216cadc5f186191841d5d46a358755bfe2461326 status=reviewed -->
+<!-- i18n-source: README.md@7f32b9c6808f9063527af1053a4fb1e3799889af status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  467 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  478 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -327,8 +327,13 @@ Tabulator und Zeilenumbrüche sowie druckbares ASCII), also ein ähnlich aussehe
 `꞉` oder `→`, ein Emoji oder ein Steuerzeichen; jede Escape-Sequenz (`%3D`, `&colon;`, `\075`), die
 nie dekodiert wird; ein Wort mit mehr als 256 Zeichen; ein Schlüssel, der nicht erlaubt ist (jeder
 außer `status`, `method`, `path`, `duration_ms`, `count` und den Schlüsseln, die Sie übergeben),
-auch als erster String eines Arrays mit zwei Elementen oder als Tag eines Elements; und ein
-geheimer Name, mit oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Der
+auch in Anführungszeichen, wo er den Text am öffnenden Anführungszeichen abschneidet (aus
+`cache miss for "session Qz9Wk7rX": refetching` wird `cache miss for [redacted]`), als erster
+String eines Arrays mit zwei Elementen oder als Tag eines Elements; und ein geheimer Name, mit
+oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Ein Wort wird über sein
+ASCII-Skelett verglichen: Buchstaben ohne ASCII-Form werden weggelassen, sodass `piꞏn`, `tokeın`
+und `tokenꞏs` als `pin`, `token` und `tokens` gelesen werden, und ein Name zählt auch mit einem
+fehlenden Buchstaben dort, wo einer weggelassen wurde (`pɑssword`). Der
 Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
 `login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body oder eine Property
 List im Log wird ab dem ersten Header oder Schlüssel verborgen.
@@ -343,8 +348,9 @@ Trennzeichen.
 Schwärzen ist ein Sicherheitsnetz,
 keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden. Strukturierte
 Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs mit ihren Hosts) sind
-standardmäßig sicher; was der Redactor dort nicht versteht, wird geschwärzt. In freiem Text wird
-ein Name ohne Trennzeichen, der mit zwei oder mehr ähnlich aussehenden Buchstaben getarnt ist
+standardmäßig sicher; was der Redactor dort nicht versteht, wird geschwärzt, und strukturierte
+Schlüsselnamen werden gezeigt, nur die Werte darunter werden verborgen. In freiem Text wird ein
+Name ohne Trennzeichen, in dem zwei oder mehr Buchstaben durch ähnlich aussehende ersetzt sind
 (`pɑsswoʀd hunter2`), nicht garantiert gefunden, wenn nichts davor den Text abschneidet. Der
 [Logging-Leitfaden](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 beschreibt die Regeln für freien Text, ihren Preis und was sie nicht finden.
