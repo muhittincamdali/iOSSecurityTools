@@ -107,7 +107,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   like hides what follows it to the end of the line where it closes, also when it spans lines.
   In a JSON object, a member whose value is such a name hides the values of the other
   members, apart from the members that hold names and a JSON Patch or SCIM `op`. A name that is
-  not secret (`name="status"`, `{"label":"Status",…}`) keeps what follows it.
+  not secret (`name="status"`, `{"label":"Status",…}`) keeps what follows it. A name without
+  quotes after such a key (`name=password`) names what follows it too, and so does a name inside a
+  value that is hidden already: each line is read a second time for the names in what the first
+  reading hid without reading it and in its quoted values. A secret name in a header of a
+  multipart part written into text (`Content-Disposition: form-data; name="pin"`) hides the part's
+  other headers and its value, up to the delimiter line written before the header, or, when none
+  was, up to a blank line or a line that starts with `--`.
 - The JSON Web Token detector also finds a header and payload whose last dot was cut off
   (`eyJ….eyJ…`), as a URL at the end of a sentence loses it to the full stop.
 - Default-ignorable code points (such as U+115F and U+3164) and control characters are left out
@@ -226,8 +232,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   multipart label part in base64, as JSON or in another charset. The reading budget and a single
   pass per secret word bound the time; the others are hidden on every path. A connector glued
   inside a word (`user‿bob`) separates a key from its value. The review's 475 probes are kept as
-  tests, 52 of them documented limitations, with property tests for the budget, for layouts over
+  tests, 50 of them documented limitations, with property tests for the budget, for layouts over
   lines and for the one-pass match.
+- The twelfth review found that a secret name inside the value of another key, which that key
+  hides, named nothing: `Content-Disposition: form-data; name="pin"` followed by a blank line and
+  the part's value showed the value, in a log line, in a text/plain body
+  (`upload failed body=--B…`) and in a JSON string, and so did `name=password` without quotes and
+  `note: a name="pin"` with the value on the next line. The names in what the first reading hides
+  are now read in a second pass over each line, and a part header that names a secret hides the
+  part's other headers and its value. The value of an allowed key on the line after
+  `name=password` or `label: Şifre` is hidden with it, which fixes two of the eleventh review's
+  documented limitations. The review's probes are kept as tests, with property tests that write
+  disguised names inside hidden values on every path that reads free text, and time tests for
+  lines of names inside hidden values; the byte classes of the scanner are looked up without
+  hashing, which keeps those lines under the time limit.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
