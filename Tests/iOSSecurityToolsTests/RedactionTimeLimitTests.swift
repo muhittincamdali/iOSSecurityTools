@@ -65,6 +65,66 @@ struct RedactionTimeLimitTests {
         }, redact: body("text/plain")),
     ]
 
+    /// `unit` repeated, `separator` between, to about a megabyte with `prefix` and `suffix`.
+    private static func repeated(_ unit: String, separator: String = ",", prefix: String = "[", suffix: String = "]") -> String {
+        let count = (size - prefix.utf8.count - suffix.utf8.count) / (unit.utf8.count + separator.utf8.count)
+        return prefix + Array(repeating: unit, count: count).joined(separator: separator) + suffix
+    }
+
+    private static func url(_ text: String) -> String { redactor.redact(url: URL(string: text)!) }
+
+    /// Ordinary shapes that a review timed at one to four seconds a megabyte in a release build:
+    /// a redactor was made for every array element and path segment, and each segment was read
+    /// three times.
+    static let shapes: [TimedInput] = [
+        TimedInput(testDescription: "a JSON array of one-letter strings", make: { repeated("\"a\"") }, redact: body("application/json")),
+        TimedInput(testDescription: "a JSON array of one-letter strings in a log line", make: { repeated("\"a\"") }, redact: redactor.redact),
+        TimedInput(testDescription: "a JSON array of empty strings", make: { repeated("\"\"") }, redact: body("application/json")),
+        TimedInput(testDescription: "a JSON array of different strings of words", make: {
+            "[" + (0..<(size / 12)).map { "\"a b \($0)\"" }.joined(separator: ",") + "]"
+        }, redact: body("application/json")),
+        TimedInput(testDescription: "a multipart body of 1,000 parts of 900-byte JSON arrays", make: {
+            let array = Array(repeating: "\"a\"", count: 224).joined(separator: ",")
+            let part = "--B\r\nContent-Disposition: form-data; name=\"p\"\r\nContent-Type: application/json\r\n\r\n[\(array)]\r\n"
+            return String(repeating: part, count: 1_000) + "--B--"
+        }, redact: body("multipart/form-data; boundary=B")),
+        TimedInput(testDescription: "a URL of a megabyte of /a", make: { repeated("a", separator: "/", prefix: "https://a.example/", suffix: "") }, redact: url),
+        TimedInput(testDescription: "a log line with a URL of a megabyte of /a", make: {
+            repeated("a", separator: "/", prefix: "https://a.example/", suffix: "")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "a URL of a megabyte of /users", make: { repeated("users", separator: "/", prefix: "https://a.example/", suffix: "") }, redact: url),
+        TimedInput(testDescription: "a log line with a URL of a megabyte of /pin/4831", make: {
+            repeated("pin/4831", separator: "/", prefix: "https://a.example/", suffix: "")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "log lines of URLs with 60 different segments", make: {
+            repeated("https://a.example/" + (0..<60).map { "a=\($0)" }.joined(separator: "/"), separator: " ", prefix: "", suffix: "")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "log lines of URLs with 100 query parameters", make: {
+            repeated("https://a.example/?" + (0..<100).map { "k\($0)=v" }.joined(separator: "&"), separator: " ", prefix: "", suffix: "")
+        }, redact: redactor.redact),
+    ]
+
+    @Test("redacting a megabyte of an ordinary shape takes a 512 KiB thread less than a second", arguments: shapes)
+    func shape(input: TimedInput) {
+        let text = input.make()
+        #expect(text.utf8.count >= Self.size * 9 / 10 && text.utf8.count <= SensitiveDataRedactor.maximumBodySize)
+        var fastest = Self.threadTime(input, text)
+        for _ in 0..<2 where fastest >= Self.limit {
+            fastest = min(fastest, Self.threadTime(input, text))
+        }
+        #expect(fastest < Self.limit, "\(input.testDescription): \(fastest)")
+    }
+
+    /// The CPU time a thread with a 512 KiB stack takes to redact the text, which other tests
+    /// running at the same time do not add to.
+    private static func threadTime(_ input: TimedInput, _ text: String) -> Duration {
+        onThread(stackSize: RedactionStackTests.threadStack) {
+            let start = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
+            _ = input.redact(text)
+            return Duration.nanoseconds(Int64(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) - start))
+        }
+    }
+
     @Test("redacting a megabyte of text takes less than a second", arguments: RedactionScalingTests.manyFindings + RedactionScalingTests.adversarial)
     func text(input: RepeatedText) {
         let text = input.text(length: Self.size)
