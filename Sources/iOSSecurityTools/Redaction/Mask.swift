@@ -63,6 +63,23 @@ public enum Mask {
 
 /// Character classes shared by ``Mask`` and ``SensitiveDataRedactor``.
 enum ScalarClass {
+    /// Letters of any script: the general categories Lu, Ll, Lt, Lm and Lo.
+    static func isLetter(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter: true
+        default: false
+        }
+    }
+
+    /// Letters, marks and numbers of any script: the general categories L*, M* and N*.
+    static func isLetterOrNumber(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter,
+             .nonspacingMark, .spacingMark, .enclosingMark, .decimalNumber, .letterNumber, .otherNumber: true
+        default: false
+        }
+    }
+
     /// The value of a decimal digit in any script (ASCII, full-width, Arabic-Indic, ...).
     static func decimalDigit(_ scalar: Unicode.Scalar) -> UInt8? {
         guard scalar.properties.numericType == .decimal,

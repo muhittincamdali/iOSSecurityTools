@@ -85,7 +85,7 @@ struct LooseReading {
                 origins.append(range.lowerBound)
             }
             for k in range {
-                if text.bytes[k] == CompatibilityText.unreadable, Self.isLetter(source[text.offsets[k]]) { wildcards.insert(bytes.count) }
+                if text.bytes[k] == CompatibilityText.unreadable, ScalarClass.isLetter(source[text.offsets[k]]) { wildcards.insert(bytes.count) }
                 bytes.append(text.bytes[k])
                 origins.append(k)
             }
@@ -118,13 +118,6 @@ struct LooseReading {
             letters += 1
         }
         return nil
-    }
-
-    private static func isLetter(_ scalar: Unicode.Scalar) -> Bool {
-        switch scalar.properties.generalCategory {
-        case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter: true
-        default: false
-        }
     }
 }
 

@@ -85,6 +85,10 @@ extension NormalizedText {
 
     // MARK: Email addresses
 
+    /// An address: a name of letters, marks and digits of any script and `.`, `_`, `%`, `+` and
+    /// `-` (`ayşe.yılmaz`, `bjørn.dæhlie`, `张伟`), `@`, and a domain of such letters and digits,
+    /// `.` and `-` that ends in a top-level domain of two or more letters (`example.com`,
+    /// `例子.中国`). The whole address is one finding, shown with ``Mask/email(_:)``.
     func emailSpans() -> [SensitiveDataRedactor.Span] {
         var spans: [SensitiveDataRedactor.Span] = []
         for at in 0..<count where bytes[at] == UInt8(ascii: "@") {
@@ -92,23 +96,23 @@ extension NormalizedText {
             while start > 0, isLocalPart(start - 1) { start -= 1 }
             while start < at, bytes[start] == UInt8(ascii: ".") { start += 1 }
             var end = at + 1
-            while end < count, isAlphanumeric(end) || bytes[end] == UInt8(ascii: ".") || bytes[end] == UInt8(ascii: "-") { end += 1 }
+            while end < count, isAnyAlphanumeric(end) || bytes[end] == UInt8(ascii: ".") || bytes[end] == UInt8(ascii: "-") { end += 1 }
             while end > at + 1, bytes[end - 1] == UInt8(ascii: ".") || bytes[end - 1] == UInt8(ascii: "-") { end -= 1 }
             // In `user:password@host` the text before `@` is a password, hidden on its own.
             guard start < at, end > at + 1, isDomain(at + 1..<end), start == 0 || bytes[start - 1] != UInt8(ascii: ":") else { continue }
-            spans.append(span(start..<end, .emailAddresses, Mask.email(string(start..<end))))
+            spans.append(span(start..<end, .emailAddresses, Mask.email(shown(start..<end))))
         }
         return spans
     }
 
     private func isLocalPart(_ i: Int) -> Bool {
-        isAlphanumeric(i) || [UInt8(ascii: "."), UInt8(ascii: "_"), UInt8(ascii: "%"), UInt8(ascii: "+"), UInt8(ascii: "-")].contains(bytes[i])
+        isAnyAlphanumeric(i) || [UInt8(ascii: "."), UInt8(ascii: "_"), UInt8(ascii: "%"), UInt8(ascii: "+"), UInt8(ascii: "-")].contains(bytes[i])
     }
 
     private func isDomain(_ range: Range<Int>) -> Bool {
         guard let lastDot = range.last(where: { bytes[$0] == UInt8(ascii: ".") }), lastDot > range.lowerBound else { return false }
         let topLevel = (lastDot + 1)..<range.upperBound
-        return topLevel.count >= 2 && topLevel.allSatisfy(isLetter)
+        return topLevel.count >= 2 && topLevel.allSatisfy(isAnyLetter)
     }
 
     // MARK: JSON Web Tokens

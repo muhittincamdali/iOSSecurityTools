@@ -59,7 +59,10 @@ import Foundation
 ///   tabs or dashes. Shown as `•••• 4242`.
 /// - **IBANs**: a country code, two check digits and up to 30 capital letters or digits that pass
 ///   the mod-97 check, optionally grouped with spaces. Shown as `•••• 3000`.
-/// - **Email addresses**: shown with ``Mask/email(_:)``.
+/// - **Email addresses**: a name of letters, marks and digits of any script and `.`, `_`, `%`,
+///   `+` and `-` (`ayşe.yılmaz`, `bjørn.dæhlie`, `张伟`), and a domain that ends in two or more
+///   letters, also outside ASCII (`例子.中国`). Shown with ``Mask/email(_:)``: the first letter of
+///   the name, never the rest.
 /// - **JSON Web Tokens**: `eyJ…​.…​.…`, also glued to a word with `_` or `-`.
 /// - **Bearer tokens**: the token after `Bearer `.
 /// - **Long tokens**: runs of 32 or more hex digits, and of 32 or more base64 characters with

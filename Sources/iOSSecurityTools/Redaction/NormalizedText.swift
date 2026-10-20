@@ -13,11 +13,17 @@ struct NormalizedText {
     /// The offset in the original scalars of the scalar a byte came from.
     let offsets: [Int]
     let isUppercase: [Bool]
+    /// The original scalars.
+    let source: [Unicode.Scalar]
     /// The number of original scalars.
-    let sourceCount: Int
+    var sourceCount: Int { source.count }
 
-    /// - Parameter masked: Ranges of original scalars to read as ``CompatibilityText/unreadable``,
-    ///   so that no finding starts, ends or runs inside them.
+    /// A byte of a masked range: like ``CompatibilityText/unreadable`` it matches no detector or
+    /// separator, and unlike it, it never stands for a letter.
+    static let masked: UInt8 = 0xFE
+
+    /// - Parameter masked: Ranges of original scalars to read as ``masked``, so that no finding
+    ///   starts, ends or runs inside them.
     init(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText, masked: [Range<Int>] = []) {
         var bytes: [UInt8] = []
         var offsets: [Int] = []
@@ -28,7 +34,7 @@ struct NormalizedText {
         for (offset, scalar) in scalars.enumerated() {
             while let range = nextMask, range.upperBound <= offset { nextMask = mask.next() }
             if let range = nextMask, range.contains(offset) {
-                bytes.append(CompatibilityText.unreadable)
+                bytes.append(Self.masked)
                 offsets.append(offset)
                 continue
             }
@@ -48,7 +54,7 @@ struct NormalizedText {
         self.bytes = bytes
         self.offsets = offsets
         self.isUppercase = bytes.map(ASCII.isUppercase)
-        self.sourceCount = scalars.count
+        self.source = scalars
     }
 
     var count: Int { bytes.count }
@@ -59,6 +65,16 @@ struct NormalizedText {
 
     func string(_ range: Range<Int>) -> String {
         String(decoding: bytes[range], as: UTF8.self)
+    }
+
+    /// The bytes of a range as text, with each byte that has no ASCII reading written as the
+    /// scalar it came from: `ayşe.yılmaz` is `ayse.yılmaz`, and `例子.中国` stays as it is.
+    func shown(_ range: Range<Int>) -> String {
+        var scalars = String.UnicodeScalarView()
+        for k in range {
+            scalars.append(bytes[k] == CompatibilityText.unreadable ? source[offsets[k]] : Unicode.Scalar(bytes[k]))
+        }
+        return String(scalars)
     }
 
     /// The offset in the original scalars where byte `i` starts; the end of the text for
@@ -98,6 +114,17 @@ struct NormalizedText {
     func isLetter(_ i: Int) -> Bool { ASCII.isLetter(bytes[i]) }
 
     func isAlphanumeric(_ i: Int) -> Bool { isDigit(i) || isLetter(i) }
+
+    /// A letter of any script: an ASCII letter, or one without an ASCII reading (`ı`, `ø`, `张`).
+    func isAnyLetter(_ i: Int) -> Bool {
+        isLetter(i) || (bytes[i] == CompatibilityText.unreadable && ScalarClass.isLetter(source[offsets[i]]))
+    }
+
+    /// A letter or digit of any script; marks are not in the scanning copy, so a letter with
+    /// marks is one too.
+    func isAnyAlphanumeric(_ i: Int) -> Bool {
+        isAlphanumeric(i) || (bytes[i] == CompatibilityText.unreadable && ScalarClass.isLetterOrNumber(source[offsets[i]]))
+    }
 
     func isBase64URL(_ i: Int) -> Bool { isAlphanumeric(i) || bytes[i] == UInt8(ascii: "-") || bytes[i] == UInt8(ascii: "_") }
 
