@@ -84,7 +84,8 @@ struct RedactionBodyTests {
     // the split, so `%CC%81status` is a field of its own whose name is not plain ASCII.
     @Test("reads percent-encoded marks and joiners after & and = as part of the next field", arguments: [
         ("note=hi&%CC%81status=hunter2", "note=hi&%CC%81status=[redacted]"),
-        ("x=1&%E2%80%8Dstatus=hunter2", "x=1&%E2%80%8Dstatus=[redacted]"),
+        // A joiner is outside the safe alphabet: the decoded name is cut there, and goes whole.
+        ("x=1&%E2%80%8Dstatus=hunter2", "x=1&[redacted]=[redacted]"),
         ("user=bob&%E2%83%9Dtoken=abc", "user=bob&%E2%83%9Dtoken=[redacted]"),
         ("status=200&%CC%81=hunter2", "status=200&%CC%81=[redacted]"),
         ("password=%CC%81x", "password=[redacted]"),

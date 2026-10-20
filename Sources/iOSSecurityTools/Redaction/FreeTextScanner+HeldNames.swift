@@ -36,20 +36,21 @@ extension FreeTextScanner {
         return !Self.mentionsSecret(Array(source[text.original(range)]), compatibility: compatibility)
     }
 
-    /// A `<` before a letter starts a tag (see ``isInStartTag``). An element whose tag holds a name
-    /// (`<key>`, `<name>`), with no attributes, holds a name written as a value in its text up to
-    /// the next `<` (`<key>Şifre</key>`), read as after `key=`; when it names a secret, the text is
-    /// cut at the name. An element text longer than any name is not read as one; its words are
-    /// read as text.
+    /// A `<` before a letter of any script starts a tag (see ``isInStartTag``). The tag is a key: the text of an
+    /// element whose tag is not on ``SensitiveDataRedactor/allowedTextKeys`` cuts the text where
+    /// it starts (`<user>bob</user>` keeps `<user>`), see ``endStartTag()``. When the tag is
+    /// allowed and holds a name (`<id>`, `<type>`, … once the app allows them), the element's text
+    /// up to the next `<` is a name written as a value, read as after `id=`; when it names a secret
+    /// or is not plain ASCII, the text is cut at the name.
     mutating func startTag() {
-        guard position + 1 < text.count, ASCII.isLetter(text.bytes[position + 1]) else { return }
+        guard position + 1 < text.count, text.isAnyLetter(position + 1) else { return }
         isInStartTag = true
         startTagValues = nil
         var k = position + 1
-        while k < text.count, k - position <= Self.longestTag, Self.isTagNameByte(text.bytes[k]) { k += 1 }
-        guard k < text.count, text.bytes[k] == UInt8(ascii: ">") else { return }
+        while k < text.count, k - position <= Self.longestTag, isTagNameByte(k) { k += 1 }
         let tag = Array(source[text.original((position + 1)..<k)])
-        guard WrittenName.holdsNameInText(tag) else { return }
+        tagAllowsText = k - position <= Self.longestTag && redactor.allowsTextKey(tag)
+        guard tagAllowsText, k < text.count, text.bytes[k] == UInt8(ascii: ">"), WrittenName.holdsNameInText(tag) else { return }
         let contentStart = k + 1
         var end = contentStart
         while end < text.count, text.bytes[end] != UInt8(ascii: "<") {
@@ -59,8 +60,22 @@ extension FreeTextScanner {
         if heldNameNamesSecret(contentStart..<end, after: tag) { cut(atByte: contentStart) }
     }
 
-    private static func isTagNameByte(_ byte: UInt8) -> Bool {
-        ASCII.isAlphanumeric(byte) || byte == UInt8(ascii: "-") || byte == UInt8(ascii: "_") || byte == UInt8(ascii: ":") || byte == UInt8(ascii: ".")
+    /// The `>` that ends a start tag, outside quotes. Unless the tag closes itself (`<br/>`) or is
+    /// allowed, the text of its element cuts the text: the next byte that is not white space,
+    /// unless it opens another tag (`<dict>\n  <key>`).
+    mutating func endStartTag() {
+        let closesItself = position > 0 && text.bytes[position - 1] == UInt8(ascii: "/")
+        isInStartTag = false
+        position += 1
+        cutsElementText = !closesItself && !tagAllowsText
+    }
+
+    /// A letter or digit of any script, `-`, `_`, `:` or `.`: a tag may be named in any script
+    /// (`<名前>`), and one that is not plain ASCII is never allowed.
+    private func isTagNameByte(_ k: Int) -> Bool {
+        let byte = text.bytes[k]
+        return text.isAnyAlphanumeric(k) || byte == UInt8(ascii: "-") || byte == UInt8(ascii: "_") || byte == UInt8(ascii: ":")
+            || byte == UInt8(ascii: ".")
     }
 
     private static let longestTag = 32

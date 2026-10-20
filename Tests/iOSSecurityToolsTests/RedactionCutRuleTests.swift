@@ -129,13 +129,13 @@ struct RedactionCutRuleTests {
         ("note: a name=\"pin\"id: \"pin\"{ T\n</string>msg=\" T\nstatus= HUNTER2", "note: [redacted]"),
         ("--B\r\nContent-Disposition: form-data; name=\"pin\"; filename=\"very long\r\n name.txt\"\r\nContent-Type: text/plain\r\n\r\nSECRET\r\n--B--",
          "--B\r\nContent-Disposition: [redacted]"),
-        ("<b>Content-Disposition: form-data; name=\"pin\"</b>\nContent-Type: text/plain\n\nSECRET", "<b>Content-Disposition: [redacted]"),
+        ("<b>Content-Disposition: form-data; name=\"pin\"</b>\nContent-Type: text/plain\n\nSECRET", "<b>[redacted]"),
         ("</pin 1234", "</pin [redacted]"),
         ("login </token SECRET", "login </token [redacted]"),
         ("</pass\u{200B}word> SECRET", "<[redacted]"),
         ("msg: name%3Dpassword\nSECRET", "msg: [redacted]"),
-        ("name%3Dpassword\nSECRET", "name[redacted]"),
-        ("Content-Disposition%3A form-data%3B name%3D%22pin%22\n\nSECRET", "Content-Disposition[redacted]"),
+        ("name%3Dpassword\nSECRET", "[redacted]"),
+        ("Content-Disposition%3A form-data%3B name%3D%22pin%22\n\nSECRET", "[redacted]"),
     ])
     func twelfthReviewRepros(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

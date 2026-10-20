@@ -25,7 +25,8 @@ struct SensitiveDataRedactorTests {
         // A word with an invisible character in it cannot be read with certainty: it goes whole.
         ("zero width 4242\u{200B}4242\u{200B}4242\u{200B}4242", "zero width [redacted]"),
         ("combining 4\u{301}242424242424242", "combining •••• 4242"),
-        ("nbsp 4242\u{A0}4242\u{A0}4242\u{A0}4242", "nbsp •••• 4242"),
+        // A space outside ASCII cuts the text there, and the card number is hidden whole with it.
+        ("nbsp 4242\u{A0}4242\u{A0}4242\u{A0}4242", "nbsp [redacted]"),
     ])
     func cards(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -42,7 +43,9 @@ struct SensitiveDataRedactorTests {
     @Test("finds email addresses", arguments: [
         ("contact alice@example.com.", "contact a•••@example.com."),
         ("<bob.smith+news@mail.example.org>", "<b•••@mail.example.org>"),
-        ("fullwidth ａｌｉｃｅ＠ｅｘａｍｐｌｅ．ｃｏｍ", "fullwidth a•••@example.com"),
+        ("fullwidth ａｌｉｃｅ@ｅｘａｍｐｌｅ.ｃｏｍ", "fullwidth a•••@example.com"),
+        // `＠` is punctuation outside ASCII, which cuts the text: the address is hidden whole.
+        ("fullwidth ａｌｉｃｅ＠ｅｘａｍｐｌｅ．ｃｏｍ", "fullwidth [redacted]"),
         ("hidden al\u{200D}ice@example.com", "hidden [redacted]"),
     ])
     func emails(input: String, expected: String) {
@@ -84,14 +87,20 @@ struct SensitiveDataRedactorTests {
         let found = redactor.matches(in: text)
         #expect(found.map(\.kind) == [.emailAddresses, .secretFields])
         #expect(found.map { String(text[$0.range]) } == ["bob@example.com", "4242424242424242 ok"])
-        #expect(redactor.matches(in: "a\u{2028}b").isEmpty)
+        #expect(redactor.matches(in: "a b").isEmpty)
+        // A line separator outside ASCII cuts the text: the cut is a match of its own.
+        let separated = "a\u{2028}b"
+        #expect(redactor.matches(in: separated).map { String(separated[$0.range]) } == ["\u{2028}b"])
     }
 
-    @Test("leaves text without sensitive data unchanged, including emoji and other scripts")
+    @Test("leaves text in other scripts unchanged; an emoji, a dash or a symbol outside ASCII cuts it")
     func unchangedText() {
-        let text = "Merhaba dünya 👋🏽 — заказ №42 отправлен; 東京 3:00, iPhoneで決済しました"
+        let text = "Merhaba dünya, заказ 42 отправлен; 東京 3:00 iPhoneで決済しました"
         #expect(redactor.redact(text) == text)
         #expect(redactor.redact("") == "")
+        #expect(redactor.redact("Merhaba dünya 👋🏽 bye") == "Merhaba dünya [redacted]")
+        #expect(redactor.redact("заказ — №42") == "заказ [redacted]")
+        #expect(redactor.redact("заказ №42") == "заказ [redacted]")
     }
 
     @Test("the allowlists are folded, and secret or non-ASCII names cannot be added")

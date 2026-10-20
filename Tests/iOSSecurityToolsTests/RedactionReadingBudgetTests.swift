@@ -17,7 +17,8 @@ struct RedactionReadingBudgetTests {
         RedactionTimeLimitTests.quoted(payload, levels: levels)
     }
 
-    private static let payload = String(repeating: "ı", count: 2_000)
+    /// Words of `ı`, each shorter than the longest word free text reads.
+    private static let payload = String(repeating: String(repeating: "ı", count: 99) + " ", count: 20)
 
     @Test("the input is read freely and what is found in it takes four times its length at most")
     func budget() {

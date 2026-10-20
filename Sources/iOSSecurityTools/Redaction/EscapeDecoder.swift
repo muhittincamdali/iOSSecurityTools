@@ -1,6 +1,9 @@
-/// Decodes the escapes a word of free text may hide a secret name behind, so that `pass%77ord`,
-/// `p&#97;ssword`, `\u0070assword` and `pass%2577ord` read as `password` when the free-text rule
-/// looks for secret names.
+/// Decodes the escapes a name written as a value may hide a secret name behind, so that
+/// `pass%77ord`, `p&#97;ssword`, `\u0070assword` and `pass%2577ord` read as `password` where a
+/// name in structured input is read for secret words: a name held by a field
+/// (`{"ParameterKey":"Db%50assword"}`), an element of a JSON array, a URL path segment and the
+/// words of JSON written into a line. Free text itself never decodes an escape: one cuts the
+/// text (see ``FreeTextScanner/isEscape(at:)``).
 ///
 /// Decoded are percent escapes (as UTF-8, and `%uXXXX`), HTML character references by number
 /// (`&#97;`, `&#x61;`, also without the `;` and with leading zeros) and `&amp;`, and `\uXXXX`,

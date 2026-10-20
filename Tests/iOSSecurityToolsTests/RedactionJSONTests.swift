@@ -83,16 +83,27 @@ struct RedactionJSONTests {
         #expect(redactor.redact(body: Data(input.utf8), contentType: "application/json") == expected)
     }
 
-    // In free text an array has no members, so the key rule for structured input finds its pairs.
+    // In free text the first string of a two-element array is a key: one that is not allowed cuts
+    // the line at its value, and the key rule for structured input finds the secret ones.
     @Test("a pair written as an array in a line cuts the line at its value", arguments: [
         (#"login ["password","e11"]"#, #"login ["password",[redacted]"#),
         (#"["user","bob","token","abc","next"]"#, #"["user","bob","token",[redacted]"#),
         (#"got [["Authorization","Basic x"]] ok"#, #"got [["Authorization",[redacted]"#),
         ("got [[\"\u{15E}ifre\",\"1234\"]] ok", "got [[\"\u{15E}ifre\",[redacted]"),
-        (#"got [["X-Custom","v"]] ok"#, #"got [["X-Custom","v"]] ok"#),
+        (#"got [["X-Custom","v"]] ok"#, #"got [["X-Custom",[redacted]"#),
+        (#"log ["user","v"]"#, #"log ["user",[redacted]"#),
+        (#"log {"status":[["user","v"]]}"#, #"log {"status":[["user",[redacted]"#),
+        (#"got [["status","200"],["count","3"]] ok"#, #"got [["status","200"],["count","3"]] ok"#),
     ])
     func pairsInText(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
+    }
+
+    @Test("a pair in a line keeps its value when the app allows its key")
+    func allowedPairsInText() {
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["X-Custom", "user"])
+        #expect(allowing.redact(#"got [["X-Custom","v"],["user","bob"]] ok"#) == #"got [["X-Custom","v"],["user","bob"]] ok"#)
+        #expect(allowing.redact(#"got [["X-Custom","v"],["Cookie","c"]] ok"#) == #"got [["X-Custom","v"],["Cookie",[redacted]"#)
     }
 
     @Test("JSON in a line is parsed with the parser; a key before it hides it", arguments: [
@@ -102,7 +113,8 @@ struct RedactionJSONTests {
         ("log {\n  \"token\": \"abc\",\n  \"user\": \"bob\"\n} status=1", "log {\n  \"token\": [redacted]"),
         (#"{"wrapper":"{\"password\":\"x\"}"}"#, #"{"wrapper":[redacted]"#),
         (#"{"msg":"user=bob status=1"}"#, #"{"msg":[redacted]"#),
-        (#"got [{"status":200},{"count":2}] and ["a",1] ok"#, #"got [{"status":200},{"count":2}] and ["a",1] ok"#),
+        (#"got [{"status":200},{"count":2}] and [1,"a"] ok"#, #"got [{"status":200},{"count":2}] and [1,"a"] ok"#),
+        (#"got [{"status":200},{"count":2}] and ["a",1] ok"#, #"got [{"status":200},{"count":2}] and ["a",[redacted]"#),
     ])
     func embedded(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

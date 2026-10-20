@@ -9,9 +9,8 @@ struct RedactionReviewProbeTests {
         var limitations: [Int: String] = [:]
         let byReason: [(String, [Int])] = [
             ("a name wholly in another script that only looks Latin, with no = or :", [17, 18, 19, 20, 21, 22, 169, 236, 257]),
-            ("a name in letters without an ASCII form throughout, with no = or :", [23, 24, 25, 26, 28, 29]),
+            ("a name in letters without an ASCII form throughout, with no = or :", [23, 24]),
             ("a name spelled with ASCII digits and symbols, with no = or :", [30, 31, 32]),
-            ("an octal escape", [77]),
             ("the value of an allowed key", [134, 379, 381]),
             ("a name and its value in two JSON objects", [177]),
             ("a name that is not on the list", [181]),

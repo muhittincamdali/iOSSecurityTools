@@ -18,8 +18,6 @@ struct RedactionEleventhReviewProbeTests {
             ("a member that holds a name stays beside a secret name", [122]),
             ("a control: the name written as a value shows, only what follows it is hidden", [147]),
             ("a name wholly in another script that only looks Latin, with no = or :", [202]),
-            ("a dash that looks like = is read as -, which joins words", [261, 262]),
-            ("an arrow drawn as a symbol is not read as a separator", [272]),
             ("a value written before its name", [306, 308]),
             ("a value glued to a flag", [307]),
         ]
@@ -38,7 +36,7 @@ struct RedactionEleventhReviewProbeTests {
     @Test("the set has 475 probes")
     func count() {
         #expect(EleventhReviewProbeSet.all.count == 475)
-        #expect(Self.documentedLimitations.count == 50)
+        #expect(Self.documentedLimitations.count == 47)
     }
 
     @Test("no probe outside the documented limitations shows its secret")

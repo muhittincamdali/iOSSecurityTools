@@ -2,8 +2,12 @@
 extension FreeTextScanner {
     /// Reads a word that no separator follows, after its escapes are decoded (see
     /// ``EscapeDecoder``): whether it can be read with certainty, and where the first secret word
-    /// in it ends.
+    /// in it ends. Free text never reaches the decoding: an escape cuts it first (see
+    /// ``isEscape(at:)``). The words of a name written as a value, of an array element, of a URL
+    /// path segment and of JSON written into a line are read with their escapes decoded (see
+    /// ``mentionsSecret(_:compatibility:)``). A word longer than ``longestWord`` is not read.
     func read(_ range: Range<Int>) -> WordReading {
+        if isOpaque(range) { return .ambiguous }
         let scalars = source[text.originalWithInvisiblesBefore(range)]
         guard scalars.contains(where: EscapeDecoder.startsEscape) else {
             if Self.isAmbiguous(scalars) { return .ambiguous }
@@ -21,17 +25,6 @@ extension FreeTextScanner {
         // Printable ASCII hides nothing and is all one script; most words are read here.
         if scalars.allSatisfy({ $0.isASCII && !ASCII.isHidingControl(UInt8($0.value)) }) { return false }
         return scalars.contains(where: ScalarClass.isHiding) || ScriptMix.mixesScripts(scalars)
-    }
-
-    /// Where a value written into a word with escapes starts: at an escaped `=` or `:`
-    /// (`password%3D…`, `a&#61;b`), or where a value detector finds something once the word is
-    /// decoded (`a\u0040b.com`, `eyJ…%2EeyJ…`).
-    func escapedValueStart(in range: Range<Int>) -> Int? {
-        guard source[text.original(range)].contains(where: EscapeDecoder.startsEscape) else { return nil }
-        let decoded = DecodedWord(range, in: self)
-        let separator = decoded.text.bytes.firstIndex { $0 == UInt8(ascii: "=") || $0 == UInt8(ascii: ":") }
-        let finding = redactor.detectorSpans(in: decoded.text).map(\.start).min().map { decoded.text.byteIndex(atOrAfter: $0) }
-        return decoded.byteIndex(of: [separator, finding].compactMap { $0 }.min())
     }
 
     /// Whether a text, read in words as the free-text rule reads them, has a word that holds a

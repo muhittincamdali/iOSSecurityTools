@@ -20,7 +20,6 @@ struct RedactionReviewProbeSetTests {
             ("a card number glued to an ASCII letter", ["a-5#367"]),
             ("the value of `status`, which is allowed by default", ["a-7#496"]),
             ("a name with two or more letters that have no ASCII form, without a separator", twoLookAlikeLetters.map { "a-10#\($0)" }),
-            ("a value after a dash that looks like =", ["a-10#261", "a-10#262"]),
         ]
         for (reason, names) in byReason {
             for name in names { limitations[name] = reason }
@@ -32,7 +31,7 @@ struct RedactionReviewProbeSetTests {
     func counts() {
         let counts = Dictionary(grouping: ReviewProbes.all, by: \.review).mapValues(\.count)
         #expect(counts == ["a-3": 453, "a-5": 452, "a-7": 560, "a-9": 353, "a-10": 475, "a-12": 613, "c-12": 66])
-        #expect(Self.documentedLimitations.count == 35)
+        #expect(Self.documentedLimitations.count == 33)
         #expect(Self.large.count == 42)
     }
 

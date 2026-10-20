@@ -14,6 +14,10 @@ struct NormalizedText {
     let offsets: ScalarOffsets
     /// The original scalars.
     let source: [Unicode.Scalar]
+    /// The offset of the first original scalar outside the safe alphabet of free text, or nil
+    /// (see ``FreeTextScanner/firstUnsafeOffset(in:)``). It is found while the copy is made, from
+    /// the same reading of each scalar.
+    let firstUnsafeOffset: Int?
     /// The number of original scalars.
     var sourceCount: Int { source.count }
 
@@ -24,6 +28,7 @@ struct NormalizedText {
     init(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) {
         var bytes: [UInt8] = []
         bytes.reserveCapacity(scalars.count)
+        var alphabet = SafeAlphabetReader()
         // While every scalar becomes one byte, as in printable ASCII, each byte comes from the
         // scalar at its own index and no offsets are stored.
         var index = 0
@@ -32,45 +37,53 @@ struct NormalizedText {
             let byte: UInt8
             if scalar.isASCII {
                 byte = UInt8(scalar.value)
+                alphabet.read(ascii: byte, at: index)
                 guard !ASCII.isHidingControl(byte) else { break }
             } else {
-                guard !ScalarClass.isInvisible(scalar) else { break }
-                let reading = compatibility.ascii(scalar)
-                guard reading.count == 1 else { break }
-                byte = reading[0]
+                let reading = compatibility.reading(scalar)
+                alphabet.read(reading.alphabet, at: index)
+                guard !reading.isInvisible, reading.bytes.count == 1 else { break }
+                byte = reading.bytes[0]
             }
             bytes.append(byte)
             index += 1
         }
         guard index < scalars.count else {
-            self.init(bytes: bytes, offsets: ScalarOffsets(storage: nil), source: scalars)
+            self.init(bytes: bytes, offsets: ScalarOffsets(storage: nil), source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
             return
         }
         var offsets: [UInt32] = []
         offsets.reserveCapacity(scalars.count)
         offsets.append(contentsOf: (0..<UInt32(clamping: index)))
+        // The scalar the fast loop stopped at is read again here, and the alphabet with it, which
+        // reads it the same way.
         for offset in index..<scalars.count {
             let scalar = scalars[offset]
             if scalar.isASCII {
+                let byte = UInt8(scalar.value)
+                if offset > index { alphabet.read(ascii: byte, at: offset) }
                 // Control characters other than tab and line terminators hide like format ones.
-                guard !ASCII.isHidingControl(UInt8(scalar.value)) else { continue }
-                bytes.append(UInt8(scalar.value))
+                guard !ASCII.isHidingControl(byte) else { continue }
+                bytes.append(byte)
                 offsets.append(UInt32(clamping: offset))
                 continue
             }
-            guard !ScalarClass.isInvisible(scalar) else { continue }
-            for byte in compatibility.ascii(scalar) {
+            let reading = compatibility.reading(scalar)
+            if offset > index { alphabet.read(reading.alphabet, at: offset) }
+            guard !reading.isInvisible else { continue }
+            for byte in reading.bytes {
                 bytes.append(byte)
                 offsets.append(UInt32(clamping: offset))
             }
         }
-        self.init(bytes: bytes, offsets: ScalarOffsets(storage: offsets), source: scalars)
+        self.init(bytes: bytes, offsets: ScalarOffsets(storage: offsets), source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
     }
 
-    private init(bytes: [UInt8], offsets: ScalarOffsets, source: [Unicode.Scalar]) {
+    private init(bytes: [UInt8], offsets: ScalarOffsets, source: [Unicode.Scalar], firstUnsafeOffset: Int?) {
         self.bytes = bytes
         self.offsets = offsets
         self.source = source
+        self.firstUnsafeOffset = firstUnsafeOffset
     }
 
     /// This copy with the bytes that come from scalars in `regions` read as ``masked``, so that no
@@ -84,7 +97,7 @@ struct NormalizedText {
             while let region = pending.first, region.upperBound <= offset { pending = pending.dropFirst() }
             if let region = pending.first, region.contains(offset) { masked[k] = Self.masked }
         }
-        return NormalizedText(bytes: masked, offsets: offsets, source: source)
+        return NormalizedText(bytes: masked, offsets: offsets, source: source, firstUnsafeOffset: firstUnsafeOffset)
     }
 
     var count: Int { bytes.count }
@@ -224,12 +237,26 @@ final class CompatibilityText {
     /// A byte that no detector or separator matches.
     static let unreadable: UInt8 = 0xFF
 
-    private var cache: [UInt32: [UInt8]] = [:]
+    /// What a scalar outside ASCII is read as, worked out once: its ASCII reading, whether the
+    /// scanning copy leaves it out (see ``ScalarClass/isInvisible(_:)``) and what the safe
+    /// alphabet of free text makes of it.
+    struct Reading {
+        let bytes: [UInt8]
+        let isInvisible: Bool
+        let alphabet: SafeAlphabet.Class
+    }
+
+    private var cache: [UInt32: Reading] = [:]
 
     func ascii(_ scalar: Unicode.Scalar) -> [UInt8] {
         if scalar.isASCII { return [UInt8(scalar.value)] }
+        return reading(scalar).bytes
+    }
+
+    /// The reading of a scalar outside ASCII.
+    func reading(_ scalar: Unicode.Scalar) -> Reading {
         if let cached = cache[scalar.value] { return cached }
-        let reading = Self.read(scalar)
+        let reading = Reading(bytes: Self.read(scalar), isInvisible: ScalarClass.isInvisible(scalar), alphabet: SafeAlphabet.class(of: scalar))
         cache[scalar.value] = reading
         return reading
     }

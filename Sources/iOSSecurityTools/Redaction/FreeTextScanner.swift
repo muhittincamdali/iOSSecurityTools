@@ -1,15 +1,18 @@
 /// Reads free text by the one rule that ``SensitiveDataRedactor/redact(_:)`` describes: the first
 /// trigger hides everything after it, to the end of the text.
 ///
-/// The scan runs once over the scanning copy (``NormalizedText``), left to right, and stops at the
-/// first trigger, which becomes the cut: the offset in the original scalars from which the text is
-/// hidden. A trigger is a key that is not on ``SensitiveDataRedactor/allowedTextKeys``; a secret
-/// name written without a separator; a name written as a value that names a secret or is not
-/// plain ASCII; an escaped or look-alike separator; a word that cannot be read; JSON that does not
-/// parse or holds a member outside the allowlist; and a quote or bracket that is still open at the
-/// end of the text. Nothing is carried from one line to the next: the cut covers every line after
-/// it. JSON and URLs before the cut are redacted by their own rules and recorded as regions, which
-/// the value detectors do not read again.
+/// The text is read only as far as it is written in the safe alphabet (see
+/// ``firstUnsafeOffset(in:)``): the first character outside it is the last possible cut. Up to
+/// there the scan runs once over the scanning copy (``NormalizedText``), left to right, and stops
+/// at the first trigger, which becomes the cut: the offset in the original scalars from which the
+/// text is hidden. A trigger is a key that is not on ``SensitiveDataRedactor/allowedTextKeys``, in
+/// `key=value`, as a JSON member, as the first string of a two-element JSON array and as the tag
+/// of an element; a secret name written without a separator; a name written as a value that names
+/// a secret or is not plain ASCII; an escape (see ``isEscape(at:)``); a word that cannot be read or
+/// is longer than ``longestWord``; JSON that does not parse; and a quote or bracket that is still
+/// open at the end of the text. Nothing is carried from one line to the next: the cut covers every
+/// line after it. JSON and URLs before the cut are redacted by their own rules and recorded as
+/// regions, which the value detectors do not read again.
 ///
 /// Besides the findings of the JSON and URLs it reads, the scan keeps a few positions: the cut,
 /// the key before the next separator, the quote that is open, the outermost open bracket and the
@@ -22,7 +25,8 @@ struct FreeTextScanner {
         /// A key that is written out, such as a JSON name or a form field name. Its value is hidden
         /// by the key rule, so its own words are not triggers (`password_hint` and `pass word`
         /// stay as they are): only a key written inside it that is not allowed (`password=…`,
-        /// `a=b`), an escaped or look-alike separator and JSON are.
+        /// `a=b`), a character outside the safe alphabet, an escape, a word longer than
+        /// ``longestWord`` and JSON are.
         case name
     }
 
@@ -44,11 +48,11 @@ struct FreeTextScanner {
     private(set) var cut: Int?
 
     var position = 0
+    /// The byte before which the scan stops: the end of the text, or the first byte of the first
+    /// character outside the safe alphabet. No word is read past it.
+    private(set) var scanEnd = 0
     /// The bytes of the key that the next separator belongs to, when only white space follows it.
     var pendingKey: Range<Int>?
-    /// Whether the line read so far holds text. Only LF and CR start a line: another break
-    /// (U+2028, U+0085, a vertical tab) may sit inside a key or a word.
-    var lineHasText = false
     /// The quote that is open (`"`, `'` or a backtick) and its byte.
     private var openQuote: (byte: UInt8, at: Int)?
     /// The brackets open outside quotes, and the byte of the outermost one.
@@ -59,6 +63,12 @@ struct FreeTextScanner {
     /// (`<input value="…" type="password">`).
     var isInStartTag = false
     var startTagValues: Int?
+    /// Whether the tag of the start tag that is open is on the allowlist, so that the text of its
+    /// element is read on.
+    var tagAllowsText = false
+    /// Whether a start tag whose tag is not allowed has just ended: the text of its element, the
+    /// next byte that is not white space unless it opens another tag, cuts the text.
+    var cutsElementText = false
 
     init(
         source: [Unicode.Scalar], text: NormalizedText, redactor: SensitiveDataRedactor, compatibility: CompatibilityText, role: Role = .text,
@@ -70,12 +80,20 @@ struct FreeTextScanner {
         self.compatibility = compatibility
         self.role = role
         self.nesting = nesting
+        scanEnd = text.count
     }
 
     mutating func run() {
-        while position < text.count, cut == nil, !hidesWholeText { step() }
-        guard cut == nil, !hidesWholeText, role == .text else { return }
-        // A quote or bracket that does not close leaves the end of what it holds unknown.
+        // Nothing past the first character outside the safe alphabet is read: the text is cut
+        // there at the latest.
+        let unsafe = text.firstUnsafeOffset
+        scanEnd = unsafe.map(text.byteIndex(atOrAfter:)) ?? text.count
+        while position < scanEnd, cut == nil, !hidesWholeText { step() }
+        guard cut == nil, !hidesWholeText else { return }
+        if let unsafe { cut(atOffset: unsafe) }
+        guard role == .text else { return }
+        // A quote or bracket that does not close before the text ends, or before the character
+        // that cuts it, leaves the end of what it holds unknown.
         let open = [openQuote?.at, bracketDepth > 0 ? outermostBracket : nil].compactMap { $0 }.min()
         if let open { cut(atByte: open + 1) }
     }
@@ -84,25 +102,30 @@ struct FreeTextScanner {
 
     private mutating func step() {
         let byte = text.bytes[position]
-        if text.isLineTerminator(position) {
-            if byte == UInt8(ascii: "\n") || byte == UInt8(ascii: "\r"), source[text.offsets[position]].isASCII { lineHasText = false }
+        if text.isSpace(position) || text.isLineTerminator(position) {
             position += 1
             return
         }
-        if text.isSpace(position) {
-            position += 1
-            return
+        if cutsElementText {
+            cutsElementText = false
+            guard byte == UInt8(ascii: "<") else {
+                cut(atByte: position)
+                return
+            }
         }
-        let followsText = lineHasText
-        lineHasText = true
-        if isSeparator(position) {
+        if isEscape(at: position) {
+            cut(atByte: wordStart(before: position))
+        } else if isSeparator(position) {
             separator()
         } else if byte == UInt8(ascii: "\"") {
             quote()
         } else if startsJSON(position) {
             pendingKey = nil
             embeddedJSON()
-        } else if Self.boundaries.contains(byte), referenceLength(at: position) == nil {
+        } else if byte == UInt8(ascii: ">"), isInStartTag, openQuote == nil {
+            pendingKey = nil
+            endStartTag()
+        } else if Self.boundaries.contains(byte) {
             pendingKey = nil
             if byte == UInt8(ascii: "<"), role == .text { startTag() }
             note(position)
@@ -111,7 +134,7 @@ struct FreeTextScanner {
             pendingKey = nil
             url(to: end)
         } else {
-            word(followsText: followsText)
+            word()
         }
     }
 
@@ -138,7 +161,6 @@ struct FreeTextScanner {
     /// the apostrophe of `don't` opens nothing; brackets inside quotes do not count.
     private mutating func note(_ k: Int) {
         let byte = text.bytes[k]
-        if byte == UInt8(ascii: ">") { isInStartTag = false }
         if let open = openQuote {
             if byte == open.byte { openQuote = nil }
             return
@@ -160,22 +182,22 @@ struct FreeTextScanner {
 
     // MARK: Keys
 
-    /// A run of `=`, `:` and `>` (`:=`, `==`, `=>`) after a key. The value is read on only after a
-    /// key on the allowlist (see ``allowsValue(ofKey:)``), written with ASCII separators; in text,
-    /// after a key on it that holds a name (`id=`, `type=`), the name is read too (see
-    /// ``heldName(after:key:)``). After any other key, and after a separator with no key, the text
-    /// is cut.
+    /// A run of `=`, `:` and `>` (`:=`, `==`, `=>`) after a key; in a start tag a `>` ends the tag
+    /// instead. The value is read on only after a key on the allowlist (see
+    /// ``allowsValue(ofKey:)``); in text, after a key on it that holds a name (`id=`, `type=`), the
+    /// name is read too (see ``heldName(after:key:)``). After any other key, and after a separator
+    /// with no key, the text is cut. Separators outside ASCII are never read: the safe alphabet
+    /// ends before them.
     private mutating func separator() {
         var end = position + 1
-        while end < text.count, isSeparator(end) || text.bytes[end] == UInt8(ascii: ">") { end += 1 }
+        while end < text.count, isSeparator(end) || (text.bytes[end] == UInt8(ascii: ">") && !isInStartTag) { end += 1 }
         let key = pendingKey
         pendingKey = nil
-        let isLookAlike = (position..<end).contains { !source[text.offsets[$0]].isASCII }
         // A key on the line before its separator is a key, but never an allowed one.
         let isBroken = key.map { (($0.upperBound)..<position).contains(where: text.isLineTerminator) } ?? false
         position = end
         if isInStartTag, startTagValues == nil { startTagValues = end }
-        guard !isLookAlike, !isBroken, allowsValue(ofKey: key) else {
+        guard !isBroken, allowsValue(ofKey: key) else {
             cut(atByte: nextNonSpace(from: end))
             return
         }

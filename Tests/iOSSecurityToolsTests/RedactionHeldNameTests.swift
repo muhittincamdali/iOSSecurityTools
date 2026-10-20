@@ -44,8 +44,9 @@ struct RedactionHeldNameTests {
     func symbolNameInAnyMember() {
         // `ParameterKey` ends in the secret word `key`, so its own value is hidden too.
         #expect(json(#"{"ParameterKey":"ⓣⓞⓚⓔⓝ","ParameterValue":"S3CR3Tq"}"#) == #"{"ParameterKey":"[redacted]","ParameterValue":"[redacted]"}"#)
-        #expect(json(#"{"Parameter":"ⓣⓞⓚⓔⓝ","ParameterValue":"S3CR3Tq"}"#) == #"{"Parameter":"ⓣⓞⓚⓔⓝ","ParameterValue":"[redacted]"}"#)
-        #expect(json(#"{"title":"ⓟⓘⓝ:","x":"S3CR3Tq"}"#) == #"{"title":"ⓟⓘⓝ:","x":"[redacted]"}"#)
+        // The name itself is free text in symbols outside the safe alphabet, so it goes too.
+        #expect(json(#"{"Parameter":"ⓣⓞⓚⓔⓝ","ParameterValue":"S3CR3Tq"}"#) == #"{"Parameter":"[redacted]","ParameterValue":"[redacted]"}"#)
+        #expect(json(#"{"title":"ⓟⓘⓝ:","x":"S3CR3Tq"}"#) == #"{"title":"[redacted]","x":"[redacted]"}"#)
         #expect(WrittenName.isName(Array("ⓟⓘⓝ".unicodeScalars), compatibility: CompatibilityText()))
         #expect(WrittenName.isName(Array("ⒶⓅⒾ ⓀⒺⓎ".unicodeScalars), compatibility: CompatibilityText()))
         #expect(!WrittenName.isName(Array("🔑".unicodeScalars), compatibility: CompatibilityText()))
@@ -61,8 +62,9 @@ struct RedactionHeldNameTests {
 
     @Test("a field whose own name is not plain ASCII is read as one that holds a name")
     func disguisedHoldingField() {
-        #expect(json(#"{"lab\u200Bel":"x","value":"kept"}"#) == #"{"lab\u200Bel":"[redacted]","value":"kept"}"#)
-        #expect(json(#"{"lab\u200Bel":"Пароль","value":"S3CR3Tq"}"#) == #"{"lab\u200Bel":"[redacted]","value":"[redacted]"}"#)
+        // The name is cut at its format character, which is outside the safe alphabet.
+        #expect(json(#"{"lab\u200Bel":"x","value":"kept"}"#) == #"{"lab[redacted]":"[redacted]","value":"kept"}"#)
+        #expect(json(#"{"lab\u200Bel":"Пароль","value":"S3CR3Tq"}"#) == #"{"lab[redacted]":"[redacted]","value":"[redacted]"}"#)
     }
 
     /// The cost of the default, named in the documentation: a name in another script hides the
@@ -135,7 +137,7 @@ struct RedactionHeldNameTests {
     @Test("the logging guide's examples of names held by fields")
     func guideExamples() {
         let fields = #"[{"label":"Şifre","value":"hunter2"},{"label":"ⓟⓘⓝ","value":"1234"},{"label":"status","value":"ok"}]"#
-        #expect(json(fields) == #"[{"label":"Şifre","value":"[redacted]"},{"label":"ⓟⓘⓝ","value":"[redacted]"},{"label":"status","value":"ok"}]"#)
+        #expect(json(fields) == #"[{"label":"Şifre","value":"[redacted]"},{"label":"[redacted]","value":"[redacted]"},{"label":"status","value":"ok"}]"#)
         #expect(json(#"{"name":"Ayşe","role":"admin"}"#) == #"{"name":"Ayşe","role":"[redacted]"}"#)
         #expect(redactor.redact("<string name=\"password\" />\nhunter2") == "<string name=[redacted]")
     }

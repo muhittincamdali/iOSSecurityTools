@@ -22,7 +22,7 @@ struct RedactionFreeTextRuleTests {
         ("--status=1 (count=2) [page=3]", "--status=1 (count=2) [page=[redacted]"),
         ("x=hunter2", "x=[redacted]"),
         ("\u{FF53}\u{FF54}\u{FF41}\u{FF54}\u{FF55}\u{FF53}=200", "\u{FF53}\u{FF54}\u{FF41}\u{FF54}\u{FF55}\u{FF53}=[redacted]"),
-        ("st%61tus=200", "st%61tus=[redacted]"),
+        ("st%61tus=200", "[redacted]"),
         ("status\u{0301}=200", "status\u{0301}=[redacted]"),
         ("status=200&user=bob", "status=200&user=[redacted]"),
         ("status=200;user=bob", "status=200;user=[redacted]"),
@@ -46,17 +46,20 @@ struct RedactionFreeTextRuleTests {
         #expect(custom.redact("login user=bob status=401 password=hunter2") == "login user=bob status=401 password=[redacted]")
     }
 
-    @Test("separators are = and :, runs of them, and their compatibility forms; a : between digits is a time", arguments: [
+    // A separator outside ASCII is outside the safe alphabet: it cuts the text where it is,
+    // whatever key comes before it.
+    @Test("separators are = and :, and runs of them; one outside ASCII cuts the text; a : between digits is a time", arguments: [
         ("user:=bob", "user:=[redacted]"),
         ("user == bob", "user == [redacted]"),
         ("user => bob", "user => [redacted]"),
         ("user ::= bob", "user ::= [redacted]"),
-        ("user\u{FF1D}bob", "user\u{FF1D}[redacted]"),
-        ("user\u{FF1A}bob", "user\u{FF1A}[redacted]"),
-        ("user\u{FE13}bob", "user\u{FE13}[redacted]"),
-        ("user\u{2260}bob", "user\u{2260}[redacted]"),
+        ("user\u{FF1D}bob", "user[redacted]"),
+        ("user\u{FF1A}bob", "user[redacted]"),
+        ("user\u{FE13}bob", "user[redacted]"),
+        ("user\u{2260}bob", "user[redacted]"),
         ("user\u{203F}bob", "user[redacted]"),
-        ("a \u{203F} b", "a \u{203F} b"),
+        ("a \u{203F} b", "a [redacted]"),
+        ("status\u{A789} ok", "status[redacted]"),
         ("at 12:30:45 done", "at 12:30:45 done"),
         ("2026-10-19T12:30:45Z ok", "2026-10-19T12:30:45Z ok"),
         ("host:8080", "host:[redacted]"),
@@ -143,15 +146,16 @@ struct RedactionFreeTextRuleTests {
 
     // Review probes 71, 80 and 401–414: the scanning copy leaves out an invisible character, so a
     // key or word that starts with one was read without it, as the allowed key `status` or a
-    // plain word.
-    @Test("an invisible character right before a key or a word belongs to it", arguments: [
-        ("\u{200D}status=Qz080Wk7r", "\u{200D}status=[redacted]"),
-        ("x \u{200B}status=hunter2", "x \u{200B}status=[redacted]"),
-        ("\u{2060}status=hunter2", "\u{2060}status=[redacted]"),
-        ("\u{115F}status=hunter2", "\u{115F}status=[redacted]"),
-        ("\u{AD}status: hunter2", "\u{AD}status: [redacted]"),
-        ("\u{FEFF}status=200", "\u{FEFF}status=[redacted]"),
-        ("status=200 \u{200B}", "status=200 \u{200B}"),
+    // plain word. An invisible character is outside the safe alphabet: it cuts the text there.
+    @Test("an invisible character cuts the text where it is", arguments: [
+        ("\u{200D}status=Qz080Wk7r", "[redacted]"),
+        ("x \u{200B}status=hunter2", "x [redacted]"),
+        ("\u{2060}status=hunter2", "[redacted]"),
+        ("\u{115F}status=hunter2", "[redacted]"),
+        ("\u{AD}status: hunter2", "[redacted]"),
+        ("\u{FEFF}status=200", "[redacted]"),
+        ("status=200 \u{200B}", "status=200 [redacted]"),
+        ("status=2\u{200B}00", "status=[redacted]"),
         ("\u{202E}drowssap Qz071Wk7r", "[redacted]"),
         ("login \u{202E}zyx2retnuh drowssap", "login [redacted]"),
         ("\u{2066}\u{202E}drowssap hunter2", "[redacted]"),
@@ -170,13 +174,18 @@ struct RedactionFreeTextRuleTests {
         #expect(redactor.redact(input) == input)
     }
 
-    // The line breaks of the input are written as they are: the cut needs no line of its own.
-    @Test("U+2028, U+2029, U+0085, VT and FF are kept, and a cut covers the lines after them")
+    // Only LF and CR end a line of the safe alphabet; any other line break is a control character
+    // or a separator outside ASCII, which cuts the text.
+    @Test("U+2028, U+2029, U+0085, VT and FF cut the text; LF and CR are kept")
     func lineSeparators() {
-        #expect(redactor.redact("a\u{2029}b\u{85}c\u{0B}d\u{0C}e") == "a\u{2029}b\u{85}c\u{0B}d\u{0C}e")
-        #expect(redactor.redact("password\u{2028}=hunter2") == "password\u{2028}=[redacted]")
-        #expect(redactor.redact("user\u{2028}=bob") == "user\u{2028}=[redacted]")
-        #expect(redactor.redact("status=1\u{2029}user=bob\u{85}status=2") == "status=1\u{2029}user=[redacted]")
+        #expect(redactor.redact("a\nb\r\nc\rd") == "a\nb\r\nc\rd")
+        #expect(redactor.redact("a\u{2029}b\u{85}c\u{0B}d\u{0C}e") == "a[redacted]")
+        #expect(redactor.redact("a\u{85}b") == "a[redacted]")
+        #expect(redactor.redact("a\u{0B}b") == "a[redacted]")
+        #expect(redactor.redact("a\u{0C}b") == "a[redacted]")
+        #expect(redactor.redact("password\u{2028}=hunter2") == "password[redacted]")
+        #expect(redactor.redact("user\u{2028}=bob") == "user[redacted]")
+        #expect(redactor.redact("status=1\u{2029}user=bob\u{85}status=2") == "status=1[redacted]")
     }
 
     @Test("JSON in a line follows the allowlist member by member", arguments: [
@@ -185,7 +194,8 @@ struct RedactionFreeTextRuleTests {
         ("{\"status\":\"ok\",\"items\":[1,2]} {\"count\":1}", "{\"status\":\"ok\",\"items\":[redacted]"),
         ("{\"path\":\"/a\",\"items\":[{\"count\":1},{\"name\":\"x\"}]} tail", "{\"path\":\"/a\",\"items\":[redacted]"),
         ("{\"status\":\"x password=1\"} tail", "{\"status\":\"[redacted]"),
-        ("[\"a\",\"b\"] ok", "[\"a\",\"b\"] ok"),
+        ("[\"a\",\"b\"] ok", "[\"a\",[redacted]"),
+        ("[\"a\",\"b\",\"c\"] ok", "[\"a\",\"b\",\"c\"] ok"),
         ("[[\"\u{15E}ifre\",\"1234\"]] ok", "[[\"\u{15E}ifre\",[redacted]"),
     ])
     func jsonMembers(input: String, expected: String) {

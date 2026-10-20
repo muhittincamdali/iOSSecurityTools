@@ -109,12 +109,16 @@ struct RedactionNameTests {
         #expect(SensitiveDataRedactor(allowedTextKeys: [name]).redact("\(name)=bob") == "\(name)=[redacted]")
     }
 
+    // A name of more than 256 characters is not plain, so its value is hidden; as a word of
+    // free text it is longer than the longest word read, so it goes with its value.
     @Test("a long name is compared in time linear in its length and hidden past 256 characters")
     func longNames() {
         let plain = String(repeating: "user", count: 64)
         #expect(json("{\"\(plain)\":\"bob\"}") == "{\"\(plain)\":\"bob\"}")
-        #expect(json("{\"\(plain)x\":\"bob\"}") == "{\"\(plain)x\":\"[redacted]\"}")
+        #expect(json("{\"\(plain)x\":\"bob\"}") == "{\"[redacted]\":\"[redacted]\"}")
         #expect(SensitiveDataRedactor(allowedTextKeys: [plain]).redact("\(plain)=bob") == "\(plain)=bob")
-        #expect(SensitiveDataRedactor(allowedTextKeys: [plain + "x"]).redact("\(plain)x=bob") == "\(plain)x=[redacted]")
+        #expect(SensitiveDataRedactor(allowedTextKeys: [plain + "x"]).redact("\(plain)x=bob") == "[redacted]")
+        let form = Data("\(plain)x=bob".utf8)
+        #expect(SensitiveDataRedactor().redact(body: form, contentType: "application/x-www-form-urlencoded") == "[redacted]=[redacted]")
     }
 }

@@ -105,10 +105,12 @@ extension JSONDocument {
         return WrittenName.namesSecret(text(of: token), in: .pairName, compatibility: compatibility)
     }
 
-    /// Where the first value in the text is whose member's name, with its escapes decoded, `matches`:
-    /// the offset of its first scalar, or nil when no member's name does. The objects and arrays
-    /// are walked with a stack of their own, not by recursion.
-    func firstValue(underMemberWhere matches: ([Unicode.Scalar]) -> Bool) -> Int? {
+    /// Where the first value in the text is whose key, with its escapes decoded, `matches`: the
+    /// offset of its first scalar, or nil when no key does. A key is the name of a member and the
+    /// first element of a two-element array that is a string (`["user","…"]`, `[["X-User","…"]]`),
+    /// whose second element is its value. The objects and arrays are walked with a stack of their
+    /// own, not by recursion.
+    func firstValue(underKeyWhere matches: ([Unicode.Scalar]) -> Bool) -> Int? {
         var first: Int?
         var pending = [root]
         while let node = pending.popLast() {
@@ -122,7 +124,11 @@ extension JSONDocument {
                     }
                 }
             case .array(let elements):
-                pending += elements
+                if elements.count == 2, case .string(let key) = elements[0].value, matches(text(of: key)) {
+                    first = min(first ?? elements[1].range.lowerBound, elements[1].range.lowerBound)
+                } else {
+                    pending += elements
+                }
             case .string, .number, .boolean, .null:
                 break
             }

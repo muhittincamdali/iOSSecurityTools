@@ -59,18 +59,18 @@ struct RedactionEdgeCaseTests {
         ("<Token\n  kind=\"a>b\">abc</Token>", "<Token[redacted]"),
         ("<ns:password>hunter2</ns:password>", "<ns:[redacted]"),
         ("<wsse:Password Type=\"PasswordText\">hunter2</wsse:Password>", "<wsse:[redacted]"),
-        ("password%3Dhunter2", "password[redacted]"),
+        ("password%3Dhunter2", "[redacted]"),
         ("q=password%3dhunter2", "q=[redacted]"),
-        ("secret%3Ax", "secret[redacted]"),
-        ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "user%5Bpassword%5D=[redacted]"),
-        ("password%5B%5D=hunter2", "password%5B%5D=[redacted]"),
-        ("user%5bpassword%5d%3dhunter2", "user%5bpassword[redacted]"),
-        ("user%5Bpassword%5D%5Bconfirmation%5D=x", "user%5Bpassword%5D%5Bconfirmation%5D=[redacted]"),
-        ("password+%3D+hunter2", "password+[redacted]"),
+        ("secret%3Ax", "[redacted]"),
+        ("user%5Bpassword%5D=hunter2&user%5Bname%5D=bob", "[redacted]"),
+        ("password%5B%5D=hunter2", "[redacted]"),
+        ("user%5bpassword%5d%3dhunter2", "[redacted]"),
+        ("user%5Bpassword%5D%5Bconfirmation%5D=x", "[redacted]"),
+        ("password+%3D+hunter2", "[redacted]"),
         ("q=password+%3A+hunter2&x=1", "q=[redacted]"),
-        ("password%20%3D%20hunter2", "password[redacted]"),
+        ("password%20%3D%20hunter2", "[redacted]"),
         ("q=password%20%3A%20hunter2&x=1", "q=[redacted]"),
-        ("password%20=%20hunter2", "password%20=[redacted]"),
+        ("password%20=%20hunter2", "[redacted]"),
         ("password: <hunter2>", "password: [redacted]"),
         ("token=<abc 123>; next", "token=[redacted]"),
         ("password: <hunter2", "password: [redacted]"),
@@ -97,28 +97,31 @@ struct RedactionEdgeCaseTests {
         ("password :== hunter2", "password :== [redacted]"),
         ("password ::= hunter2", "password ::= [redacted]"),
         ("password = = hunter2", "password = [redacted]"),
-        ("password%3D%3Dhunter2", "password[redacted]"),
+        ("password%3D%3Dhunter2", "[redacted]"),
         ("password == hunter2 && token === abc123", "password == [redacted]"),
         ("password \u{2254} hunter2", "password [redacted]"),
-        ("password \u{2A74} hunter2", "password \u{2A74} [redacted]"),
-        ("password\u{2A75}hunter2", "password\u{2A75}[redacted]"),
-        ("password\u{2A76}hunter2", "password\u{2A76}[redacted]"),
-        ("password\u{FE66}hunter2", "password\u{FE66}[redacted]"),
-        ("password\u{FE55} hunter2", "password\u{FE55} [redacted]"),
+        ("password \u{2A74} hunter2", "password [redacted]"),
+        ("password\u{2A75}hunter2", "password[redacted]"),
+        ("password\u{2A76}hunter2", "password[redacted]"),
+        ("password\u{FE66}hunter2", "password[redacted]"),
+        ("password\u{FE55} hunter2", "password[redacted]"),
         ("password \u{2236} hunter2", "password [redacted]"),
     ])
     func assignmentOperators(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("reads every Unicode space as a space", arguments: [
+    // A space outside ASCII is outside the safe alphabet, so it cuts the text; the value
+    // detectors still read it as a space, so a card number grouped with it is hidden whole.
+    @Test("every Unicode space outside ASCII cuts the text", arguments: [
         "\u{A0}", "\u{1680}", "\u{2000}", "\u{2001}", "\u{2002}", "\u{2003}", "\u{2004}", "\u{2005}",
         "\u{2006}", "\u{2007}", "\u{2008}", "\u{2009}", "\u{200A}", "\u{202F}", "\u{205F}", "\u{3000}",
     ])
     func unicodeSpaces(space: String) {
-        #expect(redactor.redact("password\(space)=\(space)hunter2") == "password\(space)=\(space)[redacted]")
-        #expect(redactor.redact("Bearer\(space)abc.DEF-123") == "Bearer\(space)[redacted]")
-        #expect(redactor.redact(["4242", "4242", "4242", "4242"].joined(separator: space)) == "•••• 4242")
+        #expect(redactor.redact("password\(space)=\(space)hunter2") == "password[redacted]")
+        #expect(redactor.redact("Bearer\(space)abc.DEF-123") == "Bearer[redacted]")
+        #expect(redactor.redact("paid " + ["4242", "4242", "4242", "4242"].joined(separator: space)) == "paid [redacted]")
+        #expect(redactor.matches(in: "paid 4242\(space)4242 4242 4242").contains { $0.kind.contains(.cardNumbers) })
     }
 
     // An unquoted value in free text goes to the end of its line: `;` does not end it.
@@ -151,9 +154,24 @@ struct RedactionEdgeCaseTests {
         #expect(redactor.redact("\(name)=x") == "\(name)=[redacted]")
     }
 
-    @Test("leaves markup without a secret name", arguments: ["</password>", "<private>", "<br/> <p>hi</p>", "if a<b && c>d then"])
+    @Test("leaves markup without element text or a secret name", arguments: ["</password>", "<private>", "<br/> <p/>", "<a>\n  <b/>\n</a>"])
     func markup(input: String) {
         #expect(redactor.redact(input) == input)
+    }
+
+    // A tag is a key: the text of an element whose tag is not allowed is cut, also text after a
+    // `<` that only looks like a tag.
+    @Test("the text of an element cuts the text unless its tag is allowed", arguments: [
+        ("<br/> <p>hi</p>", "<br/> <p>[redacted]"),
+        ("if a<b && c>d then", "if a<b && c>[redacted]"),
+        ("<user>bob</user>", "<user>[redacted]"),
+        ("<dict>\n  <key>user</key>\n  <string>bob</string>\n</dict>", "<dict>\n  <key>[redacted]"),
+        ("<a status=\"1\">bob</a>", "<a status=\"1\">[redacted]"),
+        ("<status>200</status> done", "<status>200</status> done"),
+        ("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>", "<\u{540D}\u{524D}>[redacted]"),
+    ])
+    func elementText(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
     }
 }
 
@@ -162,19 +180,20 @@ extension RedactionEdgeCaseTests {
     // spells, so its value is hidden.
     @Test("hides the value of form names that are not plain", arguments: [
         ("password[=x", "password[redacted]"),
-        ("user%5Bpassport%5D=X1234", "user%5Bpassport%5D=[redacted]"),
-        ("%5B=x", "%5B=[redacted]"),
+        ("user%5Bpassport%5D=X1234", "[redacted]"),
+        ("%5B=x", "[redacted]"),
     ])
     func namesThatAreNotPlain(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
-    // Free text is not parsed as XML: an element is not a pair, so only a secret name or a word
-    // that cannot be read in it hides what follows.
-    @Test("an XML element is not read as a pair")
+    // Free text is not parsed as XML, but a tag is a key: a tag that is not allowed, in any script,
+    // cuts the text at its element's text, and a tag that cannot be read cuts it at the tag.
+    @Test("an XML element is read as a key and its text")
     func xmlElements() {
-        #expect(redactor.redact("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>") == "<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>")
+        #expect(redactor.redact("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>") == "<\u{540D}\u{524D}>[redacted]")
         #expect(redactor.redact("<p\u{0430}ssword>bob</p\u{0430}ssword>") == "<[redacted]")
+        #expect(SensitiveDataRedactor(allowedTextKeys: ["user"]).redact("<user>bob</user>") == "<user>bob</user>")
     }
 
     // Free text keeps a value only after an allowed key, so comparisons, times and object
@@ -196,10 +215,11 @@ extension RedactionEdgeCaseTests {
 
     @Test("keys the app allows keep their value in free text")
     func allowedKeys() {
-        let allowing = SensitiveDataRedactor(allowedTextKeys: ["time", "error", "href"])
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["time", "error", "href", "a"])
         #expect(allowing.redact("time: 12:30:45") == "time: 12:30:45")
         #expect(allowing.redact("Error: connection refused") == "Error: connection refused")
         #expect(allowing.redact("<a href=\"x\">y</a>") == "<a href=\"x\">y</a>")
+        #expect(SensitiveDataRedactor(allowedTextKeys: ["href"]).redact("<a href=\"x\">y</a>") == "<a href=\"x\">[redacted]")
         // The value of an allowed key is still read: a secret name in it hides the rest.
         #expect(allowing.redact("error: wrong password hunter2") == "error: wrong password [redacted]")
     }

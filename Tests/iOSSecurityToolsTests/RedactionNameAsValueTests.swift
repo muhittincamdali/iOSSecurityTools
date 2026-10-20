@@ -67,7 +67,7 @@ struct RedactionNameAsValueTests {
         (#"<property name="spring.datasource.password" value="S3CR3Tq"/>"#, "<property name=[redacted]"),
         (#"<p title="password">S3CR3Tq</p>"#, "<p title=[redacted]"),
         (#"<string name="api_key"><![CDATA[S3CR3Tq]]></string>"#, "<string name=[redacted]"),
-        ("<td>password</td><td>S3CR3Tq</td>", "<td>password[redacted]"),
+        ("<td>password</td><td>S3CR3Tq</td>", "<td>[redacted]"),
     ])
     func sameElement(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -92,7 +92,7 @@ struct RedactionNameAsValueTests {
         ("<dict>\n\t<key>password</key>\n\t<string>S3CR3Tq\nS3CR3Tq2</string>\n</dict>", "<dict>\n\t<key>[redacted]"),
         ("<key>password</key> <!-- note -->\n<string>S3CR3Tq</string>", "<key>[redacted]"),
         ("<key>password</key>\nS3CR3Tq\nnext line", "<key>[redacted]"),
-        ("<label>Password</label>\n<input value=\"S3CR3Tq\">\n<p>after</p>", "<label>Password[redacted]"),
+        ("<label>Password</label>\n<input value=\"S3CR3Tq\">\n<p>after</p>", "<label>[redacted]"),
     ])
     func siblingElement(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -135,7 +135,7 @@ struct RedactionNameAsValueTests {
         ("<token>unclosed\nnext line", "<token>[redacted]"),
     ])
     func plainNames(input: String, expected: String) {
-        #expect(SensitiveDataRedactor(allowedTextKeys: ["name", "user"]).redact(input) == expected)
+        #expect(SensitiveDataRedactor(allowedTextKeys: ["name", "user", "string"]).redact(input) == expected)
     }
 
     @Test("a JSON member that names a secret hides the other members", arguments: [
