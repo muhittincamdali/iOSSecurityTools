@@ -31,6 +31,9 @@ struct RedactionGuideExampleTests {
         (#"{"status":200,"user":"bob"} done"#, #"{"status":200,"user":[redacted]"#),
         ("git clone https://bob:hunter2@github.com/x/y.git", "git clone https://github.com/x/y.git"),
         ("connect myapp://password=hunter2 ok", "connect myapp://[redacted] ok"),
+        ("see https://x.example/a?token= hunter2", "see https://x.example/a?[redacted]"),
+        ("user1:2345678 at 12:30", "user1:[redacted]"),
+        ("see https://x.example/a?q=1 ok", "see https://x.example/a?[redacted]"),
         ("Merhaba dünya \u{1F44B} bye", "Merhaba dünya [redacted]"),
         ("Optional<String>(x)", "Optional<String>[redacted]"),
     ])
