@@ -1,8 +1,8 @@
 /// The words that make a key secret.
 ///
 /// The words are lowercase ASCII without separators. ``PlainName`` compares a plain-ASCII key with
-/// them; any other key is hidden without being compared. Words of free text are read for them
-/// loosely (see ``LooseReading``), which only ever hides more.
+/// them; any other key is hidden without being compared. A word of free text is compared by its
+/// ASCII skeleton (see ``LooseReading``), which only ever hides more.
 enum SecretNames {
     /// Where a secret word has to sit in a key for the key to hold the secret.
     enum Placement {
@@ -40,11 +40,11 @@ enum SecretNames {
             + [Entry(letters: Array("session".utf8), placement: .lastWord)]
     }()
 
-    /// The entries by their first letter, `a` to `z`.
+    /// The entries by their first letter, `a` to `z`. Every entry starts with a letter.
     private static let byFirstLetter = table { $0.letters[0] }
 
-    /// The entries by their second letter, for a start where a wildcard stands for the first.
-    /// Every entry has two letters or more.
+    /// The entries by their second letter, for a start where the first letter of an entry was left
+    /// out of a skeleton. Every entry has two letters or more, all of them letters.
     private static let bySecondLetter = table { $0.letters[1] }
 
     private static func table(_ letter: (Entry) -> UInt8) -> [[Entry]] {
@@ -53,16 +53,11 @@ enum SecretNames {
         return table
     }
 
-    /// The entries that can be spelled from letter `start` of a name's lowercase `letters`: those
-    /// that start with that letter, or, where a ``PlainName/wildcard`` stands for the first
-    /// letter, those whose second letter follows it. A word holds one wildcard at most, so after
-    /// two of them in a row no entry can start.
-    static func candidates(at start: Int, in letters: [UInt8]) -> [Entry] {
-        let first = letters[start]
-        guard first == PlainName.wildcard else { return entries(in: byFirstLetter, letter: first) }
-        guard start + 1 < letters.count else { return [] }
-        return entries(in: bySecondLetter, letter: letters[start + 1])
-    }
+    /// The entries that start with the lowercase letter `letter`; none for a digit.
+    static func entries(startingWith letter: UInt8) -> [Entry] { entries(in: byFirstLetter, letter: letter) }
+
+    /// The entries whose second letter is the lowercase letter `letter`; none for a digit.
+    static func entries(withSecondLetter letter: UInt8) -> [Entry] { entries(in: bySecondLetter, letter: letter) }
 
     private static func entries(in table: [[Entry]], letter: UInt8) -> [Entry] {
         guard (UInt8(ascii: "a")...UInt8(ascii: "z")).contains(letter) else { return [] }
