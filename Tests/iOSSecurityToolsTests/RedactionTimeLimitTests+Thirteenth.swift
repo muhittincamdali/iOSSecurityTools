@@ -17,6 +17,7 @@ extension RedactionTimeLimitTests {
         all += namesInHiddenValues
         all += attributeShapes
         all += thirteenthReview
+        all += FourteenthReviewShapes.text
         return all
     }()
 }

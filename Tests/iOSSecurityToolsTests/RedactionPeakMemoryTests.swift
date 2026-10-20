@@ -9,7 +9,9 @@ import iOSSecurityTools
 /// start tag of a megabyte of attributes followed by 17 secret names, which the free text of an
 /// earlier design kept once for every name; the thirteenth measured 36 MB for a megabyte word of
 /// backslashes and 67 MB for a form of a megabyte, before words were limited to 256 scalars and
-/// bodies to 256 KiB.
+/// bodies to 256 KiB. The fourteenth measured 19 MB for a megabyte of log lines of short JSON,
+/// whose trees `JSONSerialization` autoreleased, which an earlier version of this test did not see:
+/// it stopped measuring when the redaction returned, before its thread released them.
 @Suite("SensitiveDataRedactor peak memory", .serialized)
 struct RedactionPeakMemoryTests {
     static let limit = 16 * 1_048_576
@@ -28,7 +30,7 @@ struct RedactionPeakMemoryTests {
         TimedInput(testDescription: "lines of addresses", make: {
             RedactionTimeLimitTests.repeated("mail alice@example.com\n", to: RedactionTimeLimitTests.size)
         }, redact: redactor.redact),
-    ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor)
+    ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor) + FourteenthReviewShapes.text
 
     /// Bodies just under ``SensitiveDataRedactor/defaultMaximumBodySize``.
     static let bodySize = SensitiveDataRedactor.defaultMaximumBodySize - 144
@@ -41,24 +43,71 @@ struct RedactionPeakMemoryTests {
     }
 
     /// The most bytes malloc held beyond what it held before while `work` ran on a thread with a
-    /// 512 KiB stack, sampled every 100 µs.
+    /// 512 KiB stack, sampled every 100 µs from another thread until that thread had ended. What
+    /// the thread releases only when it ends, such as autoreleased objects, counts, and is
+    /// released before the next measurement starts: a measurement that ended when `work`
+    /// returned left those objects to be released during the next one, which then read less.
     static func peakAllocation(_ work: @escaping @Sendable () -> Void) -> Int {
-        let base = allocatedBytes()
-        var peak = 0
-        let finished = DispatchSemaphore(value: 0)
-        let thread = Thread {
-            work()
-            finished.signal()
-        }
-        thread.stackSize = RedactionStackTests.threadStack
-        thread.start()
-        while finished.wait(timeout: .now() + .microseconds(100)) == .timedOut {
-            peak = max(peak, allocatedBytes() - base)
-        }
-        return max(peak, allocatedBytes() - base)
+        let sampler = PeakSampler(base: allocatedBytes())
+        let sampled = DispatchSemaphore(value: 0)
+        Thread {
+            sampler.sample { allocatedBytes() }
+            sampled.signal()
+        }.start()
+        runToEnd(work)
+        sampler.stop()
+        sampled.wait()
+        return max(sampler.peak, allocatedBytes() - sampler.base)
     }
 
-    /// The fewest bytes of `attempts` measurements of a shape.
+    /// Runs `work` on a thread with a 512 KiB stack and returns once that thread has ended.
+    private static func runToEnd(_ work: @escaping @Sendable () -> Void) {
+        final class Work {
+            let run: @Sendable () -> Void
+            init(_ run: @escaping @Sendable () -> Void) { self.run = run }
+        }
+        var attributes = pthread_attr_t()
+        pthread_attr_init(&attributes)
+        defer { pthread_attr_destroy(&attributes) }
+        pthread_attr_setstacksize(&attributes, RedactionStackTests.threadStack)
+        var thread: pthread_t?
+        let context = Unmanaged.passRetained(Work(work)).toOpaque()
+        let created = pthread_create(&thread, &attributes, { context in
+            Unmanaged<Work>.fromOpaque(context).takeRetainedValue().run()
+            return nil
+        }, context)
+        precondition(created == 0, "pthread_create failed: \(created)")
+        if let thread { pthread_join(thread, nil) }
+    }
+
+    /// The most bytes beyond `base` that `sample` reads every 100 µs until it is stopped.
+    private final class PeakSampler: @unchecked Sendable {
+        let base: Int
+        private let lock = NSLock()
+        private var isStopped = false
+        private var highest = 0
+
+        init(base: Int) { self.base = base }
+
+        var peak: Int { lock.withLock { highest } }
+
+        func stop() { lock.withLock { isStopped = true } }
+
+        func sample(_ read: () -> Int) {
+            while true {
+                let bytes = read() - base
+                let stopped = lock.withLock {
+                    highest = max(highest, bytes)
+                    return isStopped
+                }
+                if stopped { return }
+                usleep(100)
+            }
+        }
+    }
+
+    /// The fewest bytes of `attempts` measurements of a shape, each on a thread of its own that
+    /// has ended before the next starts.
     static func fewestBytes(_ input: TimedInput, attempts: Int) -> Int {
         let text = input.make()
         var fewest = Int.max
