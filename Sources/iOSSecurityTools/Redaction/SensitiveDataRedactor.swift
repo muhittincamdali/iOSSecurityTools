@@ -110,13 +110,14 @@ import Foundation
 /// - The documents found inside one input read at most four times its length, all together.
 ///   Each document found in it (JSON in a line or a string, a URL in text, a multipart part)
 ///   counts its length, and so does each text read inside such a document.
+/// - JSON in free text is parsed when it is at most 64 Ki scalars long.
 ///
 /// JSON that goes past a limit is not read. A body is then omitted, and a string or other text
 /// inside a document that holds such JSON, or a URL one level too many, is hidden whole, as is
 /// a text inside a found document that the reading budget no longer covers. In a log line, JSON
-/// nested deeper than 64 levels cuts the line at its first bracket, like JSON that does not
-/// parse. Free text is read in one pass that keeps a fixed number of positions, whatever it
-/// holds.
+/// nested deeper than 64 levels or longer than 64 Ki scalars cuts the line at its first bracket,
+/// like JSON that does not parse. Free text is read in one pass that keeps a fixed number of
+/// positions, whatever it holds: a megabyte of it takes less than 16 MB more memory.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -289,8 +290,8 @@ public struct SensitiveDataRedactor: Sendable {
     /// - **JSON in the text** (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the key rule for
     ///   structured input, within the limits listed under "Limits"; its members follow the rule for
     ///   keys, so the text is cut at the value of the first member that is not allowed, or at the
-    ///   first value the key rule hides. JSON that does not parse cuts the text at its first
-    ///   bracket.
+    ///   first value the key rule hides. JSON that does not parse, or is longer than 64 Ki
+    ///   scalars, cuts the text at its first bracket.
     ///
     /// **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them, and the text
     /// is read on after them.

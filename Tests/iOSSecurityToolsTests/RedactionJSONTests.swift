@@ -122,6 +122,21 @@ struct RedactionJSONTests {
         #expect(redactor.redact(input) == expected)
     }
 
+    // A tree of the JSON takes memory in proportion to its length, so JSON in free text is parsed
+    // only up to 64 Ki scalars; longer JSON is not read.
+    @Test("JSON longer than 64 Ki scalars in free text cuts the text at its first bracket")
+    func longJSONInText() {
+        func json(_ length: Int) -> String { "{\"status\":[" + String(repeating: "1,", count: (length - 13) / 2) + "1]}" }
+        let fits = json(FreeTextScanner.longestJSON)
+        #expect(fits.unicodeScalars.count <= FreeTextScanner.longestJSON)
+        #expect(redactor.redact("log " + fits + " done") == "log " + fits + " done")
+        let long = json(FreeTextScanner.longestJSON + 2)
+        #expect(long.unicodeScalars.count > FreeTextScanner.longestJSON)
+        #expect(redactor.redact("log " + long + " done") == "log [redacted]")
+        let body = try! JSONSerialization.data(withJSONObject: ["note": "log " + long])
+        #expect(redactor.redact(body: body, contentType: "application/json") == #"{"note":"log [redacted]"}"#)
+    }
+
     @Test("brackets that do not open JSON are text", arguments: ["[INFO] ok", "[1/3] done", "{x} done", "user[0] ok", "[] {} ok"])
     func notJSON(input: String) {
         #expect(redactor.redact(input) == input)

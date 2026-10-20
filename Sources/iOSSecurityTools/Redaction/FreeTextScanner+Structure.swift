@@ -19,6 +19,9 @@ extension FreeTextScanner {
         return k < text.count && allowed.contains(text.bytes[k])
     }
 
+    /// The longest JSON in free text that is parsed, in scalars: 64 Ki.
+    static let longestJSON = 65_536
+
     private static let objectStarts = ByteSet("\"}")
     private static let arrayStarts = ByteSet("{[\"]")
     private static let jsonWhitespace = ByteSet(" \t\n\r")
@@ -29,22 +32,24 @@ extension FreeTextScanner {
     /// rule hides, whichever comes first (`{"status":200,"user":"bob"}` keeps `"status":200`).
     /// JSON that holds a word naming a secret or one that cannot be read (`["password"]=> "…"`)
     /// cuts the text at its end. JSON that does not parse cannot be read with certainty: the text
-    /// is cut at its first bracket. In a text inside a document, JSON one level too many, deeper
-    /// than the depth left or longer than the reading budget leaves (see ``ReadingBudget``) hides
-    /// the whole text.
+    /// is cut at its first bracket, and so is JSON longer than ``longestJSON``, whose tree would
+    /// take memory in proportion to it. In a text inside a document, JSON one level too many,
+    /// deeper than the depth left or longer than the reading budget leaves (see ``ReadingBudget``)
+    /// hides the whole text.
     mutating func embeddedJSON() {
         let start = text.offsets[position]
         guard let inner = nesting.enteringDocument() else {
             hideWholeText()
             return
         }
+        let budget = inner.lengthLeft
         let document: JSONDocument
         do {
-            document = try JSONDocument(source, at: start, nesting: inner, lengthLimit: inner.lengthLeft)
+            document = try JSONDocument(source, at: start, nesting: inner, lengthLimit: min(budget, Self.longestJSON))
         } catch .tooDeep where nesting.isEmbedded {
             hideWholeText()
             return
-        } catch .overBudget where nesting.isEmbedded {
+        } catch .overBudget where nesting.isEmbedded && budget <= Self.longestJSON {
             hideWholeText()
             return
         } catch {
