@@ -60,14 +60,14 @@ personal data out of log calls in the first place, and treat the redactor as the
 rule.
 
 What it writes: the text around the findings, the names of fields, the values of plain names that
-are not secret in JSON, form and multipart bodies, the values of the keys on
-``SensitiveDataRedactor/allowedTextKeys`` in free text, masks that keep the last four digits of a
-card number or an IBAN and the domain and first letter of an email address, and for a body it
-cannot parse a note with its size and content type. What it never writes: the value of a field it
-reads as secret or cannot read, a value in free text after a key that is not allowed, what follows
-a secret name written as a value, the rest of a line it cannot read, a body it cannot parse
-completely, the other digits of a card number or an IBAN, and the rest of the name in an email
-address.
+are not secret in JSON, form and multipart bodies, free text up to its first trigger, the values of
+the keys on ``SensitiveDataRedactor/allowedTextKeys`` before it, masks that keep the last four
+digits of a card number or an IBAN and the domain and first letter of an email address, and for a
+body it cannot parse a note with its size and content type. What it never writes: the value of a
+field it reads as secret or cannot read, anything in free text after its first trigger — a key
+that is not allowed, a secret name, a word it cannot read, a quote left open — a body it cannot
+parse completely, the other digits of a card number or an IBAN, and the rest of the name in an
+email address.
 
 ### What it is for: the threat model
 
@@ -76,16 +76,18 @@ request, a response, a header or user text written to a log, a trace, an analyti
 file. It is not built to stop someone who writes a log line on purpose to get a secret past it.
 
 - **Structured input is default-safe.** JSON, form and multipart bodies with their part
-  headers, and URLs, are read with a parser, and XML and property lists in text by their tags. What the redactor does
-  not fully understand there is hidden: a key that is not plain ASCII, a name that cannot be
-  read, a body that does not parse.
-- **Free text is a best effort.** A log line has no grammar. A value written with a separator is
-  always hidden: `key=value`, `key: value`, a quoted name such as `name="password"`, also inside
-  the value of another key, and JSON.
-  A secret name written without a separator and disguised on purpose with two or more look-alike
-  letters (`pɑsswoʀd hunter2`) is not guaranteed to be found; <doc:KeepingSecretsOutOfLogs#What-it-does-not-find>
-  lists such limits. No table of look-alikes is kept to chase them, since none is ever complete.
-  Write logs with separators, or as structured data, and keep secrets out of them.
+  headers, and URLs, are read with a parser. What the redactor does not fully understand there is
+  hidden: a key that is not plain ASCII, a name that cannot be read, a body that does not parse.
+- **Free text is cut at its first trigger.** A log line has no grammar, so everything after the
+  first trigger is hidden, to the end of the text: a key that is not on the allowlist, a secret
+  name with or without a separator, a name written as a value (`name="password"`), a word that
+  cannot be read, a quote or bracket left open. A value written with a separator is always
+  hidden, and so is XML or a property list written into text. The one limit applies only when no
+  trigger comes before a secret: a name written without a separator and disguised on purpose with
+  two or more look-alike letters (`pɑsswoʀd hunter2`) is not guaranteed to be found;
+  <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits. No table of look-alikes
+  is kept to chase them, since none is ever complete. Write logs with separators, or as
+  structured data, and keep secrets out of them.
 
 ### Plain-ASCII keys are compared; any other key is redacted
 
@@ -122,7 +124,8 @@ value is hidden whole: a string, a number, and an array or object with everythin
 A text that is a JSON object or array is read with a JSON parser and checked against
 `JSONSerialization`, so keys are compared after their escapes are decoded (`"pass\u0077ord"`),
 at every depth, inside arrays and for every repetition of a key. Strings are read as free text,
-so `{"note":"password=hunter2"}` and an escaped JSON document inside a string are redacted too.
+so `{"note":"password=hunter2"}` is redacted too, and an escaped JSON document inside a string is
+cut at its first member that is not allowed in text.
 
 Some objects carry a field's name in one member and its value in another, and names are
 classified by default too: non-ASCII names count as secret even when they are written as values.
@@ -257,116 +260,112 @@ redactor.redact(body: Data(note.utf8), contentType: "application/json")
 // {"note":"[redacted]"}
 ```
 
-In a log line, JSON nested deeper than 64 levels hides the line from its first bracket, like JSON
-that does not parse. The package's tests run every limit on a thread with 512 KiB of stack, the
-default of a secondary thread, a GCD queue and a Swift concurrency task, and with
-`swift test -c release` they check that a megabyte of text, nested input or a body takes less than
-a second, also for ordinary shapes such as a JSON array of short strings, a multipart body of
+In a log line, JSON nested deeper than 64 levels or longer than 64 Ki scalars cuts the line at its
+first bracket, like JSON that does not parse. The package's tests run every limit on a thread with
+512 KiB of stack, the default of a secondary thread, a GCD queue and a Swift concurrency task, and
+with `swift test -c release` they check that a megabyte of text, nested input or a body takes less
+than a second, also for ordinary shapes such as a JSON array of short strings, a multipart body of
 1,000 parts, URLs of many segments and a megabyte of Turkish sentences or of `ı` quoted in JSON up
-to four times, timed by the CPU time of such a thread. The default redactor and its folded keys
-are made once and shared, never per array element or path segment, each path segment is read in
-a single pass, and each word is compared with each secret word in a single pass. The second
-reading of a line follows at most 16 names written as values in it into markup and the lines
-below; after them it follows only the last one, and hides the next line with text.
+to four times, timed by the CPU time of such a thread. The default redactor and its folded keys are
+made once and shared, never per array element or path segment, each path segment is read in a single
+pass, and each word is compared with each secret word in a single pass. Free text is read once and
+keeps a fixed number of positions, so the tests also check that a megabyte of text takes less than
+16 MB more memory, among them a start tag of a megabyte of attributes followed by 17 secret names,
+which an earlier design of 2.1.0 read into 583 MB.
 
-### Free text keeps a value only after an allowed key
+### Free text is cut at its first trigger
 
-A log line has no grammar, so name matching in it can always be bypassed. Free text is therefore
-read the other way round, like a query string: in `key=value`, `key: value` and `"key":"value"`
-the value is kept only when the key is plain ASCII and on
-``SensitiveDataRedactor/allowedTextKeys``. The default list holds harmless keys that logs use for
-numbers and routes (`status`, `status_code`, `method`, `path`, `duration`, `duration_ms`, `count`,
-`size`, `bytes`, `page`, `limit`, `offset`, `attempt`, `level`); pass your own to the
-initializer. A key that names a secret or is not plain ASCII is never allowed.
+A log line has no grammar, so reading it name by name can always be bypassed, and rules that carry
+what a value is from one line to the next only multiply the cases. Free text is therefore read by
+one rule: **in free text, the first secret name hides everything after it in that text; this
+over-hides on purpose.** Not only a secret name is such a trigger: everything that the redactor
+cannot read with certainty is one too, and the text is cut there, to its end — every line after
+it, not only the rest of its line. A text without a trigger is written as it is, apart from the
+card numbers, IBANs, email addresses and tokens in it.
+
+Free text is a log message, a text/plain body, a string in JSON, a form value, an allowed query
+value and a multipart text part, each one on its own: a trigger in one string of a JSON body hides
+the rest of that string, and the next string is read again from its start.
 
 ```swift
+redactor.redact("GET /api/items status=200 method=GET duration_ms=12")
+// "GET /api/items status=200 method=GET duration_ms=12"
 redactor.redact("login user=bob status=401 password=hunter2")
 // "login user=[redacted]"
 SensitiveDataRedactor(allowedTextKeys: ["user"]).redact("login user=bob status=401 password=hunter2")
 // "login user=bob status=401 password=[redacted]"
+redactor.redact("Error: connection refused\nretrying in 5 s")
+// "Error: [redacted]"
 ```
 
-The rule in detail:
+The triggers:
 
-- **Separators** are `=` and `:`, runs such as `:=`, `==` and `=>`, characters whose Unicode
-  compatibility form is `=` or `:` (`＝`, `︓`, `≠`) and escaped forms (`%3D`, `&#61;`, `%u003D`).
-  Punctuation and math symbols outside ASCII (`≔`, `꞉`, `→`, `·`) separate too where they follow
-  other text, and so does a connector glued inside a word (`user‿bob`). Every dash is read as
-  `-`, which joins words. A `:` between two digits, as in `12:30`, is part of a time.
-- **A value after a key that is not allowed** is hidden: a quoted value (`"`, `'` or a backtick)
-  up to its closing quote, a JSON object or array whole, and anything else to the end of its
-  line, because where an unquoted value ends cannot be told.
-- **Values go on below their line.** A quote that does not close on its line hides the lines up
-  to the one where it closes, and that line whole. After a value hidden to the end of its line,
-  the lines indented more (YAML blocks, folded headers) and the line after a trailing `\` are
-  hidden, and so is the next line with text when nothing but punctuation followed the key, the
-  line ends open (`(`, `:`, `<key>`, `"""`) or it ends at a line break other than LF and CRLF.
-- **A secret name written as a value** names what follows it. A quoted value that holds a secret
-  name or a word that cannot be read — `name="password"`, `key='token'`, `id: "pin"`,
-  `header="Authorization"`, `label="API Key"` — hides the rest of its line after the closing
-  quote, and the next line with text when nothing follows it; so does a name without quotes after
-  a key that holds one (`name=password`). After a key that holds a name
-  (`name`, `key`, `field`, `label`, `type`, `header`, `param`, `id`, `k`, `n`) a name that is not
-  plain ASCII counts as secret too, as in JSON (`label="Пароль"`, `name='ⓟⓘⓝ'`), and so does JSON
-  there (`name=["pin"]`), also when the key is allowed; `path=` is the route of a request in a
-  log line and is not read this way. In XML and HTML the values of the
-  other attributes of its start tag go too (`<input path="…" name="password">`), and so do the
-  lines below up to the element's end tag while they hold markup or are indented more, or all of
-  them when an end tag of the element comes later in the text
-  (`<string name="api_key">…</string>`, `<entry key="db.password">`), and the rest of the line
-  where the element ends. An element that closes itself or holds nothing holds no value, so after
-  `<string name="password" />` or `<string name="password"></string>` the next line with text is
-  hidden unless it starts with markup. A secret name in the text of an element names the element
-  after it, as a property list writes a key and its value, on one line
-  (`<key>password</key><string>…</string>`) or on lines of their own, indented or not: after
-  `<key>password</key>` and then `<string/>` on a line of its own, the text after it or the next
-  line with text is hidden too. JSON after a key that holds a name hides what follows it to the
-  end of the line where it closes, also when it spans lines (`name=[`, `"pin"`, `] …`). A name
-  that is not secret (`name="status"`) keeps what follows it, and an end tag (`</key>`) names
-  nothing.
-- **A name inside a hidden value** names what follows it all the same. Each line is read twice:
-  the first reading hides values and stops at a value it hides to the end of the line, and the
-  second reads what the first hid without reading it, and the quoted values, for the names written
-  as values in them — quoted or not, held by a key, in markup — so a name hides the rest of its line
-  and the lines it leaves open wherever it is on the line. In
-  `Content-Disposition: form-data; name="pin"` the key `Content-Disposition` hides its value, and
-  the name in that value still hides what follows it. A secret name in a header of a multipart part
-  written to a log (after `Content-Disposition` or `form-data` on its line) hides the part's other
-  header lines up to the blank line after them, and then the part's value: up to the delimiter line
-  written before the header (`--boundary` or `--boundary--`), or, when none was, up to a blank line
-  or a line that starts with `--` after the value's first line, which is hidden whatever it is
-  (`-----BEGIN PRIVATE KEY-----`). The next part, under a name that is not secret, keeps its value.
-- **A secret name without a separator** hides the rest of its line: `password hunter2`,
+- **A key that is not allowed.** In `key=value`, `key: value`, `key = value` and `"key":"value"`
+  the text is read on only after a key that is plain ASCII and on
+  ``SensitiveDataRedactor/allowedTextKeys``. The default list holds keys that logs use for a
+  response status, a request method and route, a duration and a count (`status`, `method`, `path`,
+  `duration_ms`, `count`); pass your own to the initializer. A key that names a secret or is not
+  plain ASCII is never allowed. Any other key cuts the text at its value — `x=hunter2` as well as
+  `Error: …` — and so does a separator with no key before it, or a key on the line before its
+  separator.
+- **A separator written another way.** The separators are `=` and `:` and runs of them (`:=`,
+  `==`, `=>`). One written as a character whose compatibility form is `=` or `:` (`＝`, `︓`, `≠`),
+  escaped (`%3D`, `&#61;`, `%u003D`), or as punctuation or a math symbol outside ASCII where it
+  follows other text (`≔`, `꞉`, `→`, `·`, a connector glued inside a word as in `user‿bob`) cuts the
+  text there. Every dash is read as `-`, which joins words. A `:` between two digits, as in
+  `12:30`, is part of a time.
+- **A secret name without a separator** cuts the text after the name: `password hunter2`,
   `PIN 1234`. Words are read after their escapes are decoded (`p&#97;ssword`, `pass%77ord`), with
   punctuation inside them and a space, `|`, `,`, `;`, `&` or `?` between two of them read as a
-  separator (`pass~word`, `pass word`, `p|wd`), and one letter that has no ASCII form (`ɑ`, `ı`)
-  in a secret word read as any one letter or, between two letters, as none (`passꞏword`). A name
-  with two or more such letters is not read this way (see "What it does not find").
-- **When a word cannot be read, the rest of the line is hidden.** That is a word that mixes
-  scripts (`pаssword` with a Cyrillic `а`) or holds an invisible character other than a mark: a
-  format character such as a zero-width space or a soft hyphen, a filler such as U+3164 or
-  U+115F, an unassigned default-ignorable code point, or a control character such as `DEL`.
-  Such a character right before a word or a key belongs to it: `\u{202E}drowssap` cannot be
-  read, and `\u{200D}status=200` is not the allowed key `status`.
-- **JSON in a line** is parsed and redacted by the key rule for structured input; JSON that does
-  not parse hides the rest of the line and the lines below until its brackets close. **URLs**
-  with a scheme and `//` are written as ``SensitiveDataRedactor/redact(url:)`` writes them.
+  separator (`pass~word`, `pass word`, `p|wd`), and one letter that has no ASCII form (`ɑ`, `ı`) in
+  a secret word read as any one letter or, between two letters, as none (`passꞏword`). A name with
+  two or more such letters is not read this way (see "What it does not find").
+- **A name written as a value.** `name=`, `key=`, `label=` and the other keys that hold a name are
+  not allowed by default, so they cut the text at once: `name="password"`,
+  `<string name="api_key">`, `<entry key="db.password">` and `Content-Disposition: form-data;
+name="pin"`, also when the name is not secret. When the app allows such a key (`id`, `type`, …
+  but not `path`, the route of a request), a secret name after it, or one that is not plain ASCII,
+  cuts the text after the name, as in JSON (`type="Пароль"`), and so does JSON there. The text of an
+  element whose tag holds a name is read the same way (`<key>Şifre</key>`), and `<key>` is itself
+  the secret word `key`. In XML and HTML a trigger inside a start tag cuts the text at the tag's
+  first attribute value (`<input path="…" name="password">`).
+- **A word that cannot be read** cuts the text where it starts: a word that mixes scripts
+  (`pаssword` with a Cyrillic `а`) or holds an invisible character other than a mark — a format
+  character such as a zero-width space or a soft hyphen, a filler such as U+3164 or U+115F, an
+  unassigned default-ignorable code point, or a control character such as `DEL`. Such a character
+  right before a word or a key belongs to it: `\u{202E}drowssap` cannot be read, and
+  `\u{200D}status=200` is not the allowed key `status`.
+- **A quote or bracket that does not close** by the end of the text cuts it after the quote or
+  bracket: where its value ends cannot be told.
+- **JSON in the text** is parsed and redacted by the key rule for structured input, and its
+  members follow the rule for keys: the text is cut at the value of the first member that is not
+  allowed, or at the first value the key rule hides, whichever comes first. JSON that does not
+  parse, or is longer than 64 Ki scalars, cuts the text at its first bracket. **URLs** with a scheme
+  and `//` are written as ``SensitiveDataRedactor/redact(url:)`` writes them, and the text is read
+  on after them.
 
 ```swift
 redactor.redact("password hunter2")                     // "password [redacted]"
 redactor.redact("p\u{0430}ssword=hunter2")              // "pаssword=[redacted]"
 redactor.redact("login pa\u{115F}ssword hunter2")       // "login [redacted]"
-redactor.redact("password: 'abc\n  hunter2'")           // "password: '[redacted]\n[redacted]"
+redactor.redact("password: 'abc\n  hunter2'")           // "password: [redacted]"
 redactor.redact("| password | hunter2 |")               // "| password [redacted]"
-redactor.redact("field name=\"password\" hunter2")      // "field name=\"[redacted]\"[redacted]"
-redactor.redact(#"<string name="api_key">k-1</string>"#) // "<string name=\"[redacted]\"[redacted]"
+redactor.redact("field name=\"password\" hunter2")      // "field name=[redacted]"
+redactor.redact(#"<string name="api_key">k-1</string>"#) // "<string name=[redacted]"
 redactor.redact("<key>password</key>\n<string>k-1</string>")
-// "<key>[redacted]\n[redacted]</string>"
-redactor.redact("Content-Disposition: form-data; name=\"pin\"\r\n\r\n4831")
-// "Content-Disposition: [redacted]\r\n\r\n[redacted]"
+// "<key>[redacted]"
+redactor.redact("upload ok status=200\n--B\r\nContent-Disposition: form-data; name=\"pin\"\r\n\r\n4831\r\n--B--")
+// "upload ok status=200\n--B\r\nContent-Disposition: [redacted]"
+redactor.redact(#"{"status":200,"user":"bob"} done"#)   // "{\"status\":200,\"user\":[redacted]"
 redactor.redact("git clone https://bob:hunter2@github.com/x/y.git")
 // "git clone https://github.com/x/y.git"
 ```
+
+The scan reads the text once, left to right, and stops at the first trigger. It keeps a fixed
+number of positions — the cut, the key before the next separator, the quote and the outermost
+bracket that are open, the start tag it is in — however many keys or names the text holds, so
+nothing is carried from line to line and no line is read twice. The line breaks of the input are
+written as they are.
 
 The name of an email address may be written in any script: it runs over letters, marks and
 digits (`ayşe.yılmaz@gmail.com`, `bjørn.dæhlie@example.no`, `张伟@example.cn`), and the domain may
@@ -388,27 +387,25 @@ expressions, and a key is compared in time linear in its length.
 ### What it does not find
 
 It cannot find a secret that has no label or a label it does not know, such as a word in another
-language, or a value encoded as a whole that is shorter than 32 characters. In free text, where no
-`=` or `:` follows a name, it does not read a name written wholly in another script that only
-looks Latin (Greek `ΡΙΝ`), one disguised with two or more letters that have no ASCII form
-(`pɑsswoʀd hunter2` shows `hunter2`, and a URL path `/pɑsswoʀd/…` the segment after it) or
-written in them throughout (small capitals, enclosed letters), one spelled with digits and symbols
-(`p@ssword`, `passw0rd`), a name escaped as octal (`\163`), a value written before its name or
-glued to a flag (`-pSECRET`), a value after a dash that looks like `=` (`user゠bob`) or an arrow
-drawn as a symbol (`user⭢bob`), a name in another script as an element of an array of more than
-two (`["Şifre","…","…"]`), and a name and value in two different JSON objects or arrays. It does
-not find card numbers grouped with dots or
-underscores, glued to ASCII letters or written as a JSON floating-point number. XML in free text
-is not parsed: only a secret name or a word that cannot be read in it hides what follows, an
-attribute before the name on an earlier line of its start tag is not read, and the lines of an
-element that never ends are hidden only while they hold markup or are indented more. The value
-of an allowed key is shown, also when it is repeated (`status==…`), unless a secret name before
-it leaves its line open (`name=password`, then `value=…` on the next line).
+language, or a value encoded as a whole that is shorter than 32 characters. In free text, when no
+trigger comes before it and no `=` or `:` follows a name, it does not read a name written wholly in
+another script that only looks Latin (Greek `ΡΙΝ`), one disguised with two or more letters that have
+no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`, and a URL path `/pɑsswoʀd/…` the segment after
+it) or written in them throughout (small capitals, enclosed letters), one spelled with digits and
+symbols (`p@ssword`, `passw0rd`), a name escaped as octal (`\163`), a value written before its name
+or glued to a flag (`-pSECRET`), a value after a dash that looks like `=` (`user゠bob`) or an arrow
+drawn as a symbol (`user⭢bob`), a name in another script as an element of an array of more than two
+(`["Şifre","…","…"]`), and a name and value in two different JSON objects or arrays. It does not
+find card numbers grouped with dots or underscores, glued to ASCII letters or written as a JSON
+floating-point number. XML in free text is not parsed: its attributes are keys like any other, and
+the text of an element whose tag holds no name is read as words. The value of an allowed key is
+shown, also when it is repeated (`status==…`).
 
-Where it cannot tell, it hides more than it has to: everything after a key that is not allowed
-(`Error: connection refused` hides `connection refused`), the lines after a value that ends open,
-a whole word with an invisible character in it, and the headers and value of a multipart part
-written into text whose header names a secret, up to its delimiter.
+Where it cannot tell, it hides more than it has to, on purpose: everything after the first key that
+is not allowed (`Error: connection refused` hides `connection refused` and every line after it),
+after the first secret name, word it cannot read or quote left open, a whole JSON string after a
+trigger in JSON written into it, and a multipart body or a property list written into text from
+its first header or key.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
 `.public`; use the redactor for the values you do mark public, and for logs sent to your own
