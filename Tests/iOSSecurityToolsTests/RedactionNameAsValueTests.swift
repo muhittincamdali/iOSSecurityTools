@@ -160,7 +160,7 @@ struct RedactionNameAsValueTests {
         (#"{"label":"Password","value":"x","op":"add"}"#, #"{"label":"Password","value":"[redacted]","op":"add"}"#),
         (#"{"name":"Cookie","value":"a=b","comment":"x"}"#, #"{"name":"Cookie","value":"[redacted]","comment":"[redacted]"}"#),
         (#"{"msg":"Error: token expired","user":"bob"}"#, #"{"msg":"Error: [redacted]","user":"bob"}"#),
-        (#"{"query":"mutation","variables":"{\"password\":\"x\"}"}"#, #"{"query":"mutation","variables":"{\"password\":[redacted]"}"#),
+        (#"{"query":"mutation","variables":"{\"password\":\"x\"}"}"#, #"{"query":"mutation","variables":"{[redacted]"}"#),
     ])
     func jsonKeepsPlainMembers(input: String, expected: String) {
         #expect(redactor.redact(body: Data(input.utf8), contentType: "application/json") == expected)

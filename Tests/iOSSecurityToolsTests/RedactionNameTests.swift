@@ -62,7 +62,7 @@ struct RedactionNameTests {
 
     @Test("the inputs that got past the first fix after 2.0.0", arguments: [
         ("{\"otp\":\"123456\",\"cvv\":\"123\",\"ssn\":\"078-05-1120\",\"auth\":\"a\",\"key\":\"k\",\"signature\":\"s\"}",
-         "{\"otp\":[redacted]"),
+         "{[redacted]"),
         // In free text an unquoted value goes to the end of its line: `;`, `&` and spaces do not
         // end it, so the pairs after it are hidden with it.
         ("Cookie: session=x; sid=SECRET", "Cookie: [redacted]"),

@@ -44,19 +44,22 @@ struct PlainName {
     /// letter, and at the end; nil for a key, which has no such letters.
     private let gaps: [Bool]?
 
-    /// - Parameter maximumLength: Longer names are not read; nil reads any length.
+    /// - Parameter maximumLength: Longer names are not read; nil reads any length. A longer name
+    ///   is turned down before any of it is copied.
     init?(_ name: some Collection<Unicode.Scalar>, maximumLength: Int? = maximumKeyLength) {
+        if let maximumLength, name.count > maximumLength { return nil }
         var bytes: [UInt8] = []
+        bytes.reserveCapacity(name.count)
         for scalar in name {
             guard scalar.isASCII else { return nil }
             bytes.append(UInt8(scalar.value))
         }
-        self.init(bytes: bytes, maximumLength: maximumLength)
+        self.init(bytes: bytes, maximumLength: nil)
     }
 
     init?(bytes: some Collection<UInt8>, maximumLength: Int? = maximumKeyLength) {
-        let bytes = Array(bytes)
         if let maximumLength, bytes.count > maximumLength { return nil }
+        let bytes = Array(bytes)
         guard bytes.allSatisfy(ASCII.isNameCharacter) else { return nil }
         self.init(nameBytes: bytes, leftOutBefore: nil, leftOutAtEnd: false)
     }

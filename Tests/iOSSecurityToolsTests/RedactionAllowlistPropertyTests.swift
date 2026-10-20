@@ -97,8 +97,9 @@ struct RedactionAllowlistPropertyTests {
         for value in Self.keptValues {
             let json = "{\"\(name)\":\"\(value)\",\"list\":[{\"\(name)\":\"\(value)\"}]}"
             #expect(redactor.redact(body: Data(json.utf8), contentType: "application/json") == json)
-            #expect(allowing.redact("log \(json)") == "log \(json)")
-            #expect(redactor.redact("log \(json)") == "log {\"\(name)\":[redacted]" || Self.allowedFolds.contains(name.lowercased()))
+            // A key with a space is never allowed in free text, where a space ends a word.
+            #expect(allowing.redact("log \(json)") == "log \(json)" || name.contains(" "))
+            #expect(redactor.redact("log \(json)") == "log {[redacted]" || Self.allowedFolds.contains(name.lowercased()))
             let form = "a=1&\(encoded)=\(value)"
             #expect(redactor.redact(body: Data(form.utf8), contentType: "application/x-www-form-urlencoded") == form)
         }

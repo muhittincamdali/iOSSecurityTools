@@ -64,33 +64,6 @@ extension FreeTextScanner {
 
     private static let splittingBoundaries = ByteSet("|,;&?")
 
-    /// Reads the quoted key in the bytes `key` (`"…": value`) as the name of a JSON member is
-    /// read, in the ``Role/name`` role: its own words are not triggers, but a URL that is not
-    /// clean, a key written in it (`"user=bob":`), an escape, a word longer than ``longestWord``
-    /// and JSON cut the text where they start, as they would outside the quotes. A key of ASCII
-    /// letters, digits, `_`, `-`, `.` and spaces holds none of them and is not read again.
-    mutating func readQuotedKey(_ key: Range<Int>) {
-        let region = text.original(key)
-        let scalars = source[region]
-        if scalars.count <= Self.longestWord, scalars.allSatisfy({ $0.isASCII && ASCII.isNameCharacter(UInt8($0.value)) }) { return }
-        let keyScalars = Array(scalars)
-        var scanner = FreeTextScanner(
-            source: keyScalars, text: NormalizedText(keyScalars, compatibility: compatibility), redactor: redactor, compatibility: compatibility,
-            role: .name, nesting: nesting
-        )
-        scanner.run()
-        guard !scanner.hidesWholeText else {
-            hideWholeText()
-            return
-        }
-        let shift = region.lowerBound
-        let spans = scanner.spans.map { SensitiveDataRedactor.Span(start: $0.start + shift, end: $0.end + shift, kind: $0.kind, replacement: $0.replacement) }
-        for (index, inner) in scanner.regions.enumerated() {
-            record(spans: index == 0 ? spans : [], region: (inner.lowerBound + shift)..<(inner.upperBound + shift))
-        }
-        if let inner = scanner.cut { cut(atOffset: shift + inner) }
-    }
-
     /// The end of the word that starts at `start`. An HTML character reference (`&#97;`) and a
     /// `\u{…}` escape are part of a word, though `&`, `;` and `{` end words elsewhere.
     func wordEnd(from start: Int, to lineEnd: Int) -> Int {
