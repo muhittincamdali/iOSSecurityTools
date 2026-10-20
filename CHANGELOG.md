@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   differently is written as `?[redacted]`, and a URL that `URLComponents` cannot parse as
   `unparsedURL`. With `URLDetail.hostOnly` (the `urlDetail` argument of the initializer) only the
   scheme, host and port are written.
+- `SensitiveDataRedactor.maximumPathSegments` (64) and `.maximumQueryParameters` (128): a URL
+  with more path segments, or more query or path parameters, is recorded with its scheme, host
+  and port only, which bounds the work one URL can ask for.
 - `allowedTextKeys` and `defaultAllowedTextKeys`: the keys whose values free text keeps.
 - `SensitiveDataRedactor.Kinds.ibans` and `.longTokens`, both in `.all`: IBANs that pass the
   mod-97 check, shown as `•••• 3000`, and runs of 32 or more hexadecimal digits or base64 letters
@@ -41,9 +44,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   word.
 - A text that is a JSON object or array is read with a JSON parser checked against
   `JSONSerialization`: keys are compared after their escapes are decoded, at every depth, inside
-  arrays and for every repetition of a key, and the output stays valid JSON. The `value`, `val`
-  or `v` of an object whose `name`, `key`, `field`, `header`, `param`, `k` or `n` names a secret is
-  hidden too.
+  arrays and for every repetition of a key, and the output stays valid JSON.
+- Name and value pairs follow the key rule in every shape. In an object whose `name`, `key`,
+  `field`, `header`, `param`, `path`, `k` or `n` is a secret name or not plain ASCII, every
+  `value`, `val`, `values`, `content`, `data`, `secret` and `v` is hidden whole; a name that is an
+  array or object hides them too. Of a `path` every part between `/` counts, as JSON Patch
+  (RFC 6902) and SCIM PatchOp (RFC 7644) write it: `/user/password` and `/apiKeys/0` hide the
+  value, `/status` and `/tags/-` keep it. The second element of a two-element array whose first
+  is such a name is hidden whole (`[["Authorization","…"]]`, fetch headers, `URLSearchParams`
+  entries).
+- Email addresses are found with a name in any script, over letters, marks and digits
+  (`ayşe.yılmaz@…`, `bjørn.dæhlie@…`, `张伟@…`), and with an internationalized domain
+  (`王小明@例子.中国`); only the first letter of the name is written.
 - Redaction reads input within fixed limits, which bound the stack that hostile input can use:
   JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
   document a JSON string is in, and at most four documents (a JSON text, a URL, a body, a
@@ -52,7 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hidden whole; a body larger than 1 MiB is still omitted unread. Tests redact JSON quoted inside
   JSON strings, URLs in query values and runs of brackets on a thread with 512 KiB of stack in
   debug and release builds, and check with `swift test -c release` that a megabyte of text,
-  nested input or a body takes less than a second.
+  nested input or a body takes less than a second, also for ordinary shapes timed by the CPU time
+  of such a thread: JSON arrays of short or empty strings, a multipart body of 1,000 parts and
+  URLs of many segments. The default redactor and its folded keys are made once and shared, a
+  short plain word is not scanned, and a URL path segment is read in a single pass.
 - Free text keeps a value only after an allowed key: in `key=value`, `key: value` and
   `"key":"value"` every other value is hidden, so `user=bob` becomes `user=[redacted]`. A quoted
   value is hidden up to its closing quote, also on a later line; an unquoted one to the end of its
@@ -91,6 +106,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   URL path segments after a secret label. They are kept as tests, together with property tests
   that generate disguised secret names and random keys that are not allowed and check that no
   value shows, and tests that allowed keys and plain names keep their value.
+- An email address whose name holds a letter without an ASCII form kept the name up to that
+  letter: `{"email":"ayşe.yılmaz@gmail.com"}` gave `ayşe.yıl•••@gmail.com`,
+  `ılgın.öztürk@firma.com.tr` kept `ılgın`, also in form bodies and free text, and `张伟@example.cn`
+  was not found. The whole name is now masked.
+- A JSON Patch or SCIM PatchOp operation kept its value:
+  `[{"op":"replace","path":"/password","value":"…"}]` and
+  `{"Operations":[{"op":"replace","path":"password","value":"…"}]}` showed it in JSON,
+  `application/json-patch+json` and `application/scim+json` bodies and in log lines.
+- Redaction during this release made a redactor for every JSON array element and URL path
+  segment and read each segment three times, so a megabyte of a JSON array of one-letter
+  strings took 1.1-1.2 s in a release build and a URL of `/a/a/…` 4 s. The same input now
+  takes 0.2 s and under 0.05 s.
 - A multipart body in which Werkzeug 3.1.3 and PHP find another part after a `--boundary` that
   follows a bare LF or CR showed that part's value: in
   `…name="note"\r\n\r\nhi\n--B0und\r\nContent-Disposition: form-data; name="password"\r\n\r\n…`
