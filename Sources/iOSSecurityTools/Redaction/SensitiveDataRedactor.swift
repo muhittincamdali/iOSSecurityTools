@@ -38,11 +38,20 @@ import Foundation
 ///
 /// JSON is read with a JSON parser and used only when `JSONSerialization` reads the same tree:
 /// keys are compared after their escapes are decoded, at every depth, inside arrays and for every
-/// repetition of a key. The output stays valid JSON. URLs are read with `URLComponents` (see
-/// ``redact(url:)``), and ``redact(body:contentType:)`` reads JSON, form, multipart and plain-text
-/// bodies; a body it cannot parse completely is omitted, and so is one that a common server
-/// parser could split into fields differently, such as a multipart body with `--boundary` after
-/// a bare LF or a form with a `;`.
+/// repetition of a key. The output stays valid JSON.
+///
+/// Some objects carry a field's name in one member and its value in another: HTTP archives write
+/// `{"name":"X-Api-Key","value":…}`, JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write
+/// `{"op":"replace","path":"/password","value":…}`. When the `name`, `key`, `field`, `header`,
+/// `param` or `path` (its part after the last `/`) is a name whose value the key rule hides, the
+/// `value`, `values`, `content`, `data` or `secret` beside it is hidden whole. So is the second
+/// element of a two-element array such as `["Authorization", "…"]`, as fetch headers and
+/// `URLSearchParams` entries are written.
+///
+/// URLs are read with `URLComponents` (see ``redact(url:)``), and ``redact(body:contentType:)``
+/// reads JSON, form, multipart and plain-text bodies; a body it cannot parse completely is
+/// omitted, and so is one that a common server parser could split into fields differently, such
+/// as a multipart body with `--boundary` after a bare LF or a form with a `;`.
 ///
 /// ## Free text
 ///

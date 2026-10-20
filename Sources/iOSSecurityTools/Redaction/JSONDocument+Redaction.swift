@@ -4,10 +4,17 @@ extension JSONDocument {
     ///
     /// - The value of every member whose name hides it (see ``FieldName``), at any depth, inside
     ///   arrays and for every repetition of a name, becomes the string `"[redacted]"`, whatever its
-    ///   type. So does the `value`, `val` or `v` of an object whose `name`, `key`, `field`,
-    ///   `header`, `param`, `k` or `n` is such a name (`{"name":"X-Api-Key","value":…}`), and every
-    ///   element of an array after a string that names a secret or cannot be read
-    ///   (`["password","…"]`).
+    ///   type.
+    /// - **Name and value pairs.** In an object whose `name`, `key`, `field`, `header`, `param`,
+    ///   `path`, `k` or `n` is a string that hides a value by the same rule, every `value`, `val`,
+    ///   `values`, `content`, `data`, `secret` and `v` is hidden whole, as HTTP archives write
+    ///   headers (`{"name":"X-Api-Key","value":…}`). Of a `path`, the part after its last `/`
+    ///   is the name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it:
+    ///   `{"op":"replace","path":"/user/password","value":…}`. A name that is an array or an
+    ///   object cannot be read, so it hides the value too. The second element of a two-element
+    ///   array whose first is such a string is hidden whole (`[["Authorization","…"]]`, as fetch
+    ///   headers and `URLSearchParams` entries are written), and so is every element of an array
+    ///   after a string that names a secret or cannot be read (`["password","…"]`).
     /// - Names and strings are free text: one in which anything is found is written again, escaped,
     ///   with the free-text rule applied to its decoded text, which may hold JSON again. They are
     ///   read with the document's ``nesting`` and the objects and arrays around them, so JSON in
@@ -40,9 +47,10 @@ extension JSONDocument {
                 }
             }
         case .array(let elements):
+            let isHiddenPair = readsNames && elements.count == 2 && hidesValue(namedBy: elements[0])
             var hidesRest = false
-            for element in elements {
-                guard !hidesRest else {
+            for (index, element) in elements.enumerated() {
+                guard !hidesRest, !(isHiddenPair && index == 1) else {
                     spans.append(Self.hiding(element))
                     continue
                 }
@@ -60,20 +68,43 @@ extension JSONDocument {
         }
     }
 
-    private static let pairNameNames: Set<String> = ["name", "key", "field", "header", "param", "k", "n"]
-    private static let pairValueNames: Set<String> = ["value", "val", "v"]
+    private static let pairNameNames: Set<String> = ["name", "key", "field", "header", "param", "path", "k", "n"]
+    private static let pairValueNames: Set<String> = ["value", "val", "values", "content", "data", "secret", "v"]
+    private static let longestPairPart = (pairNameNames.union(pairValueNames)).map(\.count).max() ?? 0
 
-    /// Whether the object is a name and value pair, as HTTP archives write headers and
-    /// configurations write environment variables, whose name hides its value.
+    /// Whether the object is a name and value pair, as HTTP archives write headers, JSON Patch
+    /// and SCIM write operations and configurations write environment variables, whose name hides
+    /// its value: a name that hides a value by the key rule, or one that is an array or object.
     private func hidesPairValue(in members: [Member]) -> Bool {
         members.contains { member in
-            guard Self.isPairPart(text(of: member.name), Self.pairNameNames), case .string(let token) = member.value.value else { return false }
-            return FieldName.hidesValue(text(of: token))
+            let name = text(of: member.name)
+            guard Self.isPairPart(name, Self.pairNameNames) else { return false }
+            switch member.value.value {
+            case .string(let token):
+                let named = text(of: token)
+                return FieldName.hidesValue(Self.isPairPart(name, ["path"]) ? Self.lastPathSegment(named) : named[...])
+            case .object, .array: return true
+            case .number, .boolean, .null: return false
+            }
         }
     }
 
+    /// Whether a value names a field whose value is hidden: a string that is not plain ASCII or
+    /// names a secret.
+    private func hidesValue(namedBy node: Node) -> Bool {
+        guard case .string(let token) = node.value else { return false }
+        return FieldName.hidesValue(text(of: token))
+    }
+
+    /// The part of a JSON Pointer or SCIM path after its last `/`: `/user/password` names
+    /// `password`, and `password` itself.
+    private static func lastPathSegment(_ path: [Unicode.Scalar]) -> ArraySlice<Unicode.Scalar> {
+        guard let slash = path.lastIndex(of: "/") else { return path[...] }
+        return path[(slash + 1)...]
+    }
+
     private static func isPairPart(_ name: [Unicode.Scalar], _ names: Set<String>) -> Bool {
-        name.count <= 6 && names.contains(String(String.UnicodeScalarView(name)).lowercased())
+        name.count <= longestPairPart && names.contains(String(String.UnicodeScalarView(name)).lowercased())
     }
 
     /// Any value, quotes and brackets included, becomes the string `"[redacted]"`.
