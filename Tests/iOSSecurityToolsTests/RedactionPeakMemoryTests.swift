@@ -3,10 +3,13 @@ import Foundation
 import Testing
 import iOSSecurityTools
 
-/// The memory that redacting a megabyte takes: the text, its scalars and its scanning copy, the
-/// findings and the output, and nothing that grows with the number of names or keys in it. The
-/// twelfth review measured 583 MB for a start tag of a megabyte of attributes followed by 17
-/// secret names, which the free text of 2.1.0 kept once for every name.
+/// The memory that redacting a megabyte of free text or a body of the largest size read by default
+/// takes: the text, its scalars and its scanning copy, the findings and the output, and nothing
+/// that grows with the number of names or keys in it. The twelfth review measured 583 MB for a
+/// start tag of a megabyte of attributes followed by 17 secret names, which the free text of an
+/// earlier design kept once for every name; the thirteenth measured 36 MB for a megabyte word of
+/// backslashes and 67 MB for a form of a megabyte, before words were limited to 256 scalars and
+/// bodies to 256 KiB.
 @Suite("SensitiveDataRedactor peak memory", .serialized)
 struct RedactionPeakMemoryTests {
     static let limit = 16 * 1_048_576
@@ -25,7 +28,10 @@ struct RedactionPeakMemoryTests {
         TimedInput(testDescription: "lines of addresses", make: {
             RedactionTimeLimitTests.repeated("mail alice@example.com\n", to: RedactionTimeLimitTests.size)
         }, redact: redactor.redact),
-    ]
+    ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor)
+
+    /// Bodies just under ``SensitiveDataRedactor/defaultMaximumBodySize``.
+    static let bodySize = SensitiveDataRedactor.defaultMaximumBodySize - 144
 
     /// The bytes that malloc holds for the process.
     private static func allocatedBytes() -> Int {
@@ -65,7 +71,7 @@ struct RedactionPeakMemoryTests {
     #if os(macOS) || os(Linux)
     // Other tests allocate while they run beside this one, so the shapes are measured in a process
     // of their own, which runs nothing else and writes one line for each shape.
-    @Test("redacting a megabyte takes less than 16 MB more memory")
+    @Test("redacting a megabyte of text or a body of 256 KiB takes less than 16 MB more memory")
     func peak() async throws {
         let result = try await #require(processExitsWith: .success, observing: [\.standardOutputContent]) {
             for input in RedactionPeakMemoryTests.shapes {
@@ -83,12 +89,21 @@ struct RedactionPeakMemoryTests {
     #else
     // Without processes of their own, the shapes are measured beside the other tests, and the
     // fewest of ten runs is taken: their allocations can only add to it.
-    @Test("redacting a megabyte takes less than 16 MB more memory", arguments: shapes)
+    @Test("redacting a megabyte of text or a body of 256 KiB takes less than 16 MB more memory", arguments: shapes)
     func peak(input: TimedInput) {
         let bytes = Self.fewestBytes(input, attempts: 10)
         #expect(bytes < Self.limit, "\(input.testDescription): \(bytes / 1_048_576) MB")
     }
     #endif
+
+    @Test("every body shape is read, not omitted, at the default limit")
+    func bodiesAreRead() {
+        for input in ThirteenthReviewShapes.bodies(size: Self.bodySize, redactor: Self.redactor) {
+            let text = input.make()
+            #expect(text.utf8.count <= SensitiveDataRedactor.defaultMaximumBodySize, "\(input.testDescription)")
+            #expect(!input.redact(text).hasPrefix("[body omitted"), "\(input.testDescription)")
+        }
+    }
 
     @Test("the review's start tag of a megabyte of attributes hides the value after the names")
     func attributesHideTheValue() {
