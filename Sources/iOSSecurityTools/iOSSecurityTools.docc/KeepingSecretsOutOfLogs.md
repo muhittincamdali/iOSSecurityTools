@@ -61,14 +61,14 @@ rule.
 
 What it writes: the text around the findings, the names of fields, the values of plain names that
 are not secret in JSON, form and multipart bodies, free text up to its first trigger, the values of
-the keys on ``SensitiveDataRedactor/allowedTextKeys`` before it, URL hosts that are names of ASCII
-labels or addresses, the part headers a multipart part carries, masks that keep the last four
+the keys on ``SensitiveDataRedactor/allowedTextKeys`` before it, clean URLs before it with
+identifiers as `:id`, URL hosts that are names of ASCII labels or addresses, the part headers a multipart part carries, masks that keep the last four
 digits of a card number or an IBAN and the domain and first letter of an email address, and for a
 body it cannot parse or that is too large a note with its size and content type. What it never
 writes: the value of a field it reads as secret or cannot read, anything in free text after its
 first trigger — a key that is not allowed, a character outside the safe alphabet, an escape, a
-word longer than 256 characters, a secret name, a word it cannot read, a quote left open — a body
-it cannot parse completely, a URL host that is not an address, the name of a part header it does
+word longer than 256 characters, a secret name, a word it cannot read, a quote left open, a URL
+that is not clean — a body it cannot parse completely, a URL host that is not an address, the name of a part header it does
 not know, the other digits of a card number or an IBAN, and the rest of the name in an email
 address.
 
@@ -87,7 +87,8 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   first trigger is hidden, to the end of the text. Five rules set the triggers, and none of them
   keeps a list of variants: the first character outside a safe alphabet, any escape, a word
   longer than 256 characters, a key that is not on the allowlist in any of its shapes, and a
-  secret name with or without a separator. Over-hiding is by design. A value written with a
+  secret name with or without a separator. A URL is shown only when it is clean; any other URL
+  cuts the text where it starts. Over-hiding is by design. A value written with a
   separator, ASCII or not, is always hidden. The one limit applies only when no trigger comes
   before a secret: a name written without a separator in letters of the safe alphabet and
   disguised on purpose with two or more look-alike letters (`pɑsswoʀd hunter2`) is not guaranteed
@@ -231,8 +232,8 @@ The host is a key of the URL: it is written only when it is a name of ASCII lett
 `-` in labels separated by `.`, an IPv4 address or an IPv6 address in brackets, and the value
 detectors find nothing in it. Any other host — `password=hunter2` in `myapp://password=hunter2`,
 `h.example;password=hunter2`, a card number or a run of 32 hex digits as a label, a host in
-letters outside ASCII — is written as `[redacted]` after the scheme, with nothing after it, in a
-URL passed in, in a line and in a JSON string alike.
+letters outside ASCII — is written as `[redacted]` after the scheme, with nothing after it. In
+free text such a URL is not clean, so it cuts the text where it starts (see below).
 The user name, password and fragment are never written, whatever kinds the redactor looks for;
 without ``SensitiveDataRedactor/Kinds/secretFields`` only the value detectors run on the path and
 the query. With it, a query parameter keeps its value only when its name is plain ASCII and on
@@ -382,19 +383,15 @@ A word that mixes scripts (`pаssword` with a Cyrillic `а`) cuts the text where
 quote or bracket that does not close before the text ends, or before the text is cut, cuts it
 after the quote or bracket: where its value ends cannot be told.
 
-**URLs** with a scheme and `//` are written as ``SensitiveDataRedactor/redact(url:)`` writes them,
-host rule included, but a URL is not a safe place to read on from: what it ends with may name a
-value that the text after it holds. Its path parameters (`;`), query (`?`) and fragment (`#`) cut
-the text right after their mark unless every parameter in them is on
-``SensitiveDataRedactor/allowedQueryParameters``, has a value in the URL and does not name a secret
-as a value; with `page` allowed, `?page=2` keeps the text after the URL. A URL that ends in `=` or
-`:`, or whose last path segment — its host when it has no path — names a secret, cannot be read or
-is not plain ASCII, cuts the text after it (`/password hunter2`, `https://password hunter2`). A URL
-that `URLComponents` cannot read cuts the text where it starts; one whose host is not written cuts
-it after the scheme, unless the host is the whole rest of the URL and holds only names with values
-(`myapp://password=hunter2`); and one past the limits of segments or parameters cuts it after the
-host. Without a scheme, `?`, `;` and `&` are separators between words and the key rule reads the
-names after them.
+**URLs.** A URL in free text is shown only when it is clean — `scheme://host` and an optional
+path of ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or
+`\`), whose host and segments name no secret, followed by white space, a line break or
+punctuation that ends a sentence — and any other URL cuts the text where it starts;
+``SensitiveDataRedactor/allowedQueryParameters`` applies only to
+``SensitiveDataRedactor/redact(url:)``. A clean URL is written as `redact(url:)` writes it, so an
+identifier in its path becomes `:id`, and one longer than 256 characters cuts the text like any
+long word. Without a scheme, `?`, `;` and `&` are separators between words and the key rule reads
+the names after them.
 
 ```swift
 redactor.redact("user꞉ hunter2")                         // "user[redacted]"
@@ -415,10 +412,12 @@ redactor.redact("<key>password</key>\n<string>k-1</string>")
 redactor.redact("upload ok status=200\n--B\r\nContent-Disposition: form-data; name=\"pin\"\r\n\r\n4831\r\n--B--")
 // "upload ok status=200\n--B\r\nContent-Disposition: [redacted]"
 redactor.redact(#"{"status":200,"user":"bob"} done"#)   // "{\"status\":200,\"user\":[redacted]"
-redactor.redact("git clone https://bob:hunter2@github.com/x/y.git")
-// "git clone https://github.com/x/y.git"
-redactor.redact("connect myapp://password=hunter2 ok")   // "connect myapp://[redacted] ok"
-redactor.redact("see https://x.example/a?token= hunter2") // "see https://x.example/a?[redacted]"
+redactor.redact("git clone https://bob:hunter2@github.com/x/y.git") // "git clone [redacted]"
+redactor.redact("connect myapp://password=hunter2 ok")   // "connect [redacted]"
+redactor.redact("see https://x.example/a?token= hunter2") // "see [redacted]"
+redactor.redact("GET https://api.example.com/items 200") // "GET https://api.example.com/items 200"
+redactor.redact("GET https://api.example.com/users/12345678 200")
+// "GET https://api.example.com/users/:id 200"
 redactor.redact("user1:2345678 at 12:30")                 // "user1:[redacted]"
 ```
 
@@ -443,8 +442,8 @@ written another way (`é`, `𝐚`) does not. A finding that runs over the point 
 cut, such as a card number grouped with non-breaking spaces, is hidden whole with the rest of the
 text. An address after `:` shows no letter of its name, which may be the password of
 `user:password@host` (`user:•••@example.com`), a token whose last dot was cut off (`eyJ….eyJ…`) is
-still a token, and a finding that runs over the end of a URL in a line, as a card number after a
-query or a token whose dot ends the sentence, is hidden whole. Scanning and replacing take time
+still a token, and a finding that runs over the end of a clean URL in a line, as a card number
+that starts in its path or a token whose dot ends the sentence, is hidden whole. Scanning and replacing take time
 linear in the length of the text, without regular expressions, and a key is compared in time
 linear in its length.
 
@@ -454,8 +453,8 @@ It cannot find a secret that has no label or a label it does not know, such as a
 language, or a value encoded as a whole that is shorter than 32 characters. In free text, when no
 trigger comes before it and no `=` or `:` follows a name, it does not read a name written wholly in
 another script that only looks Latin (Greek `ΡΙΝ`), one disguised with two or more letters of the
-safe alphabet that have no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`, and a URL path
-`/pɑsswoʀd/…` the segment after it) or written in them throughout (small capitals), one written
+safe alphabet that have no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`, and in a URL passed
+to `redact(url:)` a path `/pɑsswoʀd/…` the segment after it) or written in them throughout (small capitals), one written
 with a space between its letters (`p a s s w o r d`), one spelled with digits and symbols
 (`p@ssword`, `passw0rd`), a value written before its name or glued to a flag (`-pSECRET`), a value
 after a flag or a name that is not on the list without a separator (`--user SECRET`), a name in
@@ -472,9 +471,9 @@ quote left open, after the first character outside the safe alphabet — an emoj
 currency sign or East Asian punctuation in a sentence (`Merhaba dünya 👋 bye` keeps only
 `Merhaba dünya `), a whole word with an escape in it, a word longer than 256 characters, the text of
 an element whose tag is not allowed (`Optional<String>(x)` keeps `Optional<String>`), a whole JSON
-string after a trigger in JSON written into it, a URL host in letters outside ASCII, everything
-after a URL's query, fragment or path parameters unless all of them are allowed and have values
-(`see https://x.example/a?q=1 ok` keeps `see https://x.example/a?`), and a
+string after a trigger in JSON written into it, everything from a URL that is not clean on —
+one with a query, a port, user info or a host in letters outside ASCII
+(`see https://x.example/a?q=1 ok` keeps `see `) — and a
 multipart body or a property list written into text from its first header or key.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
