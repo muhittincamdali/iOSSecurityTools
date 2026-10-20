@@ -16,6 +16,11 @@ struct FreeTextScanner {
         /// A hidden value in quotes (`"`, `'` or a backtick) did not close on its line; it goes on
         /// to the line where it closes, which is hidden whole.
         case openQuote(quote: UInt8, escaped: Bool, indent: Int)
+        /// A secret name was written in an element that is still open: the lines below that hold
+        /// markup or are indented more than `indent` are hidden up to the element's end (see
+        /// ``MarkupReader``). Other lines go on as `fallback`, what the name would leave open
+        /// outside markup.
+        indirect case markup(MarkupReader, indent: Int, fallback: Carry)
     }
 
     /// What kind of text is read.
@@ -54,6 +59,9 @@ struct FreeTextScanner {
     /// Whether the line before ended right after a word at a break other than LF and CRLF, so a
     /// separator at the start of this line may belong to that word.
     var lineFollowsBrokenWord = false
+    /// The byte of the last end tag of each element name, found the first time a secret name is
+    /// written in an element that goes on below its line (see ``MarkupReader``).
+    var lastEndTags: [[UInt8]: Int]?
 
     init(
         source: [Unicode.Scalar], text: NormalizedText, redactor: SensitiveDataRedactor, compatibility: CompatibilityText, role: Role = .text,

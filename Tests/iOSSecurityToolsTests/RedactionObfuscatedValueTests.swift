@@ -108,7 +108,7 @@ struct RedactionObfuscatedValueTests {
         ("password\u{000C}=hunter2", "password\n=[redacted]"),
         ("password=hunter2\u{2028}next", "password=[redacted]\n[redacted]"),
         ("p\u{0430}ssword\nS3CRETV", "[redacted]\n[redacted]"),
-        ("<key>p\u{0430}ssword</key>\n<string>S3CRETV</string>", "<[redacted]\n[redacted]"),
+        ("<key>p\u{0430}ssword</key>\n<string>S3CRETV</string>", "<[redacted]\n[redacted]</string>"),
     ])
     func lineBreaks(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

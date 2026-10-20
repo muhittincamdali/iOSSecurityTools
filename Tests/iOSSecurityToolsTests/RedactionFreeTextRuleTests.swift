@@ -122,10 +122,11 @@ struct RedactionFreeTextRuleTests {
 
     @Test("a secret name that ends its line, or markup after it, hides the next line too", arguments: [
         ("<password>\nhunter2\n</password>", "<password>\n[redacted]\n</password>"),
-        ("<key>password</key>\n<string>hunter2</string>", "<key>[redacted]\n[redacted]"),
+        // The element after a key is its value, up to its end tag.
+        ("<key>password</key>\n<string>hunter2</string>", "<key>[redacted]\n[redacted]</string>"),
         ("password\nhunter2", "password\n[redacted]"),
-        // A value that ends at a line break other than LF may go on below it.
-        ("<password>\u{2028}hunter2\u{2028}</password>", "<password>\n[redacted]\n[redacted]"),
+        // A value that ends at a line break other than LF may go on below it, up to the end tag.
+        ("<password>\u{2028}hunter2\u{2028}</password>", "<password>\n[redacted]\n</password>"),
     ])
     func secretNameBeforeNextLine(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

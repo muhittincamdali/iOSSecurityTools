@@ -68,6 +68,10 @@ extension FreeTextScanner {
             return
         }
         hide(contentStart..<text.offsets[escaped ? close - 1 : close])
+        guard !namesSecret(in: (open + 1)..<(escaped ? close - 1 : close)) else {
+            hideAfterQuotedName(open: open, close: close, lineEnd: lineEnd, quote: (quote, escaped))
+            return
+        }
         hideGluedText(after: close, lineEnd: lineEnd, quote: (quote, escaped))
     }
 
@@ -82,7 +86,23 @@ extension FreeTextScanner {
             return
         }
         hide((text.offsets[open] + 1)..<text.offsets[close])
+        guard !namesSecret(in: (open + 1)..<close) else {
+            hideAfterQuotedName(open: open, close: close, lineEnd: lineEnd, quote: (quote, false))
+            return
+        }
         hideGluedText(after: close, lineEnd: lineEnd, quote: (quote, false))
+    }
+
+    /// A quoted value that names a secret (`name="password" hunter2`, `<string name="api_key">`)
+    /// names what follows it, which is hidden (see ``hideAfterName(at:from:valueStart:lineEnd:)``).
+    /// Text glued to the closing quote means that quote may have opened another value, as after
+    /// any other quoted value (see ``hideGluedText(after:lineEnd:quote:)``).
+    private mutating func hideAfterQuotedName(open: Int, close: Int, lineEnd: Int, quote: (UInt8, Bool)) {
+        hideAfterName(at: open + 1, from: close + 1, valueStart: close + 1, lineEnd: lineEnd)
+        let next = close + 1
+        guard next < lineEnd, !text.isSpace(next), !Self.valueEnds.contains(text.bytes[next]) else { return }
+        if case .openQuote = carry { return }
+        carry = .openQuote(quote: quote.0, escaped: quote.1, indent: lineIndent)
     }
 
     /// A JSON object or array is hidden whole; one that does not parse, or is deeper than the

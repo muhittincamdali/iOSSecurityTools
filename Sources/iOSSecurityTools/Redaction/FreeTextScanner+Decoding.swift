@@ -43,6 +43,34 @@ extension FreeTextScanner {
         return mentionsSecret(scalars, text: NormalizedText(scalars, compatibility: compatibility), compatibility: compatibility)
     }
 
+    /// Whether a name written as a value (a quoted value, a JSON string) names a secret or cannot
+    /// be read: a word of it does (see ``mentionsSecret(_:compatibility:)``), its words mix scripts
+    /// (`рԝ d`, as a word that mixes them cannot be read), or its words, with their escapes
+    /// decoded, read as one name, as the words of a key are (`pass word`, `id_tok e n`,
+    /// `c v%2576`).
+    static func nameNamesSecret(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) -> Bool {
+        // One short plain word holds no secret word, alone or read with others.
+        guard !SensitiveDataRedactor.isQuietWord(scalars) else { return false }
+        let plainText = NormalizedText(scalars, compatibility: compatibility)
+        if mentionsSecret(scalars, text: plainText, compatibility: compatibility) { return true }
+        let hasEscapes = scalars.contains(where: EscapeDecoder.startsEscape)
+        let decoded = hasEscapes ? EscapeDecoder.decode(scalars).scalars : scalars
+        if ScriptMix.mixesScripts(decoded) { return true }
+        let text = hasEscapes ? NormalizedText(decoded, compatibility: compatibility) : plainText
+        var words: [Range<Int>] = []
+        var k = 0
+        while k < text.count {
+            guard !text.isSpace(k), !text.isLineTerminator(k) else {
+                k += 1
+                continue
+            }
+            let start = k
+            while k < text.count, !text.isSpace(k), !text.isLineTerminator(k) { k += 1 }
+            words.append(start..<k)
+        }
+        return LooseReading(text, words, source: decoded)?.secretEnd { _ in true } != nil
+    }
+
     /// ``mentionsSecret(_:compatibility:)`` on a scanning copy that is already made.
     static func mentionsSecret(_ scalars: [Unicode.Scalar], text: NormalizedText, compatibility: CompatibilityText) -> Bool {
         // Only words are read here, never JSON or URLs, so no nesting is entered.

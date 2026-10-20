@@ -55,7 +55,7 @@ struct RedactionEdgeCaseTests {
         ("<token>unclosed\nnext line", "<token>[redacted]\nnext line"),
         ("<password type=\"text\">hunter2</password>", "<password [redacted]"),
         ("<password >hunter2</password>", "<password [redacted]"),
-        ("<Token\n  kind=\"a>b\">abc</Token>", "<Token\n  [redacted]"),
+        ("<Token\n  kind=\"a>b\">abc</Token>", "<Token\n  [redacted]</Token>"),
         ("<ns:password>hunter2</ns:password>", "<ns:[redacted]"),
         ("<wsse:Password Type=\"PasswordText\">hunter2</wsse:Password>", "<wsse:[redacted]"),
         ("password%3Dhunter2", "password[redacted]"),

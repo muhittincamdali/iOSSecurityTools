@@ -24,7 +24,7 @@ extension FreeTextScanner {
         if let embedded = embeddedSeparator(in: start..<end, lineEnd: lineEnd) {
             pendingKey = nil
             // The whole word may be a disguised name (`pass‧word`) whose value is below it.
-            hideRestOfLine(from: embedded, valueStart: end, lineEnd: lineEnd)
+            hideAfterName(at: start, from: embedded, valueStart: end, lineEnd: lineEnd)
             return
         }
         let next = firstNonSpace(from: end, to: lineEnd)
@@ -47,12 +47,12 @@ extension FreeTextScanner {
                 return
             }
             let from = firstNonSpace(from: secretEnd, to: lineEnd)
-            hideRestOfLine(from: from, valueStart: from, lineEnd: lineEnd)
+            hideAfterName(at: start, from: from, valueStart: from, lineEnd: lineEnd)
         case .ambiguous:
-            hideRestOfLine(from: start, valueStart: end, lineEnd: lineEnd)
+            hideAfterName(at: start, from: start, valueStart: end, lineEnd: lineEnd)
         case .valueStart(let valueStart):
             let from = valueAfterName(from: valueStart, wordEnd: end, lineEnd: lineEnd)
-            hideRestOfLine(from: from, valueStart: from, lineEnd: lineEnd)
+            hideAfterName(at: start, from: from, valueStart: from, lineEnd: lineEnd)
         }
     }
 

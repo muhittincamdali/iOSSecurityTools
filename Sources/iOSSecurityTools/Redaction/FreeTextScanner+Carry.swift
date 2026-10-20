@@ -106,6 +106,8 @@ extension FreeTextScanner {
             hide(fromByte: textStart, toLineEnd: lineEnd)
             carry = carryAfterHiding(from: textStart, valueStart: textStart, lineEnd: lineEnd, indent: indent)
             return false
+        case .markup(let element, let indent, let fallback):
+            return continueElement(element, indent: indent, fallback: fallback, lineStart: lineStart, lineEnd: lineEnd)
         case .openQuote(let quote, let escaped, let indent):
             // The line where the value closes is hidden whole: what follows the closing quote
             // cannot be told from the rest of the value (`msg="a=` / `"b"…`).
