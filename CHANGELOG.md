@@ -44,6 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arrays and for every repetition of a key, and the output stays valid JSON. The `value`, `val`
   or `v` of an object whose `name`, `key`, `field`, `header`, `param`, `k` or `n` names a secret is
   hidden too.
+- Redaction reads input within fixed limits, which bound the stack that hostile input can use:
+  JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
+  document a JSON string is in, and at most four documents (a JSON text, a URL, a body, a
+  multipart part) are read one inside another. A JSON body deeper than that is omitted, and a
+  string or other text inside a document that holds such JSON, or a URL one level too many, is
+  hidden whole; a body larger than 1 MiB is still omitted unread. Tests redact JSON quoted inside
+  JSON strings, URLs in query values and runs of brackets on a thread with 512 KiB of stack in
+  debug and release builds, and check with `swift test -c release` that a megabyte of text,
+  nested input or a body takes less than a second.
 - Free text keeps a value only after an allowed key: in `key=value`, `key: value` and
   `"key":"value"` every other value is hidden, so `user=bob` becomes `user=[redacted]`. A quoted
   value is hidden up to its closing quote, also on a later line; an unquoted one to the end of its
