@@ -45,14 +45,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A text that is a JSON object or array is read with a JSON parser checked against
   `JSONSerialization`: keys are compared after their escapes are decoded, at every depth, inside
   arrays and for every repetition of a key, and the output stays valid JSON.
-- Name and value pairs follow the key rule in every shape. In an object whose `name`, `key`,
-  `field`, `header`, `param`, `path`, `k` or `n` is a secret name or not plain ASCII, every
-  `value`, `val`, `values`, `content`, `data`, `secret` and `v` is hidden whole; a name that is an
-  array or object hides them too. Of a `path` every part between `/` counts, as JSON Patch
-  (RFC 6902) and SCIM PatchOp (RFC 7644) write it: `/user/password` and `/apiKeys/0` hide the
-  value, `/status` and `/tags/-` keep it. The second element of a two-element array whose first
-  is such a name is hidden whole (`[["Authorization","…"]]`, fetch headers, `URLSearchParams`
-  entries).
+- Name and value pairs follow the key rule in every shape, and names are classified by default too:
+  non-ASCII names count as secret even when they are written as values. The value of a field that
+  holds a name (`name`, `key`, `field`, `label`, `type`, `header`, `param`, `path`, `id`, `k`, `n`,
+  or a field whose own name is not plain ASCII), the first element of a two-element array and a
+  quoted value after `name=`, `key=`, `label=` and the like in free text are read by the key rule:
+  anything but a plain-ASCII name without a secret word — `Şifre`, `ⓟⓘⓝ`, `🄿🄸🄽`, `🔑`, `Password:`,
+  an empty name, an array or object — names a secret. In an object with such a name, the values of
+  the other members are hidden whole, apart from the names of pairs and a JSON Patch or SCIM `op`;
+  `{"label":"Şifre","value":…}` hides the value on purpose. Of a `path` every part between `/`
+  counts, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it: `/user/password` and
+  `/apiKeys/0` hide the value, `/status` and `/tags/-` keep it. The second element of a two-element
+  array whose first is such a name is hidden whole (`[["Authorization","…"]]`, fetch headers,
+  `URLSearchParams` entries). One function makes this decision for JSON in a body, in a line, in a
+  JSON string, in a form value, in a URL query and in a multipart part, for two-element arrays, for
+  form fields, URL query parameters and multipart parts (`label=Password&value=…`), and for quoted
+  values and markup in free text.
 - Email addresses are found with a name in any script, over letters, marks and digits
   (`ayşe.yılmaz@…`, `bjørn.dæhlie@…`, `张伟@…`), and with an internationalized domain
   (`王小明@例子.中国`); only the first letter of the name is written.
@@ -130,6 +138,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outside the pair list, showed the value: `{"label":"Password","value":…}`,
   `{"type":"password","input":…}`, `{"variable":"API_KEY","value":…}`,
   `{"ParameterKey":"DbPassword","ParameterValue":…}` and `{"key":"pin","text":…}`.
+- A name written only in circled or squared letters (`ⓟⓘⓝ`, `🄿🄸🄽`, `ⒶⓅⒾ ⓀⒺⓎ`) as the value of a
+  JSON member did not hide the other members, on any path a JSON object takes: a JSON body, a
+  text/plain body, a log line, a JSON string, a form value, an allowed URL query and a multipart
+  part. Such a string had no letter or digit by its Unicode category, so it was not read as a
+  name; a symbol whose compatibility form is a letter or digit counts as one now. The 353 probes
+  of the tenth review are kept as tests (7 of them documented limitations), with a property test
+  that writes generated names in symbols, emoji, styled letters and other scripts beside a value
+  on every path, and one that plain names keep their values. The review's other findings are
+  fixed with them: `{"label":"Пароль","value":…}`, `label="パスワード" …`, `name=["pin"] …`,
+  `{"label":{"en":"Password"},…}`, `label=Password&value=…` in a form, the next line after
+  `<string name="password" />` and after an empty element that follows `<key>password</key>`, and
+  `passꞏword …`, a letter without an ASCII form put between two letters of a name.
 - The value detectors found less than 2.0.0 in two cases: a card number, JSON Web Token, bearer
   token or IBAN right after a letter written outside ASCII (`é4242…`, `𝐚eyJ…`), which the scanning
   copy reads as an ASCII letter that glues the value to a word, and an email address after `:`
