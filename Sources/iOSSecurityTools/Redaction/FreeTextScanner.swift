@@ -143,14 +143,6 @@ struct FreeTextScanner {
     /// Characters that end a key and a word without being part of either.
     static let boundaries = ByteSet(",;&?|([{<")
 
-    /// `=` and `:`; a `:` between two digits is part of a time (`12:30`).
-    func isSeparator(_ i: Int) -> Bool {
-        let byte = text.bytes[i]
-        if byte == UInt8(ascii: "=") { return true }
-        guard byte == UInt8(ascii: ":") else { return false }
-        return !(i > 0 && i + 1 < text.count && text.isDigit(i - 1) && text.isDigit(i + 1))
-    }
-
     /// Moves to byte `end`, noting the quotes and brackets on the way.
     mutating func advance(to end: Int) {
         if role == .text {
