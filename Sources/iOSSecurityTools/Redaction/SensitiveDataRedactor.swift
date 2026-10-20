@@ -302,8 +302,9 @@ public struct SensitiveDataRedactor: Sendable {
     ///   ``allowedTextKeys`` (`status`, `method`, `path`, `duration_ms` and `count` by default).
     ///   Any other key cuts the text at its value, and so does a separator with no key before it
     ///   or a key on the line before its separator. The separators are `=` and `:` and runs of
-    ///   them (`:=`, `==`, `=>`); a `:` between two digits, as in `12:30`, is part of a time. JSON
-    ///   in the text follows the same rule member by member, and the first string of a
+    ///   them (`:=`, `==`, `=>`); a `:` between two digits is part of a number only after a
+    ///   number, as in `12:30:45`, `2026-10-19T12:30` and `10.0.0.1:8080`, and after a key that
+    ///   ends in digits it is a separator (`user1:2345` cuts at `2345`). JSON in the text follows the same rule member by member, and the first string of a
     ///   two-element array is a key too (`["user","bob"]` cuts at `"bob"`). A tag is a key: the
     ///   text of an element whose tag is not allowed cuts the text (`<user>bob</user>` keeps
     ///   `<user>`), and a trigger inside a start tag cuts the text at its first attribute value.
