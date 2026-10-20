@@ -88,6 +88,39 @@ struct RedactionHeldNameTests {
         #expect(!output.contains(Self.secret), "\(output)")
     }
 
+    // Review probes 184–186 and 189 of the eleventh review: a name the redactor cannot read as
+    // text cannot be told not to be secret.
+    @Test("a multipart part that holds a name it cannot read as text hides the other parts", arguments: [
+        "Content-Transfer-Encoding: base64\r\n\r\nc2VjcmV0",
+        "Content-Transfer-Encoding: base64\r\n\r\nxZ5pZnJl",
+        "Content-Transfer-Encoding: quoted-printable\r\n\r\nPass=77ord",
+        "Content-Type: application/json\r\n\r\n\"password\"",
+        "Content-Type: text/plain; charset=iso-8859-9\r\n\r\nSifre",
+        "\r\n\u{FFFD}ifre",
+    ])
+    func unreadableMultipartName(headersAndContent: String) {
+        var label = Array("--B\r\nContent-Disposition: form-data; name=\"label\"\r\n\(headersAndContent)\r\n".utf8)
+        // The last case carries a byte that is not UTF-8 in place of the replacement character.
+        if let replacement = headersAndContent.range(of: "\u{FFFD}") {
+            let prefix = Array("--B\r\nContent-Disposition: form-data; name=\"label\"\r\n".utf8) + Array(headersAndContent[..<replacement.lowerBound].utf8)
+            label = prefix + [0xDE] + Array(headersAndContent[replacement.upperBound...].utf8) + Array("\r\n".utf8)
+        }
+        let body = label + Array("--B\r\nContent-Disposition: form-data; name=\"value\"\r\n\r\nS3CR3Tq\r\n--B--".utf8)
+        let output = redactor.redact(body: Data(body), contentType: "multipart/form-data; boundary=B")
+        #expect(!output.contains(Self.secret), "\(output)")
+    }
+
+    @Test("a multipart part that holds a plain name that is not secret, or names nothing, keeps the other parts")
+    func readableMultipartParts() {
+        let part = { (name: String, headers: String, value: String) in
+            "--B\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\(headers)\r\n\(value)\r\n"
+        }
+        let plain = part("label", "", "status") + part("value", "", "ok") + "--B--"
+        #expect(redactor.redact(body: Data(plain.utf8), contentType: "multipart/form-data; boundary=B").contains("\r\n\r\nok\r\n"))
+        let json = part("data", "Content-Type: application/json\r\n", #"{"a":1}"#) + part("note", "", "ok") + "--B--"
+        #expect(redactor.redact(body: Data(json.utf8), contentType: "multipart/form-data; boundary=B").contains("\r\n\r\nok\r\n"))
+    }
+
     @Test("in free text, a name after name=, key=, label= that is not plain ASCII hides what follows", arguments: [
         #"label="Пароль" S3CR3Tq"#, #"label="パスワード" S3CR3Tq"#, #"label="Şifre" S3CR3Tq"#, "key=\"🔑\" S3CR3Tq",
         "name='ⓟⓘⓝ' S3CR3Tq", #"name=["pin"] S3CR3Tq"#, #"<string name="Пароль">S3CR3Tq</string>"#, #"<field id="🔑">S3CR3Tq</field>"#,

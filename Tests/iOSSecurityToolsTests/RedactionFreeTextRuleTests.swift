@@ -46,6 +46,8 @@ struct RedactionFreeTextRuleTests {
         ("user\u{FF1A}bob", "user\u{FF1A}[redacted]"),
         ("user\u{FE13}bob", "user\u{FE13}[redacted]"),
         ("user\u{2260}bob", "user\u{2260}[redacted]"),
+        ("user\u{203F}bob", "user[redacted]"),
+        ("a \u{203F} b", "a \u{203F} b"),
         ("at 12:30:45 done", "at 12:30:45 done"),
         ("2026-10-19T12:30:45Z ok", "2026-10-19T12:30:45Z ok"),
         ("host:8080", "host:[redacted]"),
