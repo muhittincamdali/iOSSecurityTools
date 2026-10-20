@@ -252,8 +252,10 @@ public struct SensitiveDataRedactor: Sendable {
     /// - **Secret names without a separator.** A word that holds a secret name hides the rest of
     ///   its line: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`. Words are read
     ///   after their escapes are decoded, with punctuation inside them (`pass~word`) and a space or
-    ///   `|` between two of them (`pass word`) read as a separator, and a letter that has no ASCII
-    ///   form (`ɑ`, `ı`) read as any letter or, between two letters, as none (`passꞏword`).
+    ///   `|` between two of them (`pass word`) read as a separator, and one letter that has no
+    ///   ASCII form (`ɑ`, `ı`) read as any letter or, between two letters, as none (`passꞏword`).
+    ///   This is a best effort: a name disguised with two or more such letters and written
+    ///   without a separator (`pɑsswoʀd hunter2`) is not found.
     /// - **Ambiguity.** A word that mixes scripts (`pаssword` with a Cyrillic `а`) or holds an
     ///   invisible character other than a mark (`pa\u{115F}ssword`, a zero-width space, a control
     ///   character) hides itself and the rest of its line.

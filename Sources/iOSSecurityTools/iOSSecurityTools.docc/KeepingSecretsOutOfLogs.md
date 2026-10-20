@@ -69,6 +69,23 @@ a secret name written as a value, the rest of a line it cannot read, a body it c
 completely, the other digits of a card number or an IBAN, and the rest of the name in an email
 address.
 
+### What it is for: the threat model
+
+The redactor is built for one threat: a developer who logs a secret by accident, such as a
+request, a response, a header or user text written to a log, a trace, an analytics event or a
+file. It is not built to stop someone who writes a log line on purpose to get a secret past it.
+
+- **Structured input is default-safe.** JSON, form and multipart bodies with their part
+  headers, and URLs, are read with a parser, and XML and property lists in text by their tags. What the redactor does
+  not fully understand there is hidden: a key that is not plain ASCII, a name that cannot be
+  read, a body that does not parse.
+- **Free text is a best effort.** A log line has no grammar. A value written with a separator is
+  always hidden: `key=value`, `key: value`, a quoted name such as `name="password"`, and JSON.
+  A secret name written without a separator and disguised on purpose with two or more look-alike
+  letters (`pɑsswoʀd hunter2`) is not guaranteed to be found; <doc:KeepingSecretsOutOfLogs#What-it-does-not-find>
+  lists such limits. No table of look-alikes is kept to chase them, since none is ever complete.
+  Write logs with separators, or as structured data, and keep secrets out of them.
+
 ### Plain-ASCII keys are compared; any other key is redacted
 
 A secret name can be disguised with look-alike letters from other scripts, styled or full-width
@@ -128,7 +145,9 @@ element of a two-element array whose first is such a held name is hidden whole
 (`[["Authorization","…"]]`, as fetch headers and `URLSearchParams` entries are written), and so
 are the elements after `"password"` in `["password","…"]`. The fields of a form, the parameters of
 a URL query and the parts of a multipart body are read the same way: `label=Password&value=…`
-hides `value`.
+hides `value`. A multipart part that holds a name and cannot be read as plain UTF-8 text (in
+base64 or another transfer encoding, sent as JSON, in another charset or as a file) counts as
+naming a secret, as an array or object does in JSON.
 
 The cost is that a name in another script hides what is beside it, whatever it holds:
 `{"label":"Şifre","value":…}` hides the value on purpose, `{"name":"Ayşe","role":"admin"}` hides
@@ -205,20 +224,28 @@ redactor.redact(url: URL(string: "https://example.com" + String(repeating: "/a",
 // https://example.com
 ```
 
-### Limits keep hostile input from exhausting the stack
+### Limits keep hostile input from exhausting the stack and the time
 
 Strings are read as free text, and free text may hold JSON or a URL again, so a reader can find a
 document inside a document many times over. A single budget bounds that descent, and with it the
-stack that a log line or body from an attacker can use:
+stack and the time that a log line or body from an attacker can use:
 
 - A body larger than ``SensitiveDataRedactor/maximumBodySize`` (1 MiB) is omitted unread.
 - JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
   document a JSON string is in: JSON in a string inside one object may open 63 more.
 - At most four documents are read one inside another. A JSON text, a URL, a body and a multipart
   part each count: in a JSON body, JSON in a string is the second.
+- The documents found inside one input read at most four times its length, all together. The
+  input itself (the line, the body, the URL passed in) is read freely; each document found in it
+  (JSON in a line or a string, a URL in text, a multipart part) counts its length, and so does
+  each text read inside such a document. Each level of a document quoted in a document holds the
+  levels inside it, so a long text quoted in JSON three times in a body, or twice in a log line,
+  is read up to the budget and its innermost string is hidden; small documents nested four levels
+  deep fit, since escaping makes each level shorter than the one around it.
 
 JSON past a limit is not read. A body is omitted, and a string or other text inside a document
-that holds such JSON, or a URL one level too many, is hidden whole:
+that holds such JSON, or a URL one level too many, is hidden whole, and so is a text inside a
+found document that the reading budget no longer covers; a multipart part past it is omitted:
 
 ```swift
 let deep = String(repeating: "[", count: 65) + String(repeating: "]", count: 65)
@@ -234,9 +261,10 @@ that does not parse. The package's tests run every limit on a thread with 512 Ki
 default of a secondary thread, a GCD queue and a Swift concurrency task, and with
 `swift test -c release` they check that a megabyte of text, nested input or a body takes less than
 a second, also for ordinary shapes such as a JSON array of short strings, a multipart body of
-1,000 parts and URLs of many segments, timed by the CPU time of such a thread. The default
-redactor and its folded keys are made once and shared, never per array element or path segment,
-and each path segment is read in a single pass.
+1,000 parts, URLs of many segments and a megabyte of Turkish sentences or of `ı` quoted in JSON up
+to four times, timed by the CPU time of such a thread. The default redactor and its folded keys
+are made once and shared, never per array element or path segment, each path segment is read in
+a single pass, and each word is compared with each secret word in a single pass.
 
 ### Free text keeps a value only after an allowed key
 
@@ -260,7 +288,8 @@ The rule in detail:
 - **Separators** are `=` and `:`, runs such as `:=`, `==` and `=>`, characters whose Unicode
   compatibility form is `=` or `:` (`＝`, `︓`, `≠`) and escaped forms (`%3D`, `&#61;`, `%u003D`).
   Punctuation and math symbols outside ASCII (`≔`, `꞉`, `→`, `·`) separate too where they follow
-  other text. A `:` between two digits, as in `12:30`, is part of a time.
+  other text, and so does a connector glued inside a word (`user‿bob`). Every dash is read as
+  `-`, which joins words. A `:` between two digits, as in `12:30`, is part of a time.
 - **A value after a key that is not allowed** is hidden: a quoted value (`"`, `'` or a backtick)
   up to its closing quote, a JSON object or array whole, and anything else to the end of its
   line, because where an unquoted value ends cannot be told.
@@ -280,17 +309,22 @@ The rule in detail:
   other attributes of its start tag go too (`<input path="…" name="password">`), and so do the
   lines below up to the element's end tag while they hold markup or are indented more, or all of
   them when an end tag of the element comes later in the text
-  (`<string name="api_key">…</string>`, `<entry key="db.password">`). A start tag that closes
-  itself holds no value, so after `<string name="password" />` the next line with text is hidden
-  unless it starts with markup.
-  A secret name in the text of an element names the element after it, as a property list writes a
-  key and its value (`<key>password</key><string>…</string>`), also when that element is empty. A name that is not secret (`name="status"`) keeps
-  what follows it.
+  (`<string name="api_key">…</string>`, `<entry key="db.password">`), and the rest of the line
+  where the element ends. An element that closes itself or holds nothing holds no value, so after
+  `<string name="password" />` or `<string name="password"></string>` the next line with text is
+  hidden unless it starts with markup. A secret name in the text of an element names the element
+  after it, as a property list writes a key and its value, on one line
+  (`<key>password</key><string>…</string>`) or on lines of their own, indented or not: after
+  `<key>password</key>` and then `<string/>` on a line of its own, the text after it or the next
+  line with text is hidden too. JSON after a key that holds a name hides what follows it to the
+  end of the line where it closes, also when it spans lines (`name=[`, `"pin"`, `] …`). A name
+  that is not secret (`name="status"`) keeps what follows it.
 - **A secret name without a separator** hides the rest of its line: `password hunter2`,
   `PIN 1234`. Words are read after their escapes are decoded (`p&#97;ssword`, `pass%77ord`), with
   punctuation inside them and a space, `|`, `,`, `;`, `&` or `?` between two of them read as a
-  separator (`pass~word`, `pass word`, `p|wd`), and a letter that has no ASCII form (`ɑ`, `ı`)
-  read as any one letter or, between two letters, as none (`passꞏword`).
+  separator (`pass~word`, `pass word`, `p|wd`), and one letter that has no ASCII form (`ɑ`, `ı`)
+  in a secret word read as any one letter or, between two letters, as none (`passꞏword`). A name
+  with two or more such letters is not read this way (see "What it does not find").
 - **When a word cannot be read, the rest of the line is hidden.** That is a word that mixes
   scripts (`pаssword` with a Cyrillic `а`) or holds an invisible character other than a mark: a
   format character such as a zero-width space or a soft hyphen, a filler such as U+3164 or
@@ -337,10 +371,14 @@ expressions, and a key is compared in time linear in its length.
 It cannot find a secret that has no label or a label it does not know, such as a word in another
 language, or a value encoded as a whole that is shorter than 32 characters. In free text, where no
 `=` or `:` follows a name, it does not read a name written wholly in another script that only
-looks Latin (Greek `ΡΙΝ`), one written in letters that have no ASCII form throughout (small
-capitals, enclosed letters), one spelled with digits and symbols (`p@ssword`, `passw0rd`), a name
-escaped as octal (`\163`), a value written before its name or glued to a flag (`-pSECRET`), and a
-name and value in two different JSON objects. It does not find card numbers grouped with dots or
+looks Latin (Greek `ΡΙΝ`), one disguised with two or more letters that have no ASCII form
+(`pɑsswoʀd hunter2` shows `hunter2`, and a URL path `/pɑsswoʀd/…` the segment after it) or
+written in them throughout (small capitals, enclosed letters), one spelled with digits and symbols
+(`p@ssword`, `passw0rd`), a name escaped as octal (`\163`), a value written before its name or
+glued to a flag (`-pSECRET`), a value after a dash that looks like `=` (`user゠bob`) or an arrow
+drawn as a symbol (`user⭢bob`), a name in another script as an element of an array of more than
+two (`["Şifre","…","…"]`), and a name and value in two different JSON objects or arrays. It does
+not find card numbers grouped with dots or
 underscores, glued to ASCII letters or written as a JSON floating-point number. XML in free text
 is not parsed: only a secret name or a word that cannot be read in it hides what follows, an
 attribute before the name on an earlier line of its start tag is not read, and the lines of an
