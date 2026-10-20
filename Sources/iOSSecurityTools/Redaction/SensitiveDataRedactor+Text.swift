@@ -21,9 +21,32 @@ extension SensitiveDataRedactor {
         if scanner.hidesWholeText { return [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] }
         // JSON and URLs were redacted by their own rules; the detectors do not read them again.
         let regions = scanner.regions
-        let detectorText = regions.isEmpty || detectsInRegions ? text : NormalizedText(scalars, compatibility: compatibility, masked: regions)
         let folds = Self.lineSeparatorFolds(in: scalars, outside: regions)
-        return Self.merged(scanner.spans + detectorSpans(in: detectorText) + folds)
+        guard !regions.isEmpty, !detectsInRegions else { return Self.merged(scanner.spans + detectorSpans(in: text) + folds) }
+        let outside = detectorSpans(in: NormalizedText(scalars, compatibility: compatibility, masked: regions))
+        return Self.merged(scanner.spans + outside + Self.crossing(detectorSpans(in: text), regions) + folds)
+    }
+
+    /// The findings that run over the edge of a JSON or URL region, hidden whole. A URL ends
+    /// before the punctuation that ends a sentence, so `…?q=eyJ….eyJ….` keeps the dot of an
+    /// unsigned token outside it, and a card number may start in a query and go on after it:
+    /// neither the region nor the text outside it holds the finding, but the text as a whole does,
+    /// as a body or a string holding the same text would.
+    static func crossing(_ spans: [Span], _ regions: [Range<Int>]) -> [Span] {
+        // Regions do not overlap: the scanner records each after the one before.
+        let regions = regions.sorted { $0.lowerBound < $1.lowerBound }
+        return spans.compactMap { span in
+            var low = 0
+            var high = regions.count
+            while low < high {
+                let middle = (low + high) / 2
+                if regions[middle].lowerBound < span.end { low = middle + 1 } else { high = middle }
+            }
+            guard low > 0 else { return nil }
+            let last = regions[low - 1]
+            let crosses = last.lowerBound > span.start || (last.upperBound > span.start && span.end > last.upperBound)
+            return crosses ? Span(start: span.start, end: span.end, kind: span.kind, replacement: replacement) : nil
+        }
     }
 
     /// The longest text ``isQuietWord(_:)`` takes: the shortest card number has 13 digits, an

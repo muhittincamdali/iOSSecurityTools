@@ -143,7 +143,11 @@ extension NormalizedText {
                 guard nextIsSegment || segments == 2 else { break }
                 j += 1
             }
-            if segments >= 3, segmentLengths[0] >= 4, segmentLengths[1] >= 4 {
+            // A header and a payload that are both JSON (`eyJ….eyJ…`) are a token whose last dot was
+            // cut off, as a URL in a sentence loses it to the full stop after it.
+            let payload = i + segmentLengths[0] + 1
+            let isCutToken = segments == 2 && segmentLengths[1] >= 4 && bytes[payload..<(payload + 3)].elementsEqual(prefix)
+            if segments >= 3 || isCutToken, segmentLengths[0] >= 4, segmentLengths[1] >= 4 {
                 spans.append(span(i..<j, .jsonWebTokens, SensitiveDataRedactor.replacement))
                 i = j
             } else {
