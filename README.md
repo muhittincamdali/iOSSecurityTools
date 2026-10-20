@@ -48,10 +48,11 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   `.privacyShield()` covers views in the app switcher and during screen recording. The redactor
   compares plain-ASCII keys with its secret names and redacts any other key by default; JSON,
   form and multipart bodies are parsed, and unparsed bodies are omitted, as are bodies that a
-  server could split into fields differently.
+  server could split into fields differently. Free text is cut at its first trigger: a character
+  outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 416 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 443 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -287,31 +288,40 @@ letters, invisible characters and escapes can disguise a secret name. JSON, form
 bodies are read with a parser, and a body it cannot parse completely is omitted as
 `[body omitted: N bytes, <type>]`, and so is a body that a common server parser could split into
 fields differently, such as a multipart boundary after a bare line feed or a form with a `;`.
-A body over 1 MiB is omitted too, and JSON is read at most 64 objects and arrays deep and four
-documents one inside another, JSON in strings included, which bounds the stack that hostile input
-can use; a string that holds more is redacted whole.
+A body over 256 KiB is omitted too (`maximumBodySize`; an app may raise it, at a cost of up to
+about 60 bytes of memory for each byte of the body), and JSON is read at most 64 objects and arrays
+deep and four documents one inside another, JSON in strings included, which bounds the stack that
+hostile input can use; a string that holds more is redacted whole.
 The documents found inside one input read at most four times its length in all, which bounds
 the time it takes; text past that budget is redacted whole.
 A field named in one place and valued in another, as in `{"name":"X-Api-Key","value":…}`, a JSON
 Patch or SCIM operation on `/password` or `[["Authorization","…"]]`, has its value redacted whole
-when the name is secret or not plain ASCII. A URL with more than 64 path segments or 128
-parameters is recorded as its scheme and host only, and an email address shows only the first
-letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes `a•••@gmail.com`).
+when the name is secret or not plain ASCII. A URL host that is not a name of ASCII labels or an
+address, or that holds a card number or a token, is written as `scheme://[redacted]`, and a
+multipart part header name is written only when it is one a part carries. A URL with more than 64
+path segments or 128 parameters is recorded as its scheme and host only, and an email address
+shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes
+`a•••@gmail.com`).
 Non-ASCII names count as secret even when they are written as values: the value beside a field that
 holds a name (`name`, `label`, `type`, `id`, …) such as `Şifre`, `ⓟⓘⓝ` or `🔑` is redacted.
 In free text, the first secret name hides everything after it in that text; this over-hides on
-purpose. A key that is not allowed (any key but `status`, `method`, `path`, `duration_ms`, `count`
-and the keys you pass), a name written as a value such as `name="password"`, a word that cannot be
-read and a quote left open cut the text the same way, to its end and not only to the end of the
-line: `login user=bob status=401` becomes `login user=[redacted]`, and a multipart body or a
-property list written to a log is hidden from its first header or key. Redaction is a safety net,
-not a guarantee: it is built for secrets logged by accident. Structured input (JSON, forms,
-multipart bodies and their part headers, URLs) is default-safe, and what the redactor does not
-understand there is redacted. In free text, a name written without a separator and disguised with
-two or more look-alike letters (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing
-before it cuts the text. The
+purpose. Over-hiding is by design. Five rules set where the text is cut, and none keeps a list of
+variants: the first character outside a safe alphabet (letters, marks and digits of any script,
+the ASCII space, tab and line breaks, and printable ASCII), so a look-alike separator such as `꞉`
+or `→`, an emoji or a control character cuts it; any escape (`%3D`, `&colon;`, `\075`), which is
+never decoded; a word longer than 256 characters; a key that is not allowed (any key but
+`status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also as the first string
+of a two-element array or as the tag of an element; and a secret name, with or without a
+separator, also one written as a value such as `name="password"`. The text is cut to its end and
+not only to the end of the line: `login user=bob status=401` becomes `login user=[redacted]`, and
+a multipart body or a property list written to a log is hidden from its first header or key.
+Redaction is a safety net, not a guarantee: it is built for secrets logged by accident.
+Structured input (JSON, forms, multipart bodies and their part headers, URLs and their hosts) is
+default-safe, and what the redactor does not understand there is redacted. In free text, a name
+written without a separator and disguised with two or more look-alike letters
+(`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing before it cuts the text. The
 [logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-describes the rule for free text, what it costs and what it does not find.
+describes the rules for free text, what they cost and what they do not find.
 
 ### Bind an account to the device
 

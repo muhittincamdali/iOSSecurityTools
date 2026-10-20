@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a339e510432ce8a6f977dbe065c9973e904c97e9 status=reviewed -->
+<!-- i18n-source: README.md@b9cfbbfa12b6e3cc1809d549b867891faf7c2644 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -55,11 +55,13 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
   kaydı sırasında görünümleri örter. Maskeleyici yalnız düz ASCII anahtarları gizli adlarla
   karşılaştırır, diğer her anahtarı varsayılan olarak maskeler; JSON, form ve multipart
   gövdeleri ayrıştırılır; ayrıştırılamayan gövdeler ve bir sunucunun alanlara farklı
-  bölebileceği gövdeler atlanır.
+  bölebileceği gövdeler atlanır. Serbest metin ilk tetikleyicide kesilir: güvenli bir alfabenin
+  dışındaki bir karakter, bir kaçış dizisi, uzun bir kelime, izin verilmeyen bir anahtar ya da bir
+  gizli ad.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 416 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 443 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -298,33 +300,42 @@ ve multipart gövdeleri bir ayrıştırıcıyla okunur; tamamen ayrıştıramad�
 `[body omitted: N bytes, <type>]` olarak atlar. Yaygın bir sunucu ayrıştırıcısının alanlara
 farklı bölebileceği bir gövde de atlanır; örneğin tek başına bir satır sonundan sonra gelen
 multipart sınırı ya da `;` içeren bir form.
-1 MiB'tan büyük bir gövde de atlanır; JSON, dizelerin içindeki JSON da sayılarak en fazla 64 nesne
-ve dizi derinliğinde ve iç içe en fazla dört belge olarak okunur, böylece kötü niyetli bir girdinin
-kullanabileceği yığın sınırlı kalır; daha fazlasını içeren bir dize bütünüyle maskelenir.
+256 KiB'tan büyük bir gövde de atlanır (`maximumBodySize`; uygulama bu sınırı yükseltebilir, bunun
+bedeli gövdenin her baytı için en fazla yaklaşık 60 bayt bellektir); JSON, dizelerin içindeki JSON
+da sayılarak en fazla 64 nesne ve dizi derinliğinde ve iç içe en fazla dört belge olarak okunur,
+böylece kötü niyetli bir girdinin kullanabileceği yığın sınırlı kalır; daha fazlasını içeren bir
+dize bütünüyle maskelenir.
 Bir girdinin içinde bulunan belgeler toplamda en fazla girdinin dört katı uzunluğunda okunur; bu
 süreyi de sınırlar ve bu bütçenin ötesindeki metin bütünüyle maskelenir.
 Adı bir yerde, değeri başka bir yerde duran bir alanın — `{"name":"X-Api-Key","value":…}`,
 `/password` üzerinde bir JSON Patch ya da SCIM işlemi veya `[["Authorization","…"]]` — adı gizliyse
-ya da düz ASCII değilse değeri bütünüyle maskelenir. 64'ten fazla yol bölümü ya da 128'den fazla
-parametresi olan bir URL yalnız şeması ve host'u ile kaydedilir; bir e-posta adresinde, hangi yazı
-sisteminde olursa olsun, adın yalnız ilk harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com`
-olur).
+ya da düz ASCII değilse değeri bütünüyle maskelenir. ASCII etiketlerinden oluşan bir ad ya da bir
+adres olmayan veya bir kart numarası ya da token taşıyan bir URL host'u `scheme://[redacted]` olarak
+yazılır; bir multipart parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse
+yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan bir URL yalnız şeması ve
+host'u ile kaydedilir; bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk
+harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com` olur).
 ASCII dışı adlar, değer olarak yazıldıklarında da gizli sayılır: ad taşıyan bir alanın (`name`,
 `label`, `type`, `id`, …) yanındaki değer, ad `Şifre`, `ⓟⓘⓝ` ya da `🔑` gibiyse maskelenir.
 Serbest metinde ilk gizli ad, o metinde kendisinden sonra gelen her şeyi gizler; bu bilerek fazla
-gizler. İzin verilmeyen bir anahtar (`status`, `method`, `path`, `duration_ms`, `count` ve sizin
-verdiğiniz anahtarlar dışındaki her anahtar), `name="password"` gibi değer olarak yazılmış bir ad,
-okunamayan bir kelime ve açık kalan bir tırnak da metni aynı biçimde keser; yalnız satırın sonuna
-kadar değil, metnin sonuna kadar: `login user=bob status=401`, `login user=[redacted]` olur; loga
-yazılan bir multipart gövdesi ya da property list ilk başlığından ya da anahtarından itibaren
-gizlenir. Maskeleme bir güvenlik ağıdır, garanti değildir: yanlışlıkla günlüğe yazılan sırlar için
-tasarlanmıştır. Yapılandırılmış girdi (JSON, form, multipart gövdeleri ve parça başlıkları, URL)
-varsayılan olarak güvenlidir; maskeleyici orada anlamadığını maskeler. Serbest metinde ayraçsız
-yazılmış ve iki ya da daha fazla benzer harfle gizlenmiş bir adın (`pɑsswoʀd hunter2`) bulunması,
-ondan önce metni kesen bir şey yoksa garanti değildir. Serbest metin kuralını, bedelini ve neleri
-bulmadığını
-[günlük kılavuzu](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-anlatır.
+gizler. Fazla gizleme tasarımdır. Metnin nerede kesileceğini beş kural belirler ve hiçbiri bir
+varyant listesi tutmaz: güvenli bir alfabenin (her yazı sisteminin harfleri, işaretleri ve
+rakamları, ASCII boşluk, sekme ve satır sonları ile yazdırılabilir ASCII) dışındaki ilk karakter,
+yani `꞉` ya da `→` gibi benzer görünen bir ayraç, bir emoji ya da bir kontrol karakteri metni
+keser; hiçbir zaman çözülmeyen her kaçış dizisi (`%3D`, `&colon;`, `\075`); 256 karakterden uzun
+bir kelime; izin verilmeyen bir anahtar (`status`, `method`, `path`, `duration_ms`, `count` ve
+sizin verdiğiniz anahtarlar dışındaki her anahtar), iki elemanlı bir dizinin ilk dizesi ya da bir
+elemanın etiketi olarak da; ve ayraçlı ya da ayraçsız, `name="password"` gibi değer olarak yazılmış
+olanı da dahil bir gizli ad. Metin yalnız satırın sonuna kadar değil, sonuna kadar kesilir:
+`login user=bob status=401`, `login user=[redacted]` olur; log'a yazılmış bir multipart gövdesi ya
+da property list ilk başlığından ya da anahtarından itibaren gizlenir. Maskeleme bir güvenlik
+ağıdır, garanti değildir: yanlışlıkla loglanan sırlar için tasarlanmıştır. Yapılandırılmış girdi
+(JSON, formlar, multipart gövdeleri ve parça başlıkları, URL'ler ve host'ları) varsayılan olarak
+güvenlidir; maskeleyicinin orada anlamadığı şey maskelenir. Serbest metinde ayraç olmadan yazılmış
+ve iki ya da daha fazla benzer harfle gizlenmiş bir ad (`pɑsswoʀd hunter2`), önünde metni kesen bir
+şey yoksa bulunacağı garanti edilmez.
+[Loglama rehberi](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+serbest metin kurallarını, bedellerini ve neleri bulmadıklarını anlatır.
 
 ### Bir hesabı cihaza bağlama
 

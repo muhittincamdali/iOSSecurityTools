@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a339e510432ce8a6f977dbe065c9973e904c97e9 status=reviewed -->
+<!-- i18n-source: README.md@b9cfbbfa12b6e3cc1809d549b867891faf7c2644 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -55,11 +55,13 @@ paquete no tiene dependencias.
   durante la grabación de pantalla. El redactor compara con sus nombres secretos solo las claves
   en ASCII simple y oculta por defecto cualquier otra clave; los cuerpos JSON, de formulario y
   multipart se analizan, y se omiten los que no se pueden analizar y los que un servidor
-  podría dividir en campos de otra forma.
+  podría dividir en campos de otra forma. El texto libre se corta en su primer disparador: un
+  carácter fuera de un alfabeto seguro, una secuencia de escape, una palabra larga, una clave no
+  permitida o un nombre secreto.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  416 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  443 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -297,34 +299,44 @@ nombre secreto. Los cuerpos JSON, de formulario y multipart se leen con un anali
 que no puede analizar por completo se omite como `[body omitted: N bytes, <type>]`, igual que
 un cuerpo que un analizador de servidor habitual podría dividir en campos de otra forma, como un
 límite multipart tras un salto de línea suelto o un formulario con `;`.
-También se omite un cuerpo de más de 1 MiB, y el JSON se lee hasta 64 niveles de objetos y arrays y
-hasta cuatro documentos uno dentro de otro, contando el JSON dentro de cadenas, lo que limita la
-pila que puede ocupar una entrada hostil; una cadena que contiene más se oculta entera.
+También se omite un cuerpo de más de 256 KiB (`maximumBodySize`; una app puede subir el límite, con
+un coste de hasta unos 60 bytes de memoria por cada byte del cuerpo), y el JSON se lee hasta 64
+niveles de objetos y arrays y hasta cuatro documentos uno dentro de otro, contando el JSON dentro
+de cadenas, lo que limita la pila que puede ocupar una entrada hostil; una cadena que contiene más
+se oculta entera.
 Los documentos encontrados dentro de una entrada leen en total como máximo cuatro veces su
 longitud, lo que limita el tiempo; el texto más allá de ese presupuesto se oculta entero.
 Un campo cuyo nombre está en un sitio y su valor en otro, como en `{"name":"X-Api-Key","value":…}`,
 en una operación JSON Patch o SCIM sobre `/password` o en `[["Authorization","…"]]`, se oculta con
-todo su valor cuando el nombre es secreto o no es ASCII simple. Una URL con más de 64 segmentos de
-ruta o 128 parámetros se registra solo con su esquema y su host, y de una dirección de correo solo
-se muestra la primera letra del nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser
-`a•••@gmail.com`).
+todo su valor cuando el nombre es secreto o no es ASCII simple. Un host de URL que no es un nombre
+de etiquetas ASCII ni una dirección, o que lleva un número de tarjeta o un token, se escribe como
+`scheme://[redacted]`, y el nombre de una cabecera de parte multipart solo se escribe cuando es una
+de las que lleva una parte. Una URL con más de 64 segmentos de ruta o 128 parámetros se registra
+solo con su esquema y su host, y de una dirección de correo solo se muestra la primera letra del
+nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser `a•••@gmail.com`).
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
 `Şifre`, `ⓟⓘⓝ` o `🔑`.
 En texto libre, el primer nombre secreto oculta todo lo que le sigue en ese texto; esto oculta de
-más a propósito. Una clave que no está permitida (cualquiera salvo `status`, `method`, `path`,
-`duration_ms`, `count` y las claves que usted pase), un nombre escrito como valor como
-`name="password"`, una palabra que no se puede leer y unas comillas que quedan abiertas cortan el
-texto del mismo modo, hasta su final y no solo hasta el final de la línea: `login user=bob
-status=401` queda como `login user=[redacted]`, y un cuerpo multipart o una property list escritos
-en un log se ocultan desde su primera cabecera o clave. La ocultación es una red de seguridad, no
-una garantía: está hecha para secretos registrados por accidente. La entrada estructurada (JSON,
-formularios, cuerpos multipart con las cabeceras de sus partes, URL) es segura por defecto, y lo
-que el redactor no entiende allí se oculta. En texto libre no se garantiza encontrar un nombre
-escrito sin separador y disfrazado con dos o más letras parecidas (`pɑsswoʀd hunter2`) cuando nada
-antes de él corta el texto. La
+más a propósito. Ocultar de más es una decisión de diseño. Cinco reglas fijan dónde se corta el
+texto, y ninguna guarda una lista de variantes: el primer carácter fuera de un alfabeto seguro
+(letras, marcas y dígitos de cualquier escritura, el espacio ASCII, el tabulador y los saltos de
+línea, y el ASCII imprimible), de modo que un separador parecido como `꞉` o `→`, un emoji o un
+carácter de control lo cortan; cualquier secuencia de escape (`%3D`, `&colon;`, `\075`), que nunca
+se decodifica; una palabra de más de 256 caracteres; una clave que no está permitida (cualquiera
+salvo `status`, `method`, `path`, `duration_ms`, `count` y las claves que usted pase), también como
+primera cadena de un array de dos elementos o como etiqueta de un elemento; y un nombre secreto,
+con o sin separador, también escrito como valor como `name="password"`. El texto se corta hasta su
+final y no solo hasta el final de la línea: `login user=bob status=401` queda como
+`login user=[redacted]`, y un cuerpo multipart o una property list escritos en un log se ocultan
+desde su primera cabecera o clave. La ocultación es una red de seguridad, no una garantía: está
+hecha para secretos registrados por accidente. La entrada estructurada (JSON, formularios, cuerpos
+multipart con las cabeceras de sus partes, URL con sus hosts) es segura por defecto, y lo que el
+redactor no entiende allí se oculta. En texto libre no se garantiza encontrar un nombre escrito sin
+separador y disfrazado con dos o más letras parecidas (`pɑsswoʀd hunter2`) cuando nada antes de él
+corta el texto. La
 [guía de registros](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-describe la regla para texto libre, lo que cuesta y lo que no encuentra.
+describe las reglas para texto libre, lo que cuestan y lo que no encuentran.
 
 ### Vincular una cuenta al dispositivo
 

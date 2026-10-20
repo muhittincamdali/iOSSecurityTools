@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a339e510432ce8a6f977dbe065c9973e904c97e9 status=reviewed -->
+<!-- i18n-source: README.md@b9cfbbfa12b6e3cc1809d549b867891faf7c2644 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -54,11 +54,13 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
   Bildschirmaufnahme. Der Redactor vergleicht nur reine ASCII-Schlüssel mit seinen geheimen
   Namen und schwärzt jeden anderen Schlüssel standardmäßig; JSON-, Formular- und
   Multipart-Bodys werden geparst, nicht parsbare Bodys werden ausgelassen, ebenso Bodys, die
-  ein Server anders in Felder aufteilen könnte.
+  ein Server anders in Felder aufteilen könnte. Freier Text wird beim ersten Auslöser
+  abgeschnitten: einem Zeichen außerhalb eines sicheren Alphabets, einer Escape-Sequenz, einem
+  langen Wort, einem nicht erlaubten Schlüssel oder einem geheimen Namen.
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  416 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  443 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -298,34 +300,45 @@ mit einem Parser gelesen; einen Body, den es nicht vollständig parsen kann, lä
 `[body omitted: N bytes, <type>]` aus, ebenso einen Body, den ein verbreiteter Server-Parser
 anders in Felder aufteilen könnte, etwa mit einer Multipart-Grenze nach einem einzelnen
 Zeilenvorschub oder als Formular mit `;`.
-Ein Body über 1 MiB wird ebenfalls ausgelassen, und JSON wird höchstens 64 Objekte und Arrays tief
-und vier Dokumente ineinander gelesen, JSON in Strings mitgezählt, was den Stack begrenzt, den
-feindliche Eingaben belegen können; ein String, der mehr enthält, wird ganz geschwärzt.
+Ein Body über 256 KiB wird ebenfalls ausgelassen (`maximumBodySize`; eine App kann die Grenze
+anheben, was bis zu etwa 60 Byte Speicher für jedes Byte des Bodys kostet), und JSON wird höchstens
+64 Objekte und Arrays tief und vier Dokumente ineinander gelesen, JSON in Strings mitgezählt, was
+den Stack begrenzt, den feindliche Eingaben belegen können; ein String, der mehr enthält, wird
+ganz geschwärzt.
 Die in einer Eingabe gefundenen Dokumente lesen zusammen höchstens das Vierfache ihrer Länge, was
 die Laufzeit begrenzt; Text jenseits dieses Budgets wird ganz geschwärzt.
 Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wie in
 `{"name":"X-Api-Key","value":…}`, in einer JSON-Patch- oder SCIM-Operation auf `/password` oder in
 `[["Authorization","…"]]`, wird mit seinem ganzen Wert geschwärzt, wenn der Name geheim oder kein
-reines ASCII ist. Eine URL mit mehr als 64 Pfadsegmenten oder 128 Parametern wird nur mit Schema
-und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in jeder Schrift nur den ersten Buchstaben
-ihres Namens (`ayşe.yılmaz@gmail.com` wird zu `a•••@gmail.com`).
+reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse ist oder eine
+Kartennummer oder ein Token enthält, wird als `scheme://[redacted]` geschrieben, und der Name eines
+Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Eine URL mit mehr als 64 Pfadsegmenten
+oder 128 Parametern wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
+jeder Schrift nur den ersten Buchstaben ihres Namens (`ayşe.yılmaz@gmail.com` wird zu
+`a•••@gmail.com`).
 Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert
 geschrieben sind: Der Wert neben einem Feld, das einen Namen trägt (`name`, `label`, `type`, `id`,
 …), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt.
 In freiem Text verbirgt der erste geheime Name alles, was ihm in diesem Text folgt; das verbirgt
-absichtlich mehr als nötig. Ein Schlüssel, der nicht erlaubt ist (jeder außer `status`, `method`,
-`path`, `duration_ms`, `count` und den Schlüsseln, die Sie übergeben), ein als Wert geschriebener
-Name wie `name="password"`, ein Wort, das sich nicht lesen lässt, und ein offen gebliebenes
-Anführungszeichen schneiden den Text genauso ab, bis zu seinem Ende und nicht nur bis zum Ende der
-Zeile: Aus `login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body oder
-eine Property List im Log wird ab dem ersten Header oder Schlüssel verborgen. Schwärzen ist ein
-Sicherheitsnetz, keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden.
-Strukturierte Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs) sind
+absichtlich mehr als nötig. Zu viel zu verbergen ist so gewollt. Fünf Regeln legen fest, wo der
+Text abgeschnitten wird, und keine führt eine Liste von Varianten: das erste Zeichen außerhalb
+eines sicheren Alphabets (Buchstaben, Zeichen und Ziffern jeder Schrift, das ASCII-Leerzeichen,
+Tabulator und Zeilenumbrüche sowie druckbares ASCII), also ein ähnlich aussehendes Trennzeichen wie
+`꞉` oder `→`, ein Emoji oder ein Steuerzeichen; jede Escape-Sequenz (`%3D`, `&colon;`, `\075`), die
+nie dekodiert wird; ein Wort mit mehr als 256 Zeichen; ein Schlüssel, der nicht erlaubt ist (jeder
+außer `status`, `method`, `path`, `duration_ms`, `count` und den Schlüsseln, die Sie übergeben),
+auch als erster String eines Arrays mit zwei Elementen oder als Tag eines Elements; und ein
+geheimer Name, mit oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Der
+Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
+`login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body oder eine Property
+List im Log wird ab dem ersten Header oder Schlüssel verborgen. Schwärzen ist ein Sicherheitsnetz,
+keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden. Strukturierte
+Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs mit ihren Hosts) sind
 standardmäßig sicher; was der Redactor dort nicht versteht, wird geschwärzt. In freiem Text wird
 ein Name ohne Trennzeichen, der mit zwei oder mehr ähnlich aussehenden Buchstaben getarnt ist
 (`pɑsswoʀd hunter2`), nicht garantiert gefunden, wenn nichts davor den Text abschneidet. Der
 [Logging-Leitfaden](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-beschreibt die Regel für freien Text, ihren Preis und was sie nicht findet.
+beschreibt die Regeln für freien Text, ihren Preis und was sie nicht finden.
 
 ### Ein Konto an das Gerät binden
 

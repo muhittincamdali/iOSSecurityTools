@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@a339e510432ce8a6f977dbe065c9973e904c97e9 status=reviewed -->
+<!-- i18n-source: README.md@b9cfbbfa12b6e3cc1809d549b867891faf7c2644 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -56,11 +56,13 @@ dépendance.
   et pendant l’enregistrement de l’écran. Le masqueur ne compare à ses noms secrets que les clés
   en ASCII simple et masque par défaut toute autre clé ; les corps JSON, de formulaire et
   multipart sont analysés, et les corps non analysables sont omis, comme ceux qu’un serveur
-  pourrait découper autrement en champs.
+  pourrait découper autrement en champs. Le texte libre est coupé à son premier déclencheur : un
+  caractère hors d’un alphabet sûr, une séquence d’échappement, un mot long, une clé non
+  autorisée ou un nom secret.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  416 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  443 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -299,34 +301,45 @@ analyseur ; un corps qu’il ne peut pas analyser entièrement est omis sous la 
 `[body omitted: N bytes, <type>]`, de même qu’un corps qu’un analyseur de serveur courant
 pourrait découper autrement en champs, comme une limite multipart après un saut de ligne seul
 ou un formulaire contenant `;`.
-Un corps de plus de 1 Mio est omis lui aussi, et le JSON est lu sur 64 niveaux d’objets et de
-tableaux au plus et sur quatre documents imbriqués au plus, JSON dans les chaînes compris, ce qui
-borne la pile qu’une entrée hostile peut occuper ; une chaîne qui en contient davantage est masquée
-en entier. Les documents trouvés dans une entrée lisent en tout au plus quatre fois sa longueur,
-ce qui borne le temps ; le texte au-delà de ce budget est masqué en entier.
+Un corps de plus de 256 Kio est omis lui aussi (`maximumBodySize` ; une app peut relever la limite,
+au prix de jusqu’à environ 60 octets de mémoire pour chaque octet du corps), et le JSON est lu sur
+64 niveaux d’objets et de tableaux au plus et sur quatre documents imbriqués au plus, JSON dans les
+chaînes compris, ce qui borne la pile qu’une entrée hostile peut occuper ; une chaîne qui en
+contient davantage est masquée en entier. Les documents trouvés dans une entrée lisent en tout au
+plus quatre fois sa longueur, ce qui borne le temps ; le texte au-delà de ce budget est masqué en
+entier.
 Un champ dont le nom est à un endroit et la valeur à un autre, comme dans
 `{"name":"X-Api-Key","value":…}`, dans une opération JSON Patch ou SCIM sur `/password` ou dans
 `[["Authorization","…"]]`, a sa valeur masquée en entier quand le nom est secret ou n’est pas en
-ASCII simple. Une URL de plus de 64 segments de chemin ou de 128 paramètres n’est enregistrée
-qu’avec son schéma et son hôte, et une adresse e-mail ne montre que la première lettre de son nom,
-dans n’importe quelle écriture (`ayşe.yılmaz@gmail.com` devient `a•••@gmail.com`).
+ASCII simple. Un hôte d’URL qui n’est ni un nom fait de libellés ASCII ni une adresse, ou qui porte
+un numéro de carte ou un jeton, est écrit `scheme://[redacted]`, et le nom d’un en-tête de partie
+multipart n’est écrit que s’il fait partie de ceux qu’une partie porte. Une URL de plus de 64
+segments de chemin ou de 128 paramètres n’est enregistrée qu’avec son schéma et son hôte, et une
+adresse e-mail ne montre que la première lettre de son nom, dans n’importe quelle écriture
+(`ayşe.yılmaz@gmail.com` devient `a•••@gmail.com`).
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
 valeurs : la valeur à côté d’un champ qui porte un nom (`name`, `label`, `type`, `id`, …) comme
 `Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée.
 Dans le texte libre, le premier nom secret masque tout ce qui le suit dans ce texte ; cela masque
-trop, volontairement. Une clé qui n’est pas autorisée (toute clé sauf `status`, `method`, `path`,
-`duration_ms`, `count` et les clés que vous fournissez), un nom écrit comme valeur comme
-`name="password"`, un mot illisible et un guillemet resté ouvert coupent le texte de la même façon,
-jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401` devient
-`login user=[redacted]`, et un corps multipart ou une property list écrits dans un journal sont
-masqués à partir de leur premier en-tête ou de leur première clé. Le masquage est un filet de
+trop, volontairement. Masquer trop est un choix de conception. Cinq règles fixent où le texte est
+coupé, et aucune ne tient de liste de variantes : le premier caractère hors d’un alphabet sûr
+(lettres, marques et chiffres de toute écriture, l’espace ASCII, la tabulation et les sauts de
+ligne, et l’ASCII imprimable), si bien qu’un séparateur ressemblant comme `꞉` ou `→`, un emoji ou
+un caractère de contrôle le coupe ; toute séquence d’échappement (`%3D`, `&colon;`, `\075`), qui
+n’est jamais décodée ; un mot de plus de 256 caractères ; une clé qui n’est pas autorisée (toute
+clé sauf `status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez), aussi
+comme première chaîne d’un tableau de deux éléments ou comme balise d’un élément ; et un nom
+secret, avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Le texte est
+coupé jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401`
+devient `login user=[redacted]`, et un corps multipart ou une property list écrits dans un journal
+sont masqués à partir de leur premier en-tête ou de leur première clé. Le masquage est un filet de
 sécurité, pas une garantie : il est conçu pour les secrets journalisés par accident. L’entrée
-structurée (JSON, formulaires, corps multipart et en-têtes de leurs parties, URL) est sûre par
-défaut, et ce qu’il n’y comprend pas est masqué. Dans le texte libre, un nom écrit sans séparateur
-et déguisé avec deux lettres ressemblantes ou plus (`pɑsswoʀd hunter2`) n’est pas forcément trouvé
-quand rien avant lui ne coupe le texte. Le
+structurée (JSON, formulaires, corps multipart et en-têtes de leurs parties, URL et leurs hôtes)
+est sûre par défaut, et ce qu’il n’y comprend pas est masqué. Dans le texte libre, un nom écrit
+sans séparateur et déguisé avec deux lettres ressemblantes ou plus (`pɑsswoʀd hunter2`) n’est pas
+forcément trouvé quand rien avant lui ne coupe le texte. Le
 [guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
-décrit la règle pour le texte libre, ce qu’elle coûte et ce qu’elle ne trouve pas.
+décrit les règles pour le texte libre, ce qu’elles coûtent et ce qu’elles ne trouvent pas.
 
 ### Lier un compte à l’appareil
 
