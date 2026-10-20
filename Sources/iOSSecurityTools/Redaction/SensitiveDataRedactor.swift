@@ -47,7 +47,9 @@ import Foundation
 /// the key rule hides, the `value`, `values`, `content`, `data` or `secret` beside it is hidden
 /// whole. So is the second
 /// element of a two-element array such as `["Authorization", "…"]`, as fetch headers and
-/// `URLSearchParams` entries are written.
+/// `URLSearchParams` entries are written. A member whose value is a name that names a secret or
+/// cannot be read (`{"label":"Password","input":…}`) hides the values of the other members of
+/// its object, apart from the members that hold names and a JSON Patch or SCIM `op`.
 ///
 /// URLs are read with `URLComponents` (see ``redact(url:)``), and ``redact(body:contentType:)``
 /// reads JSON, form, multipart and plain-text bodies; a body it cannot parse completely is
@@ -81,8 +83,11 @@ import Foundation
 ///
 /// They are found after Unicode compatibility decomposition without marks, format characters,
 /// default-ignorable code points and control characters, so full-width digits, zero-width
-/// characters, fillers such as U+3164, `DEL` and Unicode spaces do not hide them. When two
-/// findings overlap, the whole stretch they cover becomes `[redacted]`. Scanning takes time linear
+/// characters, fillers such as U+3164, `DEL` and Unicode spaces do not hide them, and the same way
+/// on every path: free text, bodies, JSON strings and names, forms and URLs. Only a letter or
+/// digit written in ASCII glues digits or a token to a word (`id4242…`); `é` or `𝐚` before them
+/// does not. When two findings overlap, the whole stretch they cover becomes `[redacted]`, and so
+/// does a finding that runs over the end of a URL in a line. Scanning takes time linear
 /// in the length of the text and uses no regular expressions.
 ///
 /// ## Limits
@@ -247,6 +252,12 @@ public struct SensitiveDataRedactor: Sendable {
     ///   lines indented more and the line after a trailing `\` are hidden; so is the next line with
     ///   text when nothing but punctuation followed the name, the line ends open (`(`, `:`, `<key>`,
     ///   `"""`) or it ends at a break other than LF and CRLF.
+    /// - **Secret names written as values.** A quoted value that names a secret or cannot be read
+    ///   (`name="password"`, `<string name="api_key">`) hides the rest of its line after the
+    ///   closing quote. In XML and HTML the other attribute values of its start tag are hidden too,
+    ///   and the lines below up to the end of the element; a secret name in an element's text
+    ///   (`<key>password</key>`) names the element after it. A name that is not secret keeps what
+    ///   follows it.
     /// - **Embedded JSON.** JSON in a line (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the
     ///   key rule for structured input, within the limits listed under "Limits". JSON that does not
     ///   parse hides the rest of the line, and the lines below until its brackets close.

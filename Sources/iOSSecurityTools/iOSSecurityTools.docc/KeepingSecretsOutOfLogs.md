@@ -64,9 +64,10 @@ are not secret in JSON, form and multipart bodies, the values of the keys on
 ``SensitiveDataRedactor/allowedTextKeys`` in free text, masks that keep the last four digits of a
 card number or an IBAN and the domain and first letter of an email address, and for a body it
 cannot parse a note with its size and content type. What it never writes: the value of a field it
-reads as secret or cannot read, a value in free text after a key that is not allowed, the rest of
-a line it cannot read, a body it cannot parse completely, the other digits of a card number or an
-IBAN, and the rest of the name in an email address.
+reads as secret or cannot read, a value in free text after a key that is not allowed, what follows
+a secret name written as a value, the rest of a line it cannot read, a body it cannot parse
+completely, the other digits of a card number or an IBAN, and the rest of the name in an email
+address.
 
 ### Plain-ASCII keys are compared; any other key is redacted
 
@@ -113,7 +114,14 @@ is the name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it, and 
 before it hides the value too, which goes inside that field (`/apiKeys/0`). The second element of a
 two-element array is hidden the same way (`[["Authorization","…"]]`, as fetch headers and
 `URLSearchParams` entries are written), and so are the elements after `"password"` in
-`["password","…"]`. Names that are plain and not secret keep their values:
+`["password","…"]`. A member whose value is a name that names a secret or cannot be read hides
+the values of the other members of its object, whatever they are called, as
+`{"label":"Password","value":…}`, `{"type":"password","input":…}` and CloudFormation's
+`{"ParameterKey":"DbPassword","ParameterValue":…}` write a field: an object has no order, so what
+belongs to the name cannot be told. A name here is a string without `:`, `=`, `,`, `;`, quotes or
+brackets inside it, so a sentence (`"Error: token expired"`) or JSON in a string is read as free
+text instead; the members that hold names (`name`, `key`, `path`, …) and an `op` that names a JSON
+Patch or SCIM operation stay. Names that are plain and not secret keep their values:
 
 ```swift
 let patch = #"[{"op":"replace","path":"/user/password","value":"hunter2"},{"op":"replace","path":"/status","value":"active"}]"#
@@ -246,6 +254,17 @@ The rule in detail:
   the lines indented more (YAML blocks, folded headers) and the line after a trailing `\` are
   hidden, and so is the next line with text when nothing but punctuation followed the key, the
   line ends open (`(`, `:`, `<key>`, `"""`) or it ends at a line break other than LF and CRLF.
+- **A secret name written as a value** names what follows it. A quoted value that holds a secret
+  name or a word that cannot be read — `name="password"`, `key='token'`, `id: "pin"`,
+  `header="Authorization"`, `label="API Key"` — hides the rest of its line after the closing
+  quote, and the next line with text when nothing follows it. In XML and HTML the values of the
+  other attributes of its start tag go too (`<input path="…" name="password">`), and so do the
+  lines below up to the element's end tag while they hold markup or are indented more, or all of
+  them when an end tag of the element comes later in the text
+  (`<string name="api_key">…</string>`, `<entry key="db.password">`). A secret name in the text
+  of an element names the element after it, as a property list writes a key and its value
+  (`<key>password</key><string>…</string>`). A name that is not secret (`name="status"`) keeps
+  what follows it.
 - **A secret name without a separator** hides the rest of its line: `password hunter2`,
   `PIN 1234`. Words are read after their escapes are decoded (`p&#97;ssword`, `pass%77ord`), with
   punctuation inside them and a space, `|`, `,`, `;`, `&` or `?` between two of them read as a
@@ -267,6 +286,10 @@ redactor.redact("p\u{0430}ssword=hunter2")              // "pаssword=[redacted]
 redactor.redact("login pa\u{115F}ssword hunter2")       // "login [redacted]"
 redactor.redact("password: 'abc\n  hunter2'")           // "password: '[redacted]\n[redacted]"
 redactor.redact("| password | hunter2 |")               // "| password [redacted]"
+redactor.redact("field name=\"password\" hunter2")      // "field name=\"[redacted]\"[redacted]"
+redactor.redact(#"<string name="api_key">k-1</string>"#) // "<string name=\"[redacted]\"[redacted]"
+redactor.redact("<key>password</key>\n<string>k-1</string>")
+// "<key>[redacted]\n[redacted]</string>"
 redactor.redact("git clone https://bob:hunter2@github.com/x/y.git")
 // "git clone https://github.com/x/y.git"
 ```
@@ -279,7 +302,13 @@ the rest: `a•••@gmail.com`, `•••@example.cn` for a name of two lette
 Card numbers, IBANs, email addresses and tokens are found after Unicode compatibility
 decomposition without marks, format characters, default-ignorable code points and control
 characters, so full-width digits, zero-width characters, fillers and Unicode spaces do not hide
-them. Scanning and replacing take time linear in the length of the text, without regular
+them. They are found the same way on every path — free text, a body, a JSON string or name, a
+form, a multipart part, a URL — and at least wherever 2.0.0 found them: only a letter or digit
+written in ASCII glues digits or a token to a word (`id4242…`, `xeyJ…`), while a letter written
+another way (`é`, `𝐚`, `№`) does not. An address after `:` shows no letter of its name, which may
+be the password of `user:password@host` (`user:•••@example.com`), a token whose last dot was cut
+off (`eyJ….eyJ…`) is still a token, and a finding that runs over the end of a URL in a line, as a
+card number after a query or a token whose dot ends the sentence, is hidden whole. Scanning and replacing take time linear in the length of the text, without regular
 expressions, and a key is compared in time linear in its length.
 
 ### What it does not find
@@ -291,9 +320,11 @@ looks Latin (Greek `ΡΙΝ`), one written in letters that have no ASCII form thr
 capitals, enclosed letters), one spelled with digits and symbols (`p@ssword`, `passw0rd`), a name
 escaped as octal (`\163`), a value written before its name or glued to a flag (`-pSECRET`), and a
 name and value in two different JSON objects. It does not find card numbers grouped with dots or
-underscores, glued to letters or written as a JSON floating-point number. An XML element in free
-text is not read as a pair; only a secret name or a word that cannot be read in it hides what
-follows. The value of an allowed key is shown, also when it is repeated (`status==…`).
+underscores, glued to ASCII letters or written as a JSON floating-point number. XML in free text
+is not parsed: only a secret name or a word that cannot be read in it hides what follows, an
+attribute before the name on an earlier line of its start tag is not read, and the lines of an
+element that never ends are hidden only while they hold markup or are indented more. The value
+of an allowed key is shown, also when it is repeated (`status==…`).
 
 Where it cannot tell, it hides more than it has to: everything after a key that is not allowed
 (`Error: connection refused` hides `connection refused`), the lines after a value that ends open,
