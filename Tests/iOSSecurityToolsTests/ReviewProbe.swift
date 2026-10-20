@@ -21,8 +21,11 @@ struct ReviewProbe: Decodable, Sendable {
     let claim: String
     /// `text`, `body` or `url`.
     let kind: String
-    /// The allowed text keys for `text`, the allowed query parameters for `url`.
+    /// The allowed text keys for `text` and `body`, the allowed query parameters for `url`.
     let keys: [String]?
+    /// The allowed query parameters for `text` and `body`, which free text does not use: a URL in
+    /// it is shown only when it is clean.
+    let queryKeys: [String]?
     /// The content type of a body; nil for none.
     let type: String?
     let input: String?
@@ -51,9 +54,9 @@ struct ReviewProbe: Decodable, Sendable {
             return URL(string: text).map { redactor.redact(url: $0) } ?? "<URL(string:) nil>"
         case "body":
             let body = data.flatMap { Data(base64Encoded: $0) } ?? Data(text.utf8)
-            return SensitiveDataRedactor().redact(body: body, contentType: type)
+            return SensitiveDataRedactor(allowedTextKeys: keys ?? [], allowedQueryParameters: queryKeys ?? []).redact(body: body, contentType: type)
         default:
-            return SensitiveDataRedactor(allowedTextKeys: keys ?? []).redact(text)
+            return SensitiveDataRedactor(allowedTextKeys: keys ?? [], allowedQueryParameters: queryKeys ?? []).redact(text)
         }
     }
 
