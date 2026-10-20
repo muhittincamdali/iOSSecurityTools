@@ -33,7 +33,7 @@ extension FreeTextScanner {
             return
         }
         pendingKey = nil
-        guard role == .text else { return }
+        guard role == .text, !isEndTag(start..<end) else { return }
         if isSeparatorWord(start..<end, lineEnd: lineEnd) {
             hideRestOfLine(from: next, valueStart: next, lineEnd: lineEnd)
             return
@@ -72,6 +72,17 @@ extension FreeTextScanner {
     }
 
     private static let splittingBoundaries = ByteSet("|,;&?")
+
+    /// Whether the word is the name of an end tag (`</key>`): it closes an element and names no
+    /// value, so `<key>user</key>` names nothing on the lines below it.
+    private func isEndTag(_ word: Range<Int>) -> Bool {
+        guard word.count >= 2, word.lowerBound > 0, text.bytes[word.lowerBound - 1] == UInt8(ascii: "<"),
+              text.bytes[word.lowerBound] == UInt8(ascii: "/") else { return false }
+        var k = word.lowerBound + 1
+        while k < word.upperBound, ASCII.isAlphanumeric(text.bytes[k]) || "-_:.".utf8.contains(text.bytes[k]) { k += 1 }
+        let endsName = k == word.upperBound || (text.bytes[k] == UInt8(ascii: ">") && k + 1 == word.upperBound)
+        return k > word.lowerBound + 1 && endsName
+    }
 
     /// Punctuation, a math symbol or a modifier letter or symbol outside ASCII, such as `꞉`, `∶`,
     /// `≔`, `→` or `·`, may be meant as a separator. Glued between other characters of a word
