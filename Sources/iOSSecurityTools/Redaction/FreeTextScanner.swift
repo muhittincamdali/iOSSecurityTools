@@ -16,7 +16,9 @@
 ///
 /// Besides the findings of the JSON and URLs it reads, the scan keeps a few positions: the cut,
 /// the key before the next separator, the quote that is open, the outermost open bracket and the
-/// start tag it is in. Its extra memory does not grow with the text.
+/// start tag it is in. Each JSON it reads is parsed and its tree released before the next one is
+/// read (see ``JSONDocument``), so its extra memory grows with what it finds, not with the number
+/// of JSON texts or the length of the text.
 struct FreeTextScanner {
     /// What kind of text is read.
     enum Role {

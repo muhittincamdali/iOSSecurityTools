@@ -64,9 +64,7 @@ struct JSONDocument {
         guard let root = reader.document() else { throw reader.failure }
         guard allowsFragments || root.isContainer else { throw .invalid }
         let data = Data(String(String.UnicodeScalarView(scalars)).utf8)
-        guard let parsed = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed),
-              Self.agrees(root, with: parsed, in: scalars)
-        else { throw .invalid }
+        guard Self.serializationAgrees(root, with: data, options: .fragmentsAllowed, in: scalars) else { throw .invalid }
         self.scalars = scalars
         self.root = root
         self.nesting = nesting
@@ -83,7 +81,7 @@ struct JSONDocument {
         guard let root = reader.value() else { throw reader.failure }
         guard root.isContainer else { throw .invalid }
         let data = Data(String(String.UnicodeScalarView(scalars[root.range])).utf8)
-        guard let parsed = try? JSONSerialization.jsonObject(with: data), Self.agrees(root, with: parsed, in: scalars) else { throw .invalid }
+        guard Self.serializationAgrees(root, with: data, options: [], in: scalars) else { throw .invalid }
         self.scalars = scalars
         self.root = root
         self.nesting = nesting
@@ -95,6 +93,28 @@ struct JSONDocument {
     }
 
     // MARK: Agreement with JSONSerialization
+
+    /// Whether `JSONSerialization` parses `data` into the structure the reader found. The objects
+    /// it makes are autoreleased, and a thread drains them only when it returns to its run loop or
+    /// ends: a megabyte of log lines of short JSON kept every tree until the end of the
+    /// redaction, 10 MB more than the text. They are released here, before the next JSON is read.
+    private static func serializationAgrees(
+        _ root: Node, with data: Data, options: JSONSerialization.ReadingOptions, in scalars: [Unicode.Scalar]
+    ) -> Bool {
+        releasingAutoreleased {
+            guard let parsed = try? JSONSerialization.jsonObject(with: data, options: options) else { return false }
+            return agrees(root, with: parsed, in: scalars)
+        }
+    }
+
+    /// Runs `body` in an autorelease pool of its own where Objective-C objects are autoreleased.
+    private static func releasingAutoreleased<Result>(_ body: () -> Result) -> Result {
+        #if canImport(ObjectiveC)
+        autoreleasepool(invoking: body)
+        #else
+        body()
+        #endif
+    }
 
     private static func agrees(_ node: Node, with parsed: Any, in scalars: [Unicode.Scalar]) -> Bool {
         switch node.value {
