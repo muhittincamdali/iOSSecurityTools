@@ -78,15 +78,15 @@ struct RedactionObfuscatedValueTests {
     }
 
     @Test("hides an array or object value whole", arguments: [
-        ("{\"password\":[\"hunter2\"]}", "{\"password\":[redacted]"),
-        ("{\"password\":{\"v\":\"hunter2\"}}", "{\"password\":[redacted]"),
-        ("{\"token\":[\"a]\",{\"b\":[\"hunter2\"]}],\"user\":\"bob\"}", "{\"token\":[redacted]"),
-        ("{\"password\": [\n  \"hunter2\"\n], \"user\": \"bob\"}", "{\"password\": [redacted]"),
-        ("log {\"password\":[\"hunter2\"]}", "log {\"password\":[redacted]"),
+        ("{\"password\":[\"hunter2\"]}", "{[redacted]"),
+        ("{\"password\":{\"v\":\"hunter2\"}}", "{[redacted]"),
+        ("{\"token\":[\"a]\",{\"b\":[\"hunter2\"]}],\"user\":\"bob\"}", "{[redacted]"),
+        ("{\"password\": [\n  \"hunter2\"\n], \"user\": \"bob\"}", "{[redacted]"),
+        ("log {\"password\":[\"hunter2\"]}", "log {[redacted]"),
         ("password=[hunter2] next", "password=[redacted]"),
         ("password={hunter2} next", "password=[redacted]"),
         ("password=(hunter2) next", "password=[redacted]"),
-        ("{\\\"password\\\":[\\\"hunter2\\\"]}", "{\\\"password\\\":[redacted]"),
+        ("{\\\"password\\\":[\\\"hunter2\\\"]}", "{[redacted]"),
         ("password=[redacted] next", "password=[redacted]"),
     ])
     func structuredValues(input: String, expected: String) {
@@ -106,8 +106,8 @@ struct RedactionObfuscatedValueTests {
     }
 
     @Test("hides a value after line breaks and other whitespace", arguments: [
-        ("log {\"password\":\n\"hunter2\"}", "log {\"password\":\n[redacted]"),
-        ("log {\"password\"\n:\n\"hunter2\"}", "log {\"password\"\n:\n[redacted]"),
+        ("log {\"password\":\n\"hunter2\"}", "log {[redacted]"),
+        ("log {\"password\"\n:\n\"hunter2\"}", "log {[redacted]"),
         ("password:\n  hunter2", "password:[redacted]"),
         ("password\n= hunter2", "password\n= [redacted]"),
         ("password\u{2028}=hunter2", "password[redacted]"),

@@ -77,7 +77,7 @@ struct RedactionRelease200Tests {
         }
         // 2.0.0 kept the user of this line; free text now hides everything after a key that is not
         // allowed, which hides more and never less.
-        #expect(redactor.redact(#"POST /login {"user":"alice@example.com","password":"hunter2"}"#) == #"POST /login {"user":[redacted]"#)
+        #expect(redactor.redact(#"POST /login {"user":"alice@example.com","password":"hunter2"}"#) == #"POST /login {[redacted]"#)
         let body = #"{"user":"alice@example.com","password":"hunter2"}"#
         #expect(redactor.redact(body: Data(body.utf8), contentType: "application/json") == #"{"user":"a•••@example.com","password":"[redacted]"}"#)
     }

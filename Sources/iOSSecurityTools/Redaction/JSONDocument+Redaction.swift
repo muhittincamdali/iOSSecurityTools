@@ -103,27 +103,28 @@ extension JSONDocument {
         return WrittenName.namesSecret(text(of: token), in: .pairName, compatibility: compatibility)
     }
 
-    /// Where the first value in the text is whose key, with its escapes decoded, `matches`: the
-    /// offset of its first scalar, or nil when no key does. A key is the name of a member and the
-    /// first element of a two-element array that is a string (`["user","…"]`, `[["X-User","…"]]`),
+    /// Where the first key in the text is that `matches`, with its escapes decoded: the offset of
+    /// its opening quote, or nil when no key does. A key is the name of a member and the first
+    /// element of a two-element array that is a string (`["user","…"]`, `[["X-User","…"]]`),
     /// whose second element is its value. The objects and arrays are walked with a stack of their
     /// own, not by recursion.
-    func firstValue(underKeyWhere matches: ([Unicode.Scalar]) -> Bool) -> Int? {
+    func firstKey(where matches: ([Unicode.Scalar]) -> Bool) -> Int? {
         var first: Int?
+        func found(_ start: Int) { first = min(first ?? start, start) }
         var pending = [root]
         while let node = pending.popLast() {
             switch node.value {
             case .object(let members):
                 for member in members {
                     if matches(text(of: member.name)) {
-                        first = min(first ?? member.value.range.lowerBound, member.value.range.lowerBound)
+                        found(member.name.content.lowerBound - 1)
                     } else {
                         pending.append(member.value)
                     }
                 }
             case .array(let elements):
                 if elements.count == 2, case .string(let key) = elements[0].value, matches(text(of: key)) {
-                    first = min(first ?? elements[1].range.lowerBound, elements[1].range.lowerBound)
+                    found(elements[0].range.lowerBound)
                 } else {
                     pending += elements
                 }

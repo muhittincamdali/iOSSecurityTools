@@ -31,7 +31,7 @@ struct RedactionBodyTests {
     @Test("reads JSON inside a JSON string")
     func jsonInString() {
         let body = #"{"query":"mutation","variables":"{\"password\":\"hunter2\",\"user\":\"bob\"}"}"#
-        #expect(redact(body, "application/json") == #"{"query":"mutation","variables":"{\"password\":[redacted]"}"#)
+        #expect(redact(body, "application/json") == #"{"query":"mutation","variables":"{[redacted]"}"#)
         let allowed = #"{"query":"mutation","variables":"{\"status\":200,\"count\":3}"}"#
         #expect(redact(allowed, "application/json") == allowed)
     }
@@ -72,7 +72,7 @@ struct RedactionBodyTests {
         ("user=bob%20smith&note=paid+4111+1111+1111+1111", "user=bob%20smith&note=paid+%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111"),
         ("note=status%3D1+user%3Dbob", "note=status%3D1+user%3D[redacted]"),
         ("password=hunter2&password=again", "password=[redacted]&password=[redacted]"),
-        ("q=%7B%22password%22%3A%22hunter2%22%7D", "q=%7B%22password%22%3A[redacted]"),
+        ("q=%7B%22password%22%3A%22hunter2%22%7D", "q=%7B[redacted]"),
         ("flag&password=hunter2", "flag&password=[redacted]"),
     ])
     func form(body: String, expected: String) {

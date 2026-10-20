@@ -39,7 +39,9 @@ import Foundation
 ///
 /// JSON is read with a JSON parser and used only when `JSONSerialization` reads the same tree:
 /// keys are compared after their escapes are decoded, at every depth, inside arrays and for every
-/// repetition of a key. The output stays valid JSON.
+/// repetition of a key. The output stays valid JSON. Structured key names are shown and only the
+/// values under them are hidden, so a secret written into the name of a member of a body
+/// (`{"password hunter2":…}`) shows; in free text such a name is cut where it starts.
 ///
 /// Some objects carry a field's name in one member and its value in another: HTTP archives write
 /// `{"name":"X-Api-Key","value":…}`, JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write
@@ -69,8 +71,9 @@ import Foundation
 ///
 /// A log line has no grammar, so it is cut once: **in free text, the first secret name hides
 /// everything after it in that text; this over-hides on purpose.** Over-hiding is by design. A
-/// key that is not on ``allowedTextKeys`` (`x=hunter2`, `Error: …`), as the first string of a
-/// two-element array (`["user","…"]`) and as the tag of an element (`<user>…`), cuts it too, and
+/// key that is not on ``allowedTextKeys`` (`x=hunter2`, `Error: …`), in quotes (`"user": …`), as
+/// the first string of a two-element array (`["user","…"]`) and as the tag of an element
+/// (`<user>…`), cuts it too, and
 /// so does the first character outside a safe alphabet — letters, marks and digits of any script,
 /// the ASCII space, tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or
 /// a control character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a
@@ -258,10 +261,12 @@ public struct SensitiveDataRedactor: Sendable {
     /// The folds of ``defaultAllowedTextKeys``, made once for every redactor.
     private static let defaultAllowedTextFolds = allowableFolds(defaultAllowedTextKeys)
 
-    /// Whether free text is read on after the key `name`: it is plain ASCII, names no secret and
-    /// is on ``allowedTextKeys`` once folded.
+    /// Whether free text is read on after the key `name`, the one decision for every key of free
+    /// text (`key=value`, a quoted key, a JSON member name or pair in a line, a tag): it is plain
+    /// ASCII without a space, names no secret and is on ``allowedTextKeys`` once folded. A key
+    /// longer than ``PlainName/maximumKeyLength`` is turned down before it is read.
     func allowsTextKey(_ name: some Collection<Unicode.Scalar>) -> Bool {
-        guard let fold = FieldName.allowableFold(name) else { return false }
+        guard !name.contains(" "), let fold = FieldName.allowableFold(name) else { return false }
         return allowedTextKeys.contains(fold)
     }
 
@@ -303,11 +308,16 @@ public struct SensitiveDataRedactor: Sendable {
     ///   `"key":"value"` the text is read on only after a key that is plain ASCII and on
     ///   ``allowedTextKeys`` (`status`, `method`, `path`, `duration_ms` and `count` by default).
     ///   Any other key cuts the text at its value, and so does a separator with no key before it
-    ///   or a key on the line before its separator. The separators are `=` and `:` and runs of
+    ///   or a key on the line before its separator. A quoted key (`"…":`, `"…"=`) that is not
+    ///   allowed cuts the text at its opening quote, so nothing written in the quotes shows
+    ///   (`cache miss for "session Qz9Wk7rX": refetching` keeps `cache miss for `); a key with a
+    ///   space in it is never allowed. The separators are `=` and `:` and runs of
     ///   them (`:=`, `==`, `=>`); a `:` between two digits is part of a number only after a
     ///   number, as in `12:30:45`, `2026-10-19T12:30` and `10.0.0.1:8080`, and after a key that
-    ///   ends in digits it is a separator (`user1:2345` cuts at `2345`). JSON in the text follows the same rule member by member, and the first string of a
-    ///   two-element array is a key too (`["user","bob"]` cuts at `"bob"`). A tag is a key: the
+    ///   ends in digits it is a separator (`user1:2345` cuts at `2345`). JSON in the text follows
+    ///   the same rule member by member, a member name that is not allowed cutting it at its
+    ///   opening quote, and the first string of a two-element array is a key too
+    ///   (`["user","bob"]` cuts at `"user"`). A tag is a key: the
     ///   text of an element whose tag is not allowed cuts the text (`<user>bob</user>` keeps
     ///   `<user>`), and a trigger inside a start tag cuts the text at its first attribute value.
     /// - **Secret names.** A word that holds a secret name cuts the text after the name, with or

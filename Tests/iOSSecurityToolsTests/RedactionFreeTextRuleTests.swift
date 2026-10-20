@@ -190,13 +190,13 @@ struct RedactionFreeTextRuleTests {
 
     @Test("JSON in a line follows the allowlist member by member", arguments: [
         ("{\"status\":200,\"count\":3} tail", "{\"status\":200,\"count\":3} tail"),
-        ("{\"status\":200,\"user\":\"bob\"} tail", "{\"status\":200,\"user\":[redacted]"),
-        ("{\"status\":\"ok\",\"items\":[1,2]} {\"count\":1}", "{\"status\":\"ok\",\"items\":[redacted]"),
-        ("{\"path\":\"/a\",\"items\":[{\"count\":1},{\"name\":\"x\"}]} tail", "{\"path\":\"/a\",\"items\":[redacted]"),
+        ("{\"status\":200,\"user\":\"bob\"} tail", "{\"status\":200,[redacted]"),
+        ("{\"status\":\"ok\",\"items\":[1,2]} {\"count\":1}", "{\"status\":\"ok\",[redacted]"),
+        ("{\"path\":\"/a\",\"items\":[{\"count\":1},{\"name\":\"x\"}]} tail", "{\"path\":\"/a\",[redacted]"),
         ("{\"status\":\"x password=1\"} tail", "{\"status\":\"[redacted]"),
-        ("[\"a\",\"b\"] ok", "[\"a\",[redacted]"),
+        ("[\"a\",\"b\"] ok", "[[redacted]"),
         ("[\"a\",\"b\",\"c\"] ok", "[\"a\",\"b\",\"c\"] ok"),
-        ("[[\"\u{15E}ifre\",\"1234\"]] ok", "[[\"\u{15E}ifre\",[redacted]"),
+        ("[[\"\u{15E}ifre\",\"1234\"]] ok", "[[[redacted]"),
     ])
     func jsonMembers(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

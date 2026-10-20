@@ -83,7 +83,7 @@ struct RedactionReadingBudgetTests {
         // `note` is allowed in text, so the text in it reads on into the document it holds.
         let allowing = SensitiveDataRedactor(allowedTextKeys: ["note"])
         #expect(allowing.redact(body: Data(four.utf8), contentType: "application/json") == four)
-        #expect(body(four) == #"{"note":"{\"note\":[redacted]"}"#)
+        #expect(body(four) == #"{"note":"{[redacted]"}"#)
     }
 
     /// A secret in a text nested in documents of every kind, inside or past the budget, never

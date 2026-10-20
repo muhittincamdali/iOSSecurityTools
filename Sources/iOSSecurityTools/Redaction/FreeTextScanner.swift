@@ -6,12 +6,13 @@
 /// there the scan runs once over the scanning copy (``NormalizedText``), left to right, and stops
 /// at the first trigger, which becomes the cut: the offset in the original scalars from which the
 /// text is hidden. A trigger is a key that is not on ``SensitiveDataRedactor/allowedTextKeys``, in
-/// `key=value`, as a JSON member, as the first string of a two-element JSON array and as the tag
-/// of an element; a secret name written without a separator; a name written as a value that names
-/// a secret or is not plain ASCII; an escape (see ``isEscape(at:)``); a word that cannot be read or
-/// is longer than ``longestWord``; JSON that does not parse; a URL that is not clean; and a quote
-/// or bracket that is still open at the end of the text. Nothing is carried from one line to the next: the cut covers every
-/// line after it. JSON and clean URLs before the cut are redacted by their own rules and recorded
+/// `key=value`, in quotes (`"key": value`, cut at its opening quote), as a JSON member, as the
+/// first string of a two-element JSON array and as the tag of an element; a secret name written
+/// without a separator (see ``LooseReading``); a name written as a value that names a secret or
+/// is not plain ASCII; an escape (see ``isEscape(at:)``); a word that cannot be read or is longer
+/// than ``longestWord``; JSON that does not parse; a URL that is not clean; and a quote or
+/// bracket that is still open at the end of the text. Nothing is carried from one line to the
+/// next: the cut covers every line after it. JSON and clean URLs before the cut are redacted by their own rules and recorded
 /// as regions, which the value detectors do not read again; a URL that is not clean is a trigger
 /// where it starts (see ``url(to:)``).
 ///
@@ -208,9 +209,11 @@ struct FreeTextScanner {
         return redactor.allowsTextKey(name)
     }
 
-    /// A `"` that opens a quoted key (`"user": …`) or quoted text. Text in quotes is read like any
-    /// other, for the keys and names written in it; a quoted key is read as a key (see
-    /// ``readQuotedKey(_:)``).
+    /// A `"` that opens a quoted key (`"user": …`, `"user"=…`) or quoted text. A quoted key follows
+    /// the key rule: unless it is on the allowlist (see ``allowsQuotedKey(_:)``), the text is cut
+    /// at its opening quote, so nothing written in the quotes shows (`"session Qz9W…": …`,
+    /// `"password hint": 1`). Text in quotes that no separator follows is read like any other,
+    /// for the keys and names written in it.
     private mutating func quote() {
         let open = position
         let escaped = isEscaped(open)
@@ -219,15 +222,36 @@ struct FreeTextScanner {
             if next < text.count, isSeparator(next) {
                 // In escaped JSON (`\"key\":`) the backslash before the closing quote is not the key's.
                 let key = (open + 1)..<(escaped ? close - 1 : close)
+                guard allowsQuotedKey(key) else {
+                    cut(atByte: escaped ? backslashesStart(before: open) : open)
+                    return
+                }
                 pendingKey = key
                 position = close + 1
-                readQuotedKey(key)
                 return
             }
         }
         pendingKey = nil
         note(open)
         position = open + 1
+    }
+
+    /// Whether the quoted key in the bytes `key` is on the allowlist (see
+    /// ``SensitiveDataRedactor/allowsTextKey(_:)``), compared where it is in the text: the key as
+    /// written, the invisible characters before it included, and nothing taken off it. A key
+    /// longer than ``PlainName/maximumKeyLength`` is turned down before any of it is read, so no
+    /// key is copied whatever its length.
+    func allowsQuotedKey(_ key: Range<Int>) -> Bool {
+        let region = text.originalWithInvisiblesBefore(key)
+        guard !region.isEmpty, region.count <= PlainName.maximumKeyLength else { return false }
+        return redactor.allowsTextKey(source[region])
+    }
+
+    /// The first of the backslashes right before byte `i`.
+    private func backslashesStart(before i: Int) -> Int {
+        var k = i
+        while k > 0, text.bytes[k - 1] == UInt8(ascii: "\\") { k -= 1 }
+        return k
     }
 
     /// The key as written, invisible characters before it included, without the brackets and

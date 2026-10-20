@@ -27,11 +27,12 @@ extension FreeTextScanner {
     private static let jsonWhitespace = ByteSet(" \t\n\r")
 
     /// JSON in the text, parsed and redacted by the key rule for structured input, whose keys
-    /// follow the rule for keys in text: the text is cut at the value of the first member whose
-    /// name is not on ``SensitiveDataRedactor/allowedTextKeys``, or at the second element of the
-    /// first two-element array whose first is a string not on it (`["user","bob"]`), or at the
-    /// first value that the key rule hides, whichever comes first (`{"status":200,"user":"bob"}`
-    /// keeps `"status":200`).
+    /// follow the rule for keys in text, as a quoted key outside JSON does: the text is cut at the
+    /// opening quote of the first member name that is not on
+    /// ``SensitiveDataRedactor/allowedTextKeys``, or of the first string of the first two-element
+    /// array that is not on it (`["user","bob"]`), or at the first value that the key rule hides,
+    /// whichever comes first (`{"status":200,"user":"bob"}` keeps `{"status":200,`), so no name
+    /// written in a line shows when it is not allowed (`{"password hunter2": 1}`).
     /// JSON that holds a word naming a secret or one that cannot be read (`["password"]=> "…"`)
     /// cuts the text at its end. JSON that does not parse cannot be read with certainty: the text
     /// is cut at its first bracket, and so is JSON longer than ``longestJSON``, whose tree would
@@ -64,7 +65,7 @@ extension FreeTextScanner {
         let found = document.secretSpans(using: redactor, compatibility: compatibility)
         let end = text.byteIndex(atOrAfter: region.upperBound)
         let hidden = found.lazy.filter { $0.kind.contains(.secretFields) }.map(\.start).min()
-        let unallowed = role == .text ? document.firstValue(underKeyWhere: { !redactor.allowsTextKey($0) }) : nil
+        let unallowed = role == .text ? document.firstKey(where: { !redactor.allowsTextKey($0) }) : nil
         if let first = [hidden, unallowed].compactMap({ $0 }).min() {
             // What the key rule found before the cut stays: the masks of the value detectors.
             record(spans: found.filter { $0.start < first }, region: region)
