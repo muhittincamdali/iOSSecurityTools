@@ -55,7 +55,8 @@ extension JSONDocument {
                     continue
                 }
                 collect(element, nesting: inside, into: &spans, redactor: redactor, compatibility: compatibility)
-                if readsNames, case .string(let token) = element.value {
+                // The last element names nothing after it, so it is not read again as a name.
+                if readsNames, index + 1 < elements.count, case .string(let token) = element.value {
                     hidesRest = WrittenName.namesSecret(text(of: token), in: .element, compatibility: compatibility)
                 }
             }
