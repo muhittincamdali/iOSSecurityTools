@@ -80,7 +80,8 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   not fully understand there is hidden: a key that is not plain ASCII, a name that cannot be
   read, a body that does not parse.
 - **Free text is a best effort.** A log line has no grammar. A value written with a separator is
-  always hidden: `key=value`, `key: value`, a quoted name such as `name="password"`, and JSON.
+  always hidden: `key=value`, `key: value`, a quoted name such as `name="password"`, also inside
+  the value of another key, and JSON.
   A secret name written without a separator and disguised on purpose with two or more look-alike
   letters (`pɑsswoʀd hunter2`) is not guaranteed to be found; <doc:KeepingSecretsOutOfLogs#What-it-does-not-find>
   lists such limits. No table of look-alikes is kept to chase them, since none is ever complete.
@@ -264,7 +265,9 @@ a second, also for ordinary shapes such as a JSON array of short strings, a mult
 1,000 parts, URLs of many segments and a megabyte of Turkish sentences or of `ı` quoted in JSON up
 to four times, timed by the CPU time of such a thread. The default redactor and its folded keys
 are made once and shared, never per array element or path segment, each path segment is read in
-a single pass, and each word is compared with each secret word in a single pass.
+a single pass, and each word is compared with each secret word in a single pass. The second
+reading of a line follows at most 16 names written as values in it into markup and the lines
+below; after them it follows only the last one, and hides the next line with text.
 
 ### Free text keeps a value only after an allowed key
 
@@ -301,7 +304,8 @@ The rule in detail:
 - **A secret name written as a value** names what follows it. A quoted value that holds a secret
   name or a word that cannot be read — `name="password"`, `key='token'`, `id: "pin"`,
   `header="Authorization"`, `label="API Key"` — hides the rest of its line after the closing
-  quote, and the next line with text when nothing follows it. After a key that holds a name
+  quote, and the next line with text when nothing follows it; so does a name without quotes after
+  a key that holds one (`name=password`). After a key that holds a name
   (`name`, `key`, `field`, `label`, `type`, `header`, `param`, `id`, `k`, `n`) a name that is not
   plain ASCII counts as secret too, as in JSON (`label="Пароль"`, `name='ⓟⓘⓝ'`), and so does JSON
   there (`name=["pin"]`), also when the key is allowed; `path=` is the route of a request in a
@@ -318,7 +322,20 @@ The rule in detail:
   `<key>password</key>` and then `<string/>` on a line of its own, the text after it or the next
   line with text is hidden too. JSON after a key that holds a name hides what follows it to the
   end of the line where it closes, also when it spans lines (`name=[`, `"pin"`, `] …`). A name
-  that is not secret (`name="status"`) keeps what follows it.
+  that is not secret (`name="status"`) keeps what follows it, and an end tag (`</key>`) names
+  nothing.
+- **A name inside a hidden value** names what follows it all the same. Each line is read twice:
+  the first reading hides values and stops at a value it hides to the end of the line, and the
+  second reads what the first hid without reading it, and the quoted values, for the names written
+  as values in them — quoted or not, held by a key, in markup — so a name hides the rest of its line
+  and the lines it leaves open wherever it is on the line. In
+  `Content-Disposition: form-data; name="pin"` the key `Content-Disposition` hides its value, and
+  the name in that value still hides what follows it. A secret name in a header of a multipart part
+  written to a log (after `Content-Disposition` or `form-data` on its line) hides the part's other
+  header lines up to the blank line after them, and then the part's value: up to the delimiter line
+  written before the header (`--boundary` or `--boundary--`), or, when none was, up to a blank line
+  or a line that starts with `--` after the value's first line, which is hidden whatever it is
+  (`-----BEGIN PRIVATE KEY-----`). The next part, under a name that is not secret, keeps its value.
 - **A secret name without a separator** hides the rest of its line: `password hunter2`,
   `PIN 1234`. Words are read after their escapes are decoded (`p&#97;ssword`, `pass%77ord`), with
   punctuation inside them and a space, `|`, `,`, `;`, `&` or `?` between two of them read as a
@@ -345,6 +362,8 @@ redactor.redact("field name=\"password\" hunter2")      // "field name=\"[redact
 redactor.redact(#"<string name="api_key">k-1</string>"#) // "<string name=\"[redacted]\"[redacted]"
 redactor.redact("<key>password</key>\n<string>k-1</string>")
 // "<key>[redacted]\n[redacted]</string>"
+redactor.redact("Content-Disposition: form-data; name=\"pin\"\r\n\r\n4831")
+// "Content-Disposition: [redacted]\r\n\r\n[redacted]"
 redactor.redact("git clone https://bob:hunter2@github.com/x/y.git")
 // "git clone https://github.com/x/y.git"
 ```
@@ -383,11 +402,13 @@ underscores, glued to ASCII letters or written as a JSON floating-point number. 
 is not parsed: only a secret name or a word that cannot be read in it hides what follows, an
 attribute before the name on an earlier line of its start tag is not read, and the lines of an
 element that never ends are hidden only while they hold markup or are indented more. The value
-of an allowed key is shown, also when it is repeated (`status==…`).
+of an allowed key is shown, also when it is repeated (`status==…`), unless a secret name before
+it leaves its line open (`name=password`, then `value=…` on the next line).
 
 Where it cannot tell, it hides more than it has to: everything after a key that is not allowed
 (`Error: connection refused` hides `connection refused`), the lines after a value that ends open,
-and a whole word with an invisible character in it.
+a whole word with an invisible character in it, and the headers and value of a multipart part
+written into text whose header names a secret, up to its delimiter.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
 `.public`; use the redactor for the values you do mark public, and for logs sent to your own

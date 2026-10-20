@@ -275,7 +275,15 @@ public struct SensitiveDataRedactor: Sendable {
     ///   the element after it, also on the lines below, as a property list writes them. An element
     ///   that holds nothing (`<string/>`, `<string></string>`) holds no value, so the text after
     ///   it, or the next line with text that is not markup, is hidden too. A name that is plain
-    ///   and not secret keeps what follows it.
+    ///   and not secret keeps what follows it. An unquoted name after such a key
+    ///   (`name=password`) names what follows it as a quoted one does.
+    /// - **Names inside hidden values.** Each line is read a second time for the names written as
+    ///   values in what the first reading hid without reading it, and in quoted values, so a name
+    ///   hides what follows it wherever it is on its line: `Content-Disposition: form-data;
+    ///   name="pin"` hides the value of `Content-Disposition`, and the name in it the part's value
+    ///   below. A secret name in a header of a multipart part written into text hides the part's
+    ///   other headers and its value, up to the delimiter line written before the header, or,
+    ///   without one, up to a blank line or a line that starts with `--`.
     /// - **Embedded JSON.** JSON in a line (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the
     ///   key rule for structured input, within the limits listed under "Limits". JSON that does not
     ///   parse hides the rest of the line, and the lines below until its brackets close.
