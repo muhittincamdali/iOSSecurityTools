@@ -103,9 +103,22 @@ value is hidden whole: a string, a number, and an array or object with everythin
 A text that is a JSON object or array is read with a JSON parser and checked against
 `JSONSerialization`, so keys are compared after their escapes are decoded (`"pass\u0077ord"`),
 at every depth, inside arrays and for every repetition of a key. Strings are read as free text,
-so `{"note":"password=hunter2"}` and an escaped JSON document inside a string are redacted too,
-and so are the `value` of `{"name":"X-Api-Key","value":…}` (also with `key`, `field`, `k` and
-`val`, `v`) and the elements after `"password"` in `["password","…"]`.
+so `{"note":"password=hunter2"}` and an escaped JSON document inside a string are redacted too.
+
+Some objects carry a field's name in one member and its value in another. When the `name`, `key`,
+`field`, `header`, `param`, `path`, `k` or `n` of an object is a name whose value the key rule
+hides — a secret name or one that is not plain ASCII — every `value`, `val`, `values`, `content`,
+`data`, `secret` and `v` of that object is hidden whole. Of a `path`, the part after its last `/`
+is the name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it. The second element of a
+two-element array is hidden the same way (`[["Authorization","…"]]`, as fetch headers and
+`URLSearchParams` entries are written), and so are the elements after `"password"` in
+`["password","…"]`. Names that are plain and not secret keep their values:
+
+```swift
+let patch = #"[{"op":"replace","path":"/user/password","value":"hunter2"},{"op":"replace","path":"/status","value":"active"}]"#
+redactor.redact(body: Data(patch.utf8), contentType: "application/json-patch+json")
+// [{"op":"replace","path":"/user/password","value":"[redacted]"},{"op":"replace","path":"/status","value":"active"}]
+```
 
 Request and response bodies go through ``SensitiveDataRedactor/redact(body:contentType:)``, which
 reads JSON, form (`application/x-www-form-urlencoded`), multipart form and plain-text bodies with
@@ -155,13 +168,17 @@ without ``SensitiveDataRedactor/Kinds/secretFields`` only the value detectors ru
 the query. With it, a query parameter keeps its value only when its name is plain ASCII and on
 ``SensitiveDataRedactor/allowedQueryParameters``, which is empty by default. A path segment
 that looks like an identifier or a secret becomes `:id`, and so does the segment after one that
-names a secret:
+names a secret. A URL whose path has more than ``SensitiveDataRedactor/maximumPathSegments`` (64)
+segments, or whose query or path has more than ``SensitiveDataRedactor/maximumQueryParameters``
+(128) parameters, is recorded with its scheme, host and port only:
 
 ```swift
 redactor.redact(url: URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")!)
 // https://example.com/users/:id/reset?code=[redacted]
 redactor.redact(url: URL(string: "https://example.com/v1/cards/4242/pin/4831")!)
 // https://example.com/v1/cards/:id/pin/:id
+redactor.redact(url: URL(string: "https://example.com" + String(repeating: "/a", count: 65))!)
+// https://example.com
 ```
 
 ### Limits keep hostile input from exhausting the stack
@@ -192,7 +209,10 @@ In a log line, JSON nested deeper than 64 levels hides the line from its first b
 that does not parse. The package's tests run every limit on a thread with 512 KiB of stack, the
 default of a secondary thread, a GCD queue and a Swift concurrency task, and with
 `swift test -c release` they check that a megabyte of text, nested input or a body takes less than
-a second.
+a second, also for ordinary shapes such as a JSON array of short strings, a multipart body of
+1,000 parts and URLs of many segments, timed by the CPU time of such a thread. The default
+redactor and its folded keys are made once and shared, never per array element or path segment,
+and each path segment is read in a single pass.
 
 ### Free text keeps a value only after an allowed key
 
@@ -249,6 +269,11 @@ redactor.redact("| password | hunter2 |")               // "| password [redacted
 redactor.redact("git clone https://bob:hunter2@github.com/x/y.git")
 // "git clone https://github.com/x/y.git"
 ```
+
+The name of an email address may be written in any script: it runs over letters, marks and
+digits (`ayşe.yılmaz@gmail.com`, `bjørn.dæhlie@example.no`, `张伟@example.cn`), and the domain may
+be an internationalized one (`王小明@例子.中国`). Only the first letter of the name is written, never
+the rest: `a•••@gmail.com`, `•••@example.cn` for a name of two letters.
 
 Card numbers, IBANs, email addresses and tokens are found after Unicode compatibility
 decomposition without marks, format characters, default-ignorable code points and control
