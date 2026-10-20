@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b9cfbbfa12b6e3cc1809d549b867891faf7c2644 status=reviewed -->
+<!-- i18n-source: README.md@805f7f93502ff39528591b4f81b896e4bfbe25f8 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 443
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 456
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -327,7 +327,15 @@ como primeira string de um array de dois elementos ou como tag de um elemento; e
 com ou sem separador, também escrito como valor, como `name="password"`. O texto é cortado até o
 fim dele e não só até o fim da linha: `login user=bob status=401` vira `login user=[redacted]`, e um
 corpo multipart ou uma property list escritos em um log são ocultados a partir do primeiro
-cabeçalho ou chave. A ocultação é uma rede de segurança, não uma garantia: ela foi feita para
+cabeçalho ou chave.
+Uma URL em texto livre mantém o texto depois dela só quando nada nela fica para esse texto: a query,
+o fragmento ou os parâmetros `;` dela cortam o texto logo após a sua marca, a menos que cada
+parâmetro esteja em `allowedQueryParameters` e tenha um valor, e uma URL que termina em `=` ou `:`,
+ou cujo último segmento ou host é um nome secreto, corta o texto depois dela
+(`see https://x.example/a?token= hunter2` vira `see https://x.example/a?[redacted]`). Um `:` entre
+dígitos só faz parte de um número depois de um número (`12:30`, `10.0.0.1:8080`); depois de uma
+chave que termina em dígitos (`user1:2345`), ele é um separador.
+A ocultação é uma rede de segurança, não uma garantia: ela foi feita para
 segredos registrados por acidente. A entrada estruturada (JSON, formulários, corpos multipart e os
 cabeçalhos das partes, URLs e os hosts delas) é segura por padrão, e o que o redator não entende ali
 é ocultado. Em texto livre, um nome escrito sem separador e disfarçado com duas ou mais letras

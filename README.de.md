@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b9cfbbfa12b6e3cc1809d549b867891faf7c2644 status=reviewed -->
+<!-- i18n-source: README.md@805f7f93502ff39528591b4f81b896e4bfbe25f8 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  443 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  456 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -331,7 +331,16 @@ auch als erster String eines Arrays mit zwei Elementen oder als Tag eines Elemen
 geheimer Name, mit oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Der
 Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
 `login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body oder eine Property
-List im Log wird ab dem ersten Header oder Schlüssel verborgen. Schwärzen ist ein Sicherheitsnetz,
+List im Log wird ab dem ersten Header oder Schlüssel verborgen.
+Eine URL in freiem Text behält den Text danach nur, wenn in ihr nichts für diesen Text offenbleibt:
+Ihre Query, ihr Fragment oder ihre `;`-Parameter schneiden den Text direkt nach ihrem Zeichen ab,
+außer wenn jeder Parameter in `allowedQueryParameters` steht und einen Wert hat, und eine URL, die
+auf `=` oder `:` endet oder deren letztes Segment oder Host ein geheimer Name ist, schneidet den
+Text nach ihr ab (`see https://x.example/a?token= hunter2` wird
+`see https://x.example/a?[redacted]`). Ein `:` zwischen Ziffern gehört nur nach einer Zahl zur Zahl
+(`12:30`, `10.0.0.1:8080`); nach einem Schlüssel, der auf Ziffern endet (`user1:2345`), ist er ein
+Trennzeichen.
+Schwärzen ist ein Sicherheitsnetz,
 keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden. Strukturierte
 Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs mit ihren Hosts) sind
 standardmäßig sicher; was der Redactor dort nicht versteht, wird geschwärzt. In freiem Text wird
