@@ -44,6 +44,8 @@ struct MarkupReader {
     private var readsSiblingText = false
     /// Whether the last line read held a tag, a comment or a declaration.
     private(set) var sawTag = false
+    /// Whether the element followed last holds text or an element, once its start tag has ended.
+    private var heldContent = false
     /// The names of the elements opened since the line started, before a name, innermost last.
     private var openNames: [[UInt8]] = []
     /// The name of the element that holds the name, or of the element after it once that opens.
@@ -98,6 +100,11 @@ struct MarkupReader {
         takesSibling = true
     }
 
+    /// Whether the element followed last ended without holding text or an element:
+    /// `<string></string>`, also over lines. Like an element that closes itself, it holds no
+    /// value, so the value may come after it.
+    var heldNothing: Bool { !heldContent }
+
     /// Reads bytes `range` of a line. When followed, returns where what belongs to the name ends:
     /// the `<` of an end tag, the byte after a start tag that closes itself, or, for text that
     /// stands for the element after the name, the next tag or the end of the line.
@@ -108,6 +115,7 @@ struct MarkupReader {
             let byte = text.bytes[k]
             switch place {
             case .text:
+                if follows, depth > 0, byte != UInt8(ascii: "<") || isStartTag(at: k, in: text), !text.isSpace(k) { heldContent = true }
                 if let end = readText(byte, at: k, in: text) { return end }
             case .startTag:
                 if let end = readStartTag(byte, at: k) { return end }
@@ -138,6 +146,11 @@ struct MarkupReader {
             return nil
         }
         return start
+    }
+
+    /// Whether a start tag (`<` and a letter) begins at byte `k`.
+    private func isStartTag(at k: Int, in text: NormalizedText) -> Bool {
+        text.bytes[k] == UInt8(ascii: "<") && k + 1 < text.count && ASCII.isLetter(text.bytes[k + 1])
     }
 
     private mutating func readText(_ byte: UInt8, at k: Int, in text: NormalizedText) -> Int? {
@@ -214,6 +227,7 @@ struct MarkupReader {
             depth += 1
             if follows, depth == 1 {
                 holdingName = tagName
+                heldContent = false
             } else if !follows {
                 if openNames.count == Self.maximumOpenNames { openNames.removeFirst() }
                 openNames.append(tagName)

@@ -266,12 +266,14 @@ public struct SensitiveDataRedactor: Sendable {
     ///   (`name="password"`, `<string name="api_key">`) hides the rest of its line after the
     ///   closing quote. After a key that holds a name (`name=`, `key=`, `label=`, `id=`, … but not
     ///   `path=`, the route of a request) a name that is not plain ASCII counts as secret, as in
-    ///   JSON (`label="Пароль"`), and so does JSON there (`name=["pin"]`). In XML and HTML the
-    ///   other attribute values of its start tag are hidden too, and the lines below up to the end
-    ///   of the element, or the next line with text that is not markup after a start tag that
-    ///   closes itself; a secret
-    ///   name in an element's text (`<key>password</key>`) names the element after it. A name that
-    ///   is plain and not secret keeps what follows it.
+    ///   JSON (`label="Пароль"`), and so does JSON there (`name=["pin"]`), to the end of the line
+    ///   where it closes when it spans lines. In XML and HTML the other attribute values of its
+    ///   start tag are hidden too, and the lines below up to the end of the element and the rest of
+    ///   the line where it ends; a secret name in an element's text (`<key>password</key>`) names
+    ///   the element after it, also on the lines below, as a property list writes them. An element
+    ///   that holds nothing (`<string/>`, `<string></string>`) holds no value, so the text after
+    ///   it, or the next line with text that is not markup, is hidden too. A name that is plain
+    ///   and not secret keeps what follows it.
     /// - **Embedded JSON.** JSON in a line (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the
     ///   key rule for structured input, within the limits listed under "Limits". JSON that does not
     ///   parse hides the rest of the line, and the lines below until its brackets close.

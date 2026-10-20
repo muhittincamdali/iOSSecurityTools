@@ -23,13 +23,30 @@ extension FreeTextScanner {
         // An element that ends on the line was hidden with the rest of it. One that closes itself
         // holds no value, so the value may come after it: the text after `<string name="password" />`
         // (markup there is the next element, as in lines of `<add key="…" value="…" />`), and the
-        // element after `<string/>` that follows `<key>password</key>`.
+        // element after `<string/>` that follows `<key>password</key>`. So may the text after an
+        // element that holds nothing (`<string name="password"></string>`).
         guard let end = element.read(text, nameStart..<lineEnd) else {
             carry = .markup(element, indent: lineIndent, fallback: fallback)
             return
         }
-        let valueFollows = closesItself(before: end) && (followsSibling || !nextLineStartsWithMarkup(after: lineEnd))
-        carry = valueFollows ? fallback : .none
+        let valueMayFollow = followsSibling || !nextLineStartsWithMarkup(after: lineEnd)
+        if closesItself(before: end) {
+            carry = valueMayFollow ? fallback : .none
+        } else if element.heldNothing, valueMayFollow {
+            let after = afterEndTag(at: end, lineEnd: lineEnd)
+            carry = carryAfterHiding(from: after, valueStart: after, lineEnd: lineEnd, indent: lineIndent)
+        } else {
+            carry = .none
+        }
+    }
+
+    /// The byte after the end tag that starts at byte `end` (`</string>`), or `end` when no end
+    /// tag starts there.
+    private func afterEndTag(at end: Int, lineEnd: Int) -> Int {
+        guard end + 1 < lineEnd, text.bytes[end] == UInt8(ascii: "<"), text.bytes[end + 1] == UInt8(ascii: "/") else { return end }
+        var after = end
+        while after < lineEnd, text.bytes[after] != UInt8(ascii: ">") { after += 1 }
+        return min(after + 1, lineEnd)
     }
 
     /// Whether the bytes before `end` are the `/>` of a start tag that closes itself.
@@ -87,17 +104,17 @@ extension FreeTextScanner {
     }
 
     /// A line below a secret name written in an element. The element's lines are hidden up to
-    /// its end, after which the line is read again. When no end tag of the element comes later, a
-    /// line that neither holds markup nor is indented more than the name's line may be text after
-    /// an element that is never closed (`usage: login <password>`), and goes on as `fallback`.
-    /// Returns whether the rest of the line is scanned.
+    /// its end, and the rest of the line where it ends (see ``endElement(of:at:lineEnd:indent:)``).
+    /// When no end tag of the element comes later, a line that neither holds markup nor is
+    /// indented more than the name's line may be text after an element that is never closed
+    /// (`usage: login <password>`), and goes on as `fallback`. Returns whether the rest of the
+    /// line is scanned.
     mutating func continueElement(_ element: MarkupReader, indent: Int, fallback: Carry, lineStart: Int, lineEnd: Int) -> Bool {
         var element = element
         let textStart = firstNonSpace(from: lineStart, to: lineEnd)
         if let end = element.read(text, lineStart..<lineEnd) {
             if textStart < end { hide(text.offset(at: textStart)..<text.offset(at: end)) }
-            carry = .none
-            position = end
+            endElement(of: element, at: end, lineEnd: lineEnd, indent: indent)
             return true
         }
         guard textStart < lineEnd else {
@@ -115,6 +132,26 @@ extension FreeTextScanner {
         // The line went on as the value: the element may go on below it too.
         if !scansLine { carry = .markup(element, indent: indent, fallback: carry) }
         return scansLine
+    }
+
+    /// What belongs to a secret name ended at byte `end` of a line below the name: the end tag of
+    /// its element starts there, or a start tag that closes itself ends there. The rest of that
+    /// line is hidden with it, as the rest of the name's own line is, so `</string> X` and
+    /// `<string/> X` show no `X`. An element that closes itself or holds nothing holds no value:
+    /// in a property list's usual layout (`<key>password</key>`, then `<string/>` on a line of its
+    /// own) the value may follow it, on its line or the next line with text, and is hidden too.
+    private mutating func endElement(of element: MarkupReader, at end: Int, lineEnd: Int, indent: Int) {
+        let after = afterEndTag(at: end, lineEnd: lineEnd)
+        let rest = firstNonSpace(from: after, to: lineEnd)
+        if rest < lineEnd { hide(fromByte: rest, toLineEnd: lineEnd) }
+        position = lineEnd
+        if closesItself(before: end) || element.heldNothing {
+            carry = carryAfterHiding(from: after, valueStart: after, lineEnd: lineEnd, indent: indent)
+        } else if let (quote, escaped) = unclosedQuote(in: rest..<lineEnd) {
+            carry = .openQuote(quote: quote, escaped: escaped, indent: indent)
+        } else {
+            carry = .none
+        }
     }
 
     /// Whether an end tag of the element that `element` follows comes after byte `i`. The end
