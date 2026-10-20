@@ -295,11 +295,14 @@ than a second, also for ordinary shapes such as a JSON array of short strings, a
 to four times, timed by the CPU time of such a thread. The default redactor and its folded keys are
 made once and shared, never per array element or path segment, each path segment is read in a single
 pass, and each word is compared with each secret word in a single pass. Free text is read once and
-keeps a fixed number of positions, and no word longer than 256 characters is copied for reading, so
-the tests also check that a megabyte of text takes less than 16 MB more memory, and a body of 256 KiB
-less than 16 MB, in every shape the reviews measured: a start tag of a megabyte of attributes
-followed by 17 secret names, which an earlier design of 2.1.0 read into 583 MB, a megabyte word of
-backslashes or escapes, which took 36 MB, and a form of a megabyte, which took 67 MB.
+keeps a fixed number of positions, the tree of each JSON in it is released before the next one is
+read, and no word longer than 256 characters is copied for reading, so the tests also check that a
+megabyte of text takes less than 16 MB more memory, and a body of 256 KiB less than 16 MB, in every
+shape the reviews measured: a start tag of a megabyte of attributes followed by 17 secret names,
+which an earlier design of 2.1.0 read into 583 MB, a megabyte word of backslashes or escapes, which
+took 36 MB, a form of a megabyte, which took 67 MB, and a megabyte of log lines of short JSON
+(`{"count":1}`), whose trees `JSONSerialization` kept until the redaction ended, 19 MB. Memory is
+measured until the thread that redacts has ended, so what it releases only then counts too.
 
 ### Free text is cut at its first trigger
 
@@ -354,7 +357,9 @@ kept and reviews got past one variant at a time:
   plain ASCII is never allowed. Any other key cuts the text at its value — `x=hunter2` as well as
   `Error: …` — and so does a separator with no key before it, or a key on the line before its
   separator. The separators are `=` and `:` and runs of them (`:=`, `==`, `=>`); a `:` between two
-  digits, as in `12:30`, is part of a time. JSON in the text is parsed and its members follow the
+  digits is part of a number only after a number — a time, a date and time or an address and its
+  port (`12:30:45`, `2026-10-19T12:30`, `10.0.0.1:8080`) — and after a key that ends in digits it
+  is a separator (`user1:2345` cuts at `2345`). JSON in the text is parsed and its members follow the
   same rule, as does the first string of a two-element array, as fetch headers and
   `URLSearchParams` entries write a pair (`[["X-User","bob"]]` cuts at `"bob"`). A tag is a key
   too: the text of an element whose tag is not allowed cuts the text (`<user>bob</user>` keeps
@@ -375,9 +380,21 @@ kept and reviews got past one variant at a time:
 
 A word that mixes scripts (`pаssword` with a Cyrillic `а`) cuts the text where it starts, and a
 quote or bracket that does not close before the text ends, or before the text is cut, cuts it
-after the quote or bracket: where its value ends cannot be told. **URLs** with a scheme and `//`
-are written as ``SensitiveDataRedactor/redact(url:)`` writes them, host rule included, and the text
-is read on after them.
+after the quote or bracket: where its value ends cannot be told.
+
+**URLs** with a scheme and `//` are written as ``SensitiveDataRedactor/redact(url:)`` writes them,
+host rule included, but a URL is not a safe place to read on from: what it ends with may name a
+value that the text after it holds. Its path parameters (`;`), query (`?`) and fragment (`#`) cut
+the text right after their mark unless every parameter in them is on
+``SensitiveDataRedactor/allowedQueryParameters``, has a value in the URL and does not name a secret
+as a value; with `page` allowed, `?page=2` keeps the text after the URL. A URL that ends in `=` or
+`:`, or whose last path segment — its host when it has no path — names a secret, cannot be read or
+is not plain ASCII, cuts the text after it (`/password hunter2`, `https://password hunter2`). A URL
+that `URLComponents` cannot read cuts the text where it starts; one whose host is not written cuts
+it after the scheme, unless the host is the whole rest of the URL and holds only names with values
+(`myapp://password=hunter2`); and one past the limits of segments or parameters cuts it after the
+host. Without a scheme, `?`, `;` and `&` are separators between words and the key rule reads the
+names after them.
 
 ```swift
 redactor.redact("user꞉ hunter2")                         // "user[redacted]"
@@ -401,6 +418,8 @@ redactor.redact(#"{"status":200,"user":"bob"} done"#)   // "{\"status\":200,\"us
 redactor.redact("git clone https://bob:hunter2@github.com/x/y.git")
 // "git clone https://github.com/x/y.git"
 redactor.redact("connect myapp://password=hunter2 ok")   // "connect myapp://[redacted] ok"
+redactor.redact("see https://x.example/a?token= hunter2") // "see https://x.example/a?[redacted]"
+redactor.redact("user1:2345678 at 12:30")                 // "user1:[redacted]"
 ```
 
 The scan reads the text once, left to right, and stops at the first trigger. It keeps a fixed
@@ -442,7 +461,8 @@ with a space between its letters (`p a s s w o r d`), one spelled with digits an
 after a flag or a name that is not on the list without a separator (`--user SECRET`), a name in
 another script as an element of an array of more than two (`["Şifre","…","…"]`), and a name and
 value in two different JSON objects or arrays. It does not find card numbers grouped with dots,
-underscores or `+`, glued to ASCII letters or written as a JSON floating-point number. The value of
+underscores or `+`, glued to ASCII letters or written as a JSON floating-point number, an IBAN
+written in lowercase, or a token split by `/` or `-` into pieces shorter than 32 characters. The value of
 an allowed key is shown, also when it is repeated (`status==…`).
 
 Where it cannot tell, it hides more than it has to, on purpose: over-hiding is by design. It hides
@@ -452,7 +472,9 @@ quote left open, after the first character outside the safe alphabet — an emoj
 currency sign or East Asian punctuation in a sentence (`Merhaba dünya 👋 bye` keeps only
 `Merhaba dünya `), a whole word with an escape in it, a word longer than 256 characters, the text of
 an element whose tag is not allowed (`Optional<String>(x)` keeps `Optional<String>`), a whole JSON
-string after a trigger in JSON written into it, a URL host in letters outside ASCII, and a
+string after a trigger in JSON written into it, a URL host in letters outside ASCII, everything
+after a URL's query, fragment or path parameters unless all of them are allowed and have values
+(`see https://x.example/a?q=1 ok` keeps `see https://x.example/a?`), and a
 multipart body or a property list written into text from its first header or key.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
