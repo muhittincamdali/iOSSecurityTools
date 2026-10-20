@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@805f7f93502ff39528591b4f81b896e4bfbe25f8 status=reviewed -->
+<!-- i18n-source: README.md@216cadc5f186191841d5d46a358755bfe2461326 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  456 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  467 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -332,13 +332,13 @@ geheimer Name, mit oder ohne Trennzeichen, auch als Wert geschrieben wie `name="
 Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
 `login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body oder eine Property
 List im Log wird ab dem ersten Header oder Schlüssel verborgen.
-Eine URL in freiem Text behält den Text danach nur, wenn in ihr nichts für diesen Text offenbleibt:
-Ihre Query, ihr Fragment oder ihre `;`-Parameter schneiden den Text direkt nach ihrem Zeichen ab,
-außer wenn jeder Parameter in `allowedQueryParameters` steht und einen Wert hat, und eine URL, die
-auf `=` oder `:` endet oder deren letztes Segment oder Host ein geheimer Name ist, schneidet den
-Text nach ihr ab (`see https://x.example/a?token= hunter2` wird
-`see https://x.example/a?[redacted]`). Ein `:` zwischen Ziffern gehört nur nach einer Zahl zur Zahl
-(`12:30`, `10.0.0.1:8080`); nach einem Schlüssel, der auf Ziffern endet (`user1:2345`), ist er ein
+Eine URL in freiem Text wird nur gezeigt, wenn sie sauber ist – `scheme://host` und ein optionaler
+Pfad aus ASCII-Buchstaben, Ziffern, `.`, `_`, `-` und `/`, deren Host und Segmente keinen geheimen
+Namen nennen, gefolgt von Leerraum, einem Zeilenumbruch oder einem Satzzeichen am Satzende –, und
+jede andere URL schneidet den Text dort ab, wo sie beginnt (`see https://x.example/a?page=2 ok` wird
+`see [redacted]`; `allowedQueryParameters` gilt nur für `redact(url:)`). Ein `:` zwischen Ziffern
+gehört nur nach einer Zahl zur Zahl (`12:30`, `10.0.0.1:8080`); nach einem Schlüssel, der auf
+Ziffern endet (`user1:2345`), ist er ein
 Trennzeichen.
 Schwärzen ist ein Sicherheitsnetz,
 keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden. Strukturierte

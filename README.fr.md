@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@805f7f93502ff39528591b4f81b896e4bfbe25f8 status=reviewed -->
+<!-- i18n-source: README.md@216cadc5f186191841d5d46a358755bfe2461326 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  456 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  467 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -333,11 +333,11 @@ secret, avec ou sans séparateur, aussi écrit comme valeur comme `name="passwor
 coupé jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401`
 devient `login user=[redacted]`, et un corps multipart ou une property list écrits dans un journal
 sont masqués à partir de leur premier en-tête ou de leur première clé.
-Une URL dans du texte libre ne conserve le texte qui la suit que si rien en elle n’est laissé à ce
-texte : sa query, son fragment ou ses paramètres `;` coupent le texte juste après leur marque, sauf
-si chaque paramètre figure dans `allowedQueryParameters` et a une valeur, et une URL qui se termine
-par `=` ou `:`, ou dont le dernier segment ou l’hôte est un nom secret, coupe le texte après elle
-(`see https://x.example/a?token= hunter2` devient `see https://x.example/a?[redacted]`). Un `:`
+Une URL dans du texte libre n’est affichée que si elle est propre — `scheme://host` et un chemin
+facultatif de lettres ASCII, de chiffres, de `.`, `_`, `-` et `/`, dont l’hôte et les segments ne
+nomment aucun secret, suivie d’une espace, d’un saut de ligne ou d’une ponctuation de fin de phrase
+— et toute autre URL coupe le texte là où elle commence (`see https://x.example/a?page=2 ok` devient
+`see [redacted]` ; `allowedQueryParameters` ne s’applique qu’à `redact(url:)`). Un `:`
 entre des chiffres ne fait partie d’un nombre qu’après un nombre (`12:30`, `10.0.0.1:8080`) ; après
 une clé qui se termine par des chiffres (`user1:2345`), c’est un séparateur.
 Le masquage est un filet de
