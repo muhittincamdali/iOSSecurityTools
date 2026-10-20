@@ -75,6 +75,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of its line, also when it is escaped, split by punctuation or a space, or spelled with a letter
   that has no ASCII form; a word that mixes scripts or holds an invisible character hides itself
   and the rest of its line.
+- A secret name written as a value names what follows it. In free text, a text/plain body and
+  text inside a JSON string, a quoted value that holds a secret name or a word that cannot be read
+  (`name="password"`, `key='token'`, `id: "pin"`, `label="API Key"`) hides the rest of its line
+  after the closing quote. In XML and HTML the other attribute values of its start tag are hidden
+  too, and the lines below up to the element's end tag; a secret name in an element's text
+  (`<key>password</key>`) names the element after it, as a property list writes a key and its
+  value. In a JSON object, a member whose value is such a name hides the values of the other
+  members, apart from the members that hold names and a JSON Patch or SCIM `op`. A name that is
+  not secret (`name="status"`, `{"label":"Status",…}`) keeps what follows it.
+- The JSON Web Token detector also finds a header and payload whose last dot was cut off
+  (`eyJ….eyJ…`), as a URL at the end of a sentence loses it to the full stop.
 - Default-ignorable code points (such as U+115F and U+3164) and control characters are left out
   of the scanning copy, like format characters, so they no longer split a secret name, a card
   number, an IBAN, a token or an email address.
@@ -106,6 +117,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   URL path segments after a secret label. They are kept as tests, together with property tests
   that generate disguised secret names and random keys that are not allowed and check that no
   value shows, and tests that allowed keys and plain names keep their value.
+- Text after a secret name written as a value was shown: `<string name="api_key">…</string>`
+  became `<string name="[redacted]">…</string>` with the key still in it, and so did
+  `<entry key="db.password">…`, `<field id="pin">…`, `<param name="token" value="x">…`,
+  `<string name="password" />…`, `field name="password" …`, `name='token' …`, `id: "pin" …`,
+  `header="Authorization" …`, `label="password", …` and `note="password"` with the secret on the
+  next line, also in text/plain bodies and inside JSON strings. These inputs of the ninth review
+  are kept as tests, with Android `strings.xml`, Java Properties XML, property lists, HTML forms
+  and Spring and .NET configuration, and a property test writes generated disguised names as
+  values in free text, XML, property lists and JSON objects.
+- A JSON object that names a field in one member and holds its value in another, under names
+  outside the pair list, showed the value: `{"label":"Password","value":…}`,
+  `{"type":"password","input":…}`, `{"variable":"API_KEY","value":…}`,
+  `{"ParameterKey":"DbPassword","ParameterValue":…}` and `{"key":"pin","text":…}`.
+- The value detectors found less than 2.0.0 in two cases: a card number, JSON Web Token, bearer
+  token or IBAN right after a letter written outside ASCII (`é4242…`, `𝐚eyJ…`), which the scanning
+  copy reads as an ASCII letter that glues the value to a word, and an email address after `:`
+  (`mailto:alice@example.com`) when the kinds did not include `.secretFields`. Only letters and
+  digits written in ASCII glue now, and an address after `:` is masked without any letter of its
+  name, which may be the password of `user:password@host` (`user:•••@example.com`). A test runs
+  2.0.0's detector tests unchanged with 2.0.0's kinds, and every 2.0.0 sample between 38 texts
+  before it and 24 after it that do not glue it to a word, with its own kind and with every kind.
+- A finding that ran over the end of a URL in a line was shown in part: the URL ends before the
+  dot that ends a sentence, so `?q=eyJ….eyJ….` lost the last dot of an unsigned token, and a card
+  number that starts in a query and goes on after the URL kept its last groups. A finding of the
+  value detectors that crosses the edge of a URL or JSON in a line is now hidden whole. A
+  differential test runs every detector on fourteen paths: free text, an allowed key, a
+  text/plain body, a JSON string, name and array element, JSON in a line, a form value and name,
+  a multipart part, a query value, a path segment and a URL in a line, also before a full stop.
 - An email address whose name holds a letter without an ASCII form kept the name up to that
   letter: `{"email":"ayşe.yılmaz@gmail.com"}` gave `ayşe.yıl•••@gmail.com`,
   `ılgın.öztürk@firma.com.tr` kept `ılgın`, also in form bodies and free text, and `张伟@example.cn`
