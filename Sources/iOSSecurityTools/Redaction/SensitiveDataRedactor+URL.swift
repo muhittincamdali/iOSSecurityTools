@@ -92,43 +92,62 @@ extension SensitiveDataRedactor {
 
     /// The path segment by segment. A segment after one that names a secret or cannot be read
     /// (`/pin/4831`, `/password-reset/…`, `/token/…/info`) is a value, so it becomes `:id`
-    /// whatever it looks like.
+    /// whatever it looks like. A segment that comes again is not read again.
     private func redacted(path: String, nesting: Nesting) -> String {
+        let classifier = SensitiveDataRedactor(self, kinds: .all)
+        var readings: [Substring: PathSegmentReading] = [:]
         var segments: [String] = []
         var followsLabel = false
-        for raw in path.split(separator: "/", omittingEmptySubsequences: false) {
-            let segment = String(raw)
+        for segment in path.split(separator: "/", omittingEmptySubsequences: false) {
             guard !segment.isEmpty else {
-                segments.append(segment)
+                segments.append("")
                 continue
             }
-            segments.append(followsLabel ? Self.identifierPlaceholder : redacted(pathSegment: segment, nesting: nesting))
-            followsLabel = Self.isSecretLabel(segment)
+            let parts = segment.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)
+            let base = parts[0]
+            let reading = readings[base] ?? classifier.read(pathSegment: base, nesting: nesting)
+            readings[base] = reading
+            if followsLabel {
+                segments.append(Self.identifierPlaceholder)
+            } else {
+                let shownBase = reading.hides ? Self.identifierPlaceholder : String(base)
+                segments.append(parts.count == 2 ? shownBase + ";" + redacted(pathParameters: parts[1], nesting: nesting) : shownBase)
+            }
+            followsLabel = reading.isLabel
         }
         return segments.joined(separator: "/")
     }
 
-    /// Whether the decoded segment, read as free text, has a word that holds a secret name or
-    /// cannot be read; a segment that does not decode counts too.
-    private static func isSecretLabel(_ segment: String) -> Bool {
-        let name = segment.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)[0]
-        guard let decoded = name.removingPercentEncoding else { return true }
-        return FreeTextScanner.mentionsSecret(Array(decoded.unicodeScalars), compatibility: CompatibilityText())
+    /// What a path segment is, from one reading of it.
+    private struct PathSegmentReading {
+        /// It looks like an identifier or holds a secret, so it becomes `:id`.
+        let hides: Bool
+        /// It has a word that names a secret or cannot be read, so the segment after it is a value.
+        let isLabel: Bool
     }
 
-    /// A path segment, or `:id` when it looks like an identifier or a secret. Parameters after a
-    /// `;`, as in `cart;jsessionid=…`, are read like query parameters.
-    private func redacted(pathSegment segment: String, nesting: Nesting) -> String {
-        let parts = segment.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)
-        let base = String(parts[0])
-        var result = Self.isIdentifierLike(base) || holdsSecret(base, nesting: nesting) ? Self.identifierPlaceholder : base
-        guard parts.count == 2 else { return result }
-        let parameters = parts[1].split(separator: ";", omittingEmptySubsequences: false).map { parameter in
+    /// Reads a path segment, without its parameters, once: it is decoded and scanned a single
+    /// time, and the free-text rule, every value detector and the word reading all run on that
+    /// scan. A segment that does not decode is both.
+    private func read(pathSegment segment: Substring, nesting: Nesting) -> PathSegmentReading {
+        guard let decoded = segment.removingPercentEncoding else { return PathSegmentReading(hides: true, isLabel: true) }
+        let scalars = Array(decoded.unicodeScalars)
+        guard !scalars.isEmpty else { return PathSegmentReading(hides: false, isLabel: false) }
+        let isIdentifier = UUID(uuidString: decoded) != nil || Self.isIdentifierShaped(scalars)
+        guard !Self.isQuietWord(scalars) else { return PathSegmentReading(hides: isIdentifier, isLabel: false) }
+        let compatibility = CompatibilityText()
+        let text = NormalizedText(scalars, compatibility: compatibility)
+        let holdsSecret = !textSpans(in: scalars, text: text, compatibility: compatibility, nesting: nesting, detectsInRegions: true).isEmpty
+        let isLabel = FreeTextScanner.mentionsSecret(scalars, text: text, compatibility: compatibility)
+        return PathSegmentReading(hides: isIdentifier || holdsSecret, isLabel: isLabel)
+    }
+
+    /// Parameters after a `;` in a path segment (`cart;jsessionid=…`), read like query parameters.
+    private func redacted(pathParameters: Substring, nesting: Nesting) -> String {
+        pathParameters.split(separator: ";", omittingEmptySubsequences: false).map { parameter in
             let pair = parameter.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             return redacted(parameter: String(pair[0]), value: pair.count == 2 ? String(pair[1]) : nil, nesting: nesting)
-        }
-        result += ";" + parameters.joined(separator: ";")
-        return result
+        }.joined(separator: ";")
     }
 
     /// Whether the decoded segment holds something the free-text rule hides, or does not decode.
@@ -152,19 +171,14 @@ extension SensitiveDataRedactor {
     /// Path segments of letters and digits at least this long are treated as tokens.
     static let mixedTokenLength = 16
 
-    /// Whether a decoded path segment is a UUID, a number of six or more digits, a token of 16 or
-    /// more letters and digits, or holds something the value detectors find. A segment that does
-    /// not decode counts as one too.
-    static func isIdentifierLike(_ segment: String) -> Bool {
-        guard let decoded = segment.removingPercentEncoding else { return true }
-        let scalars = Array(decoded.unicodeScalars)
-        guard !scalars.isEmpty else { return false }
-        if UUID(uuidString: decoded) != nil { return true }
-        let bytes = scalars.map { $0.isASCII ? UInt8($0.value) : CompatibilityText.unreadable }
+    /// Whether a decoded path segment is a number of six or more digits or a token of 16 or more
+    /// letters, digits, `-` and `_` with both letters and digits.
+    private static func isIdentifierShaped(_ scalars: [Unicode.Scalar]) -> Bool {
+        guard scalars.allSatisfy(\.isASCII) else { return false }
+        let bytes = scalars.map { UInt8($0.value) }
         if bytes.count >= 6, bytes.allSatisfy(ASCII.isDigit) { return true }
         let isToken = bytes.allSatisfy { ASCII.isAlphanumeric($0) || $0 == UInt8(ascii: "-") || $0 == UInt8(ascii: "_") }
-        if isToken, bytes.count >= mixedTokenLength, bytes.contains(where: ASCII.isLetter), bytes.contains(where: ASCII.isDigit) { return true }
-        return !SensitiveDataRedactor.standard.detectorSpans(in: NormalizedText(scalars, compatibility: CompatibilityText())).isEmpty
+        return isToken && bytes.count >= mixedTokenLength && bytes.contains(where: ASCII.isLetter) && bytes.contains(where: ASCII.isDigit)
     }
 
     // MARK: Form encoding

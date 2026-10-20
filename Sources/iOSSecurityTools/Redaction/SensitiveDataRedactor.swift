@@ -178,6 +178,14 @@ public struct SensitiveDataRedactor: Sendable {
         self.urlDetail = urlDetail
     }
 
+    /// A redactor with the allowlists and URL detail of `other` that looks for `kinds`.
+    init(_ other: SensitiveDataRedactor, kinds: Kinds) {
+        self.kinds = kinds
+        self.allowedTextKeys = other.allowedTextKeys
+        self.allowedQueryParameters = other.allowedQueryParameters
+        self.urlDetail = other.urlDetail
+    }
+
     private static func allowableFolds(_ names: [String]) -> Set<String> {
         Set(names.compactMap { FieldName.allowableFold($0.unicodeScalars) })
     }

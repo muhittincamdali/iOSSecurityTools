@@ -78,4 +78,10 @@ struct RedactionURLTests {
         let hostOnly = SensitiveDataRedactor(kinds: .emailAddresses, urlDetail: .hostOnly)
         #expect(hostOnly.redact(url: try #require(URL(string: "https://bob:pw@example.com:8443/a?email=alice@example.com#x"))) == "https://example.com:8443")
     }
+
+    @Test("a segment read once keeps its reading where it comes again, after a label or not")
+    func repeatedSegments() throws {
+        let url = try #require(URL(string: "https://example.com/pin/pin/users/4831/users/pin/4831/a%40b.com/a%40b.com/users"))
+        #expect(redactor.redact(url: url) == "https://example.com/pin/:id/:id/4831/users/pin/:id/:id/:id/users")
+    }
 }
