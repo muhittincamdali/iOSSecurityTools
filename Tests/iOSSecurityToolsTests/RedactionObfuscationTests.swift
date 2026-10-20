@@ -152,7 +152,9 @@ struct RedactionObfuscationTests {
         ("pass word=hunter2", "pass [redacted]"),
         ("pass  word=hunter2", "pass  [redacted]"),
         ("pass\tword=hunter2", "pass\t[redacted]"),
-        ("pass\u{00A0}word=hunter2", "pass\u{00A0}[redacted]"),
+        // U+00A0 is outside the safe alphabet, so the text is cut there, before the cut that the
+        // split name makes after it.
+        ("pass\u{00A0}word=hunter2", "pass[redacted]"),
         ("p a s s w o r d=hunter2", "p a s s w o r d=[redacted]"),
         ("pa.ss word=hunter2", "pa.ss [redacted]"),
         ("API key: hunter2", "API key: [redacted]"),

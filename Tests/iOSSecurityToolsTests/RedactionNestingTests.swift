@@ -67,24 +67,25 @@ struct RedactionNestingTests {
     }
 
     @Test("a URL counts as a document")
-    func urlLevel() {
-        let url = "see https://example.com/a?status=ok"
-        // With `status` allowed in the query, the URL that is the fourth document is kept whole,
-        // and one a level deeper is hidden with the text that holds it.
-        let allowing = SensitiveDataRedactor(allowedTextKeys: ["note"], allowedQueryParameters: ["status"])
+    func urlLevel() throws {
+        // A clean URL that is the fourth document is kept whole, and one a level deeper is hidden
+        // with the text that holds it.
+        let url = "see https://example.com/a/status"
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["note"])
         func redactAllowing(_ body: String) -> String { allowing.redact(body: Data(body.utf8), contentType: "application/json") }
         #expect(redactAllowing(Self.noted(url, times: 3)) == Self.noted(url, times: 3))
         #expect(!redactAllowing(Self.noted(url, times: 4)).contains("example.com"))
-        // Without it, the query value is hidden by the URL rule, which cuts each text around it.
-        #expect(redact(Self.noted(url, times: 3)) == #"{"note":"{\"note\":\"[redacted]"}"#)
-        // Each URL writes the redacted value of the next one encoded again. Every URL of a chain
-        // holds all the URLs after it, so reading them goes past the reading budget (four times
-        // the line) at the third, whose value is hidden whole; two fit.
+        // A URL with a query is not clean: it cuts each text around it at its start, also when the
+        // query parameter is allowed, which applies to `redact(url:)` only.
+        let query = SensitiveDataRedactor(allowedTextKeys: ["note"], allowedQueryParameters: ["status"])
+        let line = Self.noted("see https://example.com/a?status=ok", times: 3)
+        #expect(query.redact(body: Data(line.utf8), contentType: "application/json") == #"{"note":"{\"note\":\"[redacted]"}"#)
+        // In `redact(url:)` an allowed value that holds a URL is free text, where that URL is not
+        // clean either, so a chain of URLs is never read past the first.
         let allowed = SensitiveDataRedactor(allowedQueryParameters: ["q"])
         let chain = String(repeating: "https://a.example/?q=", count: 5) + "x"
-        #expect(allowed.redact(chain) == "https://a.example/?q=https%3A%2F%2Fa.example%2F%3Fq%3Dhttps%253A%252F%252Fa.example%252F%253Fq%253D[redacted]")
-        let two = String(repeating: "https://a.example/?q=", count: 2) + "x"
-        #expect(allowed.redact(two) == two)
+        #expect(allowed.redact(url: try #require(URL(string: chain))) == "https://a.example/?q=[redacted]")
+        #expect(allowed.redact(chain) == "[redacted]")
     }
 
     @Test("a multipart part is a document inside the body")

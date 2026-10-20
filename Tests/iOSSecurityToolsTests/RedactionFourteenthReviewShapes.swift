@@ -4,7 +4,7 @@ import iOSSecurityTools
 /// The fourteenth review's shapes of a megabyte of free text: log lines of short JSON, whose
 /// parsed trees `JSONSerialization` autoreleased and kept until the end of the redaction (19 MB
 /// more for a megabyte), JSON quoted in JSON up to three levels, and lines of URLs whose
-/// parameters are all allowed, which are read whole and keep the text after them.
+/// parameters are all allowed, which a URL in free text no longer uses: the first cuts the text.
 enum FourteenthReviewShapes {
     private static func lines(_ line: String) -> String {
         String(repeating: line + "\n", count: max(1, RedactionTimeLimitTests.size / (line.utf8.count + 1)))

@@ -9,20 +9,20 @@ struct RedactionURLTests {
     let redactor = SensitiveDataRedactor()
 
     /// Each URL, as ``SensitiveDataRedactor/redact(url:)`` writes it and in a line of text, where
-    /// path parameters, a query or a fragment that is not all on the allowlist cut the text at its
-    /// start (nil: the line keeps the URL as written and its end).
+    /// a URL that is not clean cuts the text at its start (nil: the line keeps the URL as written
+    /// and its end).
     @Test("drops user info and the fragment, hides query values and identifiers in the path", arguments: [
-        ("https://example.com/users/12345678/reset?code=ft14", "https://example.com/users/:id/reset?code=[redacted]", "GET https://example.com/users/:id/reset?[redacted]"),
-        ("https://bob:hunter2@example.com/a/b?x=1#frag", "https://example.com/a/b?x=[redacted]", "GET https://example.com/a/b?[redacted]"),
-        ("https://bob@example.com:8443/", "https://example.com:8443/", nil),
+        ("https://example.com/users/12345678/reset?code=ft14", "https://example.com/users/:id/reset?code=[redacted]", "GET [redacted]"),
+        ("https://bob:hunter2@example.com/a/b?x=1#frag", "https://example.com/a/b?x=[redacted]", "GET [redacted]"),
+        ("https://bob@example.com:8443/", "https://example.com:8443/", "GET [redacted]"),
         ("https://example.com/orders/550e8400-e29b-41d4-a716-446655440000", "https://example.com/orders/:id", nil),
         ("https://example.com/files/0123456789abcdef0123456789abcdef", "https://example.com/files/:id", nil),
         ("https://example.com/s/aB3dE5fG7hJ9kL1m", "https://example.com/s/:id", nil),
-        ("https://example.com/u/alice@example.com/x", "https://example.com/u/:id/x", nil),
-        ("https://example.com/cart;jsessionid=abc/view", "https://example.com/cart;jsessionid=[redacted]/view", "GET https://example.com/cart;[redacted]"),
-        ("https://example.com/a?flag&q=", "https://example.com/a?[redacted]&q=", "GET https://example.com/a?[redacted]"),
-        ("https://example.com/a?p%61ssword=x&%E2%80%8Btoken=y", "https://example.com/a?p%61ssword=[redacted]&[redacted]=[redacted]", "GET https://example.com/a?[redacted]"),
-        ("https://example.com/v1/items/42?page=2", "https://example.com/v1/items/42?page=[redacted]", "GET https://example.com/v1/items/42?[redacted]"),
+        ("https://example.com/u/alice@example.com/x", "https://example.com/u/:id/x", "GET [redacted]"),
+        ("https://example.com/cart;jsessionid=abc/view", "https://example.com/cart;jsessionid=[redacted]/view", "GET [redacted]"),
+        ("https://example.com/a?flag&q=", "https://example.com/a?[redacted]&q=", "GET [redacted]"),
+        ("https://example.com/a?p%61ssword=x&%E2%80%8Btoken=y", "https://example.com/a?p%61ssword=[redacted]&[redacted]=[redacted]", "GET [redacted]"),
+        ("https://example.com/v1/items/42?page=2", "https://example.com/v1/items/42?page=[redacted]", "GET [redacted]"),
         ("https://example.com/health", "https://example.com/health", nil),
     ] as [(String, String, String?)])
     func urls(input: String, expected: String, inText: String?) throws {
@@ -30,16 +30,20 @@ struct RedactionURLTests {
         #expect(redactor.redact("GET \(input) done") == inText ?? "GET \(expected) done")
     }
 
-    @Test("in text, a URL whose parameters are all allowed and have values keeps the text after it")
-    func allowedURLInText() {
+    // In free text a URL is never read for what its query, fragment or path parameters hold:
+    // `allowedQueryParameters` applies to `redact(url:)` only.
+    @Test("in text, any URL with a query, fragment or parameters cuts the text at its start, also when they are allowed")
+    func allowedURLInText() throws {
         let custom = SensitiveDataRedactor(allowedQueryParameters: ["page", "sort"])
-        #expect(custom.redact("GET https://example.com/a?page=2&sort=name status=200") == "GET https://example.com/a?page=2&sort=name status=200")
-        #expect(custom.redact("GET https://example.com/a;page=2/b status=200") == "GET https://example.com/a;page=2/b status=200")
-        #expect(custom.redact("GET https://example.com/a?page=2#sort=name status=200") == "GET https://example.com/a?page=2 status=200")
-        #expect(custom.redact("GET https://example.com/a?page= hunter2") == "GET https://example.com/a?[redacted]")
-        #expect(custom.redact("GET https://example.com/a?page=2&token= hunter2") == "GET https://example.com/a?[redacted]")
-        #expect(custom.redact("GET https://example.com/a?page=2#token= hunter2") == "GET https://example.com/a?page=2#[redacted]")
+        for line in [
+            "GET https://example.com/a?page=2&sort=name status=200", "GET https://example.com/a;page=2/b status=200",
+            "GET https://example.com/a?page=2#sort=name status=200", "GET https://example.com/a?page= hunter2",
+            "GET https://example.com/a?page=2&token= hunter2", "GET https://example.com/a?page=2#token= hunter2",
+        ] {
+            #expect(custom.redact(line) == "GET [redacted]", "\(line)")
+        }
         #expect(redactor.redact("GET https://example.com/v1/items/42 status=200") == "GET https://example.com/v1/items/42 status=200")
+        #expect(custom.redact(url: try #require(URL(string: "https://example.com/a?page=2&sort=name"))) == "https://example.com/a?page=2&sort=name")
     }
 
     @Test("query values on the allowlist are kept, read as free text")
@@ -56,29 +60,31 @@ struct RedactionURLTests {
         let hostOnly = SensitiveDataRedactor(urlDetail: .hostOnly)
         #expect(hostOnly.redact(url: try #require(URL(string: "https://bob:pw@api.example.com:8443/users/42?q=1#x"))) == "https://api.example.com:8443")
         #expect(hostOnly.redact("see https://example.com/reset now") == "see https://example.com now")
-        #expect(hostOnly.redact("see https://example.com/reset?code=1 now") == "see https://example.com?[redacted]")
+        #expect(hostOnly.redact("see https://example.com/reset?code=1 now") == "see [redacted]")
     }
 
-    @Test("a URL in text ends at white space, quotes and closing punctuation")
+    @Test("a URL in text ends at white space, quotes and closing punctuation, and one that is not clean cuts the text at its start")
     func urlsInText() {
-        #expect(redactor.redact("(see https://example.com/r?code=1).") == "(see https://example.com/r?[redacted]")
+        #expect(redactor.redact("(see https://example.com/r?code=1).") == "(see [redacted]")
         #expect(redactor.redact("(see https://example.com/r).") == "(see https://example.com/r).")
         #expect(redactor.redact("url=\"https://example.com/r?code=1\" ok") == "url=[redacted]")
-        #expect(redactor.redact("path=https://example.com/r?code=1 ok") == "path=https://example.com/r?[redacted]")
+        #expect(redactor.redact("path=https://example.com/r?code=1 ok") == "path=[redacted]")
         #expect(redactor.redact("path=https://example.com/r ok") == "path=https://example.com/r ok")
-        #expect(redactor.redact("redis://:hunter2@cache.local:6379/0 up") == "redis://cache.local:6379/0 up")
-        #expect(redactor.redact("git clone https://bob:hunter2@github.com/x/y.git") == "git clone https://github.com/x/y.git")
+        #expect(redactor.redact("redis://:hunter2@cache.local:6379/0 up") == "[redacted]")
+        #expect(redactor.redact("git clone https://bob:hunter2@github.com/x/y.git") == "git clone [redacted]")
+        #expect(redactor.redact("git clone https://github.com/x/y.git") == "git clone https://github.com/x/y.git")
     }
 
-    @Test("a URL that does not parse is not written and cuts text; one that parses is written as URLComponents encodes it")
-    func unparsed() {
+    @Test("a URL in text that does not parse, or parses but is not clean, cuts the text at its start")
+    func unparsed() throws {
         #expect(redactor.redact("go https://[::1/x?code=1 now") == "go [redacted]")
         #expect(redactor.redact("go https://exa%ZZmple.com/?code=1") == "go [redacted]")
         #expect(redactor.redact("go https://x.com:abc/?code=1") == "go [redacted]")
-        #expect(redactor.redact("go https://example.com/%ZZ?code=1") == "go https://example.com/%25ZZ?[redacted]")
-        #expect(redactor.redact("go https://example.jp/パス?code=1") == "go https://example.jp/%E3%83%91%E3%82%B9?[redacted]")
-        // A host outside ASCII is not a name of ASCII labels: only the scheme is written.
-        #expect(redactor.redact("go https://例え.jp/パス?code=1") == "go https://[redacted]")
+        #expect(redactor.redact("go https://example.com/%ZZ?code=1") == "go [redacted]")
+        #expect(redactor.redact("go https://example.jp/パス ok") == "go [redacted]")
+        #expect(redactor.redact("go https://例え.jp/a ok") == "go [redacted]")
+        // `redact(url:)` writes such a URL as `URLComponents` encodes it.
+        #expect(redactor.redact(url: try #require(URL(string: "https://example.com/%ZZ?code=1"))) == "https://example.com/%25ZZ?code=[redacted]")
     }
 
     @Test("without secret fields the user info and fragment are still dropped and the detectors still run")
@@ -113,7 +119,7 @@ struct RedactionURLTests {
         ]
         for input in cases {
             #expect(redactor.redact(url: try #require(URL(string: input))) == "https://example.com:8443")
-            #expect(redactor.redact("GET \(input) done") == "GET https://example.com:8443[redacted]")
+            #expect(redactor.redact("GET \(input) done") == "GET [redacted]")
             #expect(SensitiveDataRedactor(kinds: .cardNumbers).redact(url: try #require(URL(string: input))) == "https://example.com:8443")
         }
         let most = "https://example.com/a?" + (1...parameters).map { "k\($0)=1" }.joined(separator: "&")

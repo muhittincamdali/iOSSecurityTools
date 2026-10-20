@@ -31,6 +31,7 @@ struct RedactionPeakMemoryTests {
             RedactionTimeLimitTests.repeated("mail alice@example.com\n", to: RedactionTimeLimitTests.size)
         }, redact: redactor.redact),
     ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor) + FourteenthReviewShapes.text
+        + URLInTextShapes.text
 
     /// Bodies just under ``SensitiveDataRedactor/defaultMaximumBodySize``.
     static let bodySize = SensitiveDataRedactor.defaultMaximumBodySize - 144
