@@ -1,0 +1,167 @@
+/// Names written as values: the one rule that decides whether a string names a field whose value
+/// is hidden. Every path that reads such a name calls ``namesSecret(_:in:compatibility:)``: JSON
+/// objects and arrays (in a body, in a line of text, in a JSON string, in a form value, in a URL
+/// query, in a multipart part), form fields, URL queries, multipart parts, and quoted values and
+/// markup in free text.
+///
+/// A field that holds a name (`{"label":"Password","value":…}`) is read by the key rule of
+/// ``FieldName``, as a key is: its name hides what goes with it unless it is plain ASCII and
+/// names no secret. A name in letters outside ASCII (`Şifre`, `Пароль`), in symbols with no letter
+/// or digit of their own (`ⓟⓘⓝ`, `🄿🄸🄽`, `🔑`, `𝐩𝐢𝐧`) or with punctuation (`Password:`) counts as
+/// secret, whatever it says.
+enum WrittenName {
+    /// Where a name is written, which decides how it is read.
+    enum Place {
+        /// The value of the field `field` of an object, a form, a URL query or a multipart body.
+        /// When the field holds a name (see ``holdsName(_:)``), the value is read by the key rule;
+        /// otherwise it names a secret only when it is a name (see ``isName(_:compatibility:)``)
+        /// whose words name a secret or cannot be read.
+        case field([Unicode.Scalar])
+        /// The first element of a two-element array, as fetch headers and `URLSearchParams`
+        /// entries are written: read by the key rule.
+        case pairName
+        /// An element of an array: any word of it that names a secret or cannot be read counts.
+        case element
+        /// A quoted value in free text or markup, or the text of an element, after the key or tag
+        /// `key`: read by the key rule when `key` holds a name, and in any case for words that
+        /// name a secret or cannot be read.
+        case quoted(after: [Unicode.Scalar]?)
+    }
+
+    /// Whether `value`, written at `place`, names a field whose value is hidden.
+    static func namesSecret(_ value: [Unicode.Scalar], in place: Place, compatibility: CompatibilityText) -> Bool {
+        switch place {
+        case .field(let field):
+            if holdsName(field) { return heldNameNamesSecret(value, field: field, compatibility: compatibility) }
+            return isName(value, compatibility: compatibility) && FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+        case .pairName:
+            return heldNameNamesSecret(value, field: nil, compatibility: compatibility)
+        case .element:
+            return FreeTextScanner.mentionsSecret(value, compatibility: compatibility)
+        case .quoted(let key):
+            if let key, holdsNameInText(key), heldNameNamesSecret(value, field: key, compatibility: compatibility) { return true }
+            return !value.isEmpty && FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+        }
+    }
+
+    // MARK: Fields that hold names
+
+    /// The fields whose value is a name: the names of name and value pairs, as HTTP archives,
+    /// JSON Patch, SCIM, forms and configurations write them.
+    static let nameFields: Set<String> = ["name", "key", "field", "label", "type", "header", "param", "path", "id", "k", "n"]
+
+    /// The fields that stay beside a name that names a secret, when they hold a string: the names
+    /// of pairs, which are names and not values.
+    static let stayingFields: Set<String> = ["name", "key", "field", "header", "param", "path", "k", "n"]
+
+    /// The JSON Patch and SCIM operations, whose `op` stays beside a name.
+    private static let operations: Set<String> = ["add", "remove", "replace", "move", "copy", "test"]
+
+    private static let longestField = nameFields.union(["op"]).map(\.count).max() ?? 0
+
+    /// Whether a field holds a name: one of ``nameFields`` in any case, or a field whose own name
+    /// is not plain ASCII, which may be one of them disguised (`lab\u{200B}el`, `ⓛⓐⓑⓔⓛ`).
+    static func holdsName(_ field: [Unicode.Scalar]) -> Bool {
+        isField(field, oneOf: nameFields) || PlainName(field) == nil
+    }
+
+    /// Whether a key of free text holds a name: as ``holdsName(_:)``, but for `path`, which in a
+    /// log line is the route of a request (`path=/v1/users`) and is allowed by default.
+    static func holdsNameInText(_ key: [Unicode.Scalar]) -> Bool {
+        holdsName(key) && !isField(key, oneOf: ["path"])
+    }
+
+    /// Whether the field `field` with the string `value` stays beside a name that names a secret:
+    /// the name of a pair, or the `op` of a JSON Patch or SCIM operation.
+    static func staysBesideName(_ field: [Unicode.Scalar], value: [Unicode.Scalar]) -> Bool {
+        if isField(field, oneOf: stayingFields) { return true }
+        guard isField(field, oneOf: ["op"]), value.count <= 7 else { return false }
+        return operations.contains(String(String.UnicodeScalarView(value)).lowercased())
+    }
+
+    static func isField(_ field: [Unicode.Scalar], oneOf names: Set<String>) -> Bool {
+        field.count <= longestField && names.contains(String(String.UnicodeScalarView(field)).lowercased())
+    }
+
+    /// A name held by a field, read by the key rule: anything but a plain-ASCII name that names no
+    /// secret names one. Of a `path`, every part between `/` is such a name (see
+    /// ``pathNamesSecret(_:)``). The words of a plain name are read as free text reads them too.
+    private static func heldNameNamesSecret(_ value: [Unicode.Scalar], field: [Unicode.Scalar]?, compatibility: CompatibilityText) -> Bool {
+        if let field, isField(field, oneOf: ["path"]) { return pathNamesSecret(value) }
+        if FieldName.hidesValue(value) { return true }
+        return FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+    }
+
+    /// Whether a JSON Pointer or SCIM path leads to a value that is hidden: one of its parts
+    /// between `/` hides a value by the key rule. The last part names the field (`/user/password`,
+    /// SCIM `password`), and a part before it holds the field (`/apiKeys/0`, `/password/hint`), so
+    /// the value is inside a secret either way. Array indexes (`0`, and `-` for the end) name
+    /// nothing. An empty path, which stands for the whole document, hides the value.
+    static func pathNamesSecret(_ path: [Unicode.Scalar]) -> Bool {
+        var parts = path.split(separator: "/", omittingEmptySubsequences: false)
+        if path.first == "/" { parts.removeFirst() }
+        return parts.contains { part in !(part.count == 1 && part.first == "-") && FieldName.hidesValue(part) }
+    }
+
+    // MARK: Names in other fields
+
+    /// Whether a string is a name rather than a sentence or a document: at most
+    /// ``PlainName/maximumKeyLength`` scalars without a line break, with a letter or digit, and
+    /// once the punctuation and spaces around it are left out, without `:`, `=`, `,`, `;`, quotes
+    /// or brackets, which pair a key with a value or hold one (`Error: token expired`,
+    /// `{"password":…}`). A symbol whose compatibility form is a letter or digit (`ⓟ`, `🄿`, `①`)
+    /// counts as one, so a name written only in such symbols is a name.
+    static func isName(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) -> Bool {
+        guard scalars.count <= PlainName.maximumKeyLength else { return false }
+        let isLetterOrDigit = { (scalar: Unicode.Scalar) in Self.isLetterOrDigit(scalar, compatibility: compatibility) }
+        guard let first = scalars.firstIndex(where: isLetterOrDigit), let last = scalars.lastIndex(where: isLetterOrDigit) else { return false }
+        return !scalars.contains { $0 == "\n" || $0 == "\r" } && !scalars[first...last].contains { notInNames.contains($0) }
+    }
+
+    private static let notInNames = Set(":=,;\"'()[]{}<>".unicodeScalars)
+
+    /// A letter, mark or number of any script, or a symbol whose compatibility form is ASCII
+    /// letters and digits.
+    private static func isLetterOrDigit(_ scalar: Unicode.Scalar, compatibility: CompatibilityText) -> Bool {
+        if scalar.isASCII { return ASCII.isAlphanumeric(UInt8(scalar.value)) }
+        if ScalarClass.isLetterOrNumber(scalar) { return true }
+        let reading = compatibility.ascii(scalar)
+        return !reading.isEmpty && reading.allSatisfy(ASCII.isAlphanumeric)
+    }
+}
+
+/// The fields of an object, a form, a URL query or a multipart body that name a secret in their
+/// value. The value of every other field is hidden whole, whatever the field is called, unless it
+/// stays beside the name (see ``WrittenName/staysBesideName(_:value:)``): the fields have no
+/// order, so what belongs to the name cannot be told.
+struct NamingFields {
+    enum Value {
+        case string([Unicode.Scalar])
+        /// An object or an array, which a field that holds a name cannot hold as a name.
+        case structure
+        /// A number, `true`, `false`, `null`, or no value at all.
+        case other
+    }
+
+    private let naming: [Int]
+    private let fields: [(name: [Unicode.Scalar], value: Value)]
+
+    init(_ fields: [(name: [Unicode.Scalar], value: Value)], compatibility: CompatibilityText) {
+        self.fields = fields
+        naming = fields.indices.filter { index in
+            let (name, value) = fields[index]
+            switch value {
+            case .string(let text): return WrittenName.namesSecret(text, in: .field(name), compatibility: compatibility)
+            case .structure: return WrittenName.holdsName(name)
+            case .other: return false
+            }
+        }
+    }
+
+    /// Whether the value of field `index` is hidden because another field names a secret.
+    func hidesValue(at index: Int) -> Bool {
+        guard naming.count > 1 || naming.first.map({ $0 != index }) == true else { return false }
+        guard case .string(let text) = fields[index].value else { return true }
+        return !WrittenName.staysBesideName(fields[index].name, value: text)
+    }
+}

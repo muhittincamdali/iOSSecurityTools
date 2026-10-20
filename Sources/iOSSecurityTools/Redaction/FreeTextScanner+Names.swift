@@ -17,7 +17,9 @@ extension FreeTextScanner {
         }
         for value in markup.attributeValues { hide(text.original(value)) }
         // `<key>password</key>`: the name is in the text after the tag name, and names the next element.
-        if markup.isAtTagName, namesSecret(in: elementText(after: nameStart, lineEnd: lineEnd)) { element.followSibling() }
+        if markup.isAtTagName, namesSecret(in: elementText(after: nameStart, lineEnd: lineEnd), after: tagName(at: nameStart, lineEnd: lineEnd)) {
+            element.followSibling()
+        }
         // An element that ends on the line was hidden with the rest of it.
         carry = element.read(text, nameStart..<lineEnd) == nil ? .markup(element, indent: lineIndent, fallback: fallback) : .none
     }
@@ -43,13 +45,22 @@ extension FreeTextScanner {
         return start..<end
     }
 
-    /// Whether quoted text names a secret or cannot be read (`"password"`, `'db.password'`,
-    /// `"API Key"`, `"pаssword"` with a Cyrillic `а`, see ``nameNamesSecret(_:compatibility:)``).
-    /// Such text is a name written as a value, as in `name="password"` or
-    /// `<string name="api_key">`, and what follows it is its value.
-    func namesSecret(in range: Range<Int>) -> Bool {
-        guard !range.isEmpty else { return false }
-        return Self.nameNamesSecret(Array(source[text.originalWithInvisiblesBefore(range)]), compatibility: compatibility)
+    /// The name of the tag that starts at byte `i`.
+    private func tagName(at i: Int, lineEnd: Int) -> [Unicode.Scalar] {
+        var end = i
+        while end < lineEnd, ASCII.isAlphanumeric(text.bytes[end]) || "-_:".utf8.contains(text.bytes[end]) { end += 1 }
+        return Array(source[text.original(i..<end)])
+    }
+
+    /// Whether quoted text after the key or tag `key` names a secret or cannot be read, by the rule
+    /// of ``WrittenName``: `"password"`, `'db.password'`, `"API Key"`, `"pаssword"` with a
+    /// Cyrillic `а`, and after a key that holds a name (`name=`, `key=`, `label=`, …) any name that
+    /// is not plain ASCII (`label="Пароль"`, `name="ⓟⓘⓝ"`). Such text is a name written as a
+    /// value, as in `name="password"` or `<string name="api_key">`, and what follows it is its
+    /// value.
+    func namesSecret(in range: Range<Int>, after key: [Unicode.Scalar]? = nil) -> Bool {
+        let scalars = range.isEmpty ? [] : Array(source[text.originalWithInvisiblesBefore(range)])
+        return WrittenName.namesSecret(scalars, in: .quoted(after: key), compatibility: compatibility)
     }
 
     /// A line below a secret name written in an element. The element's lines are hidden up to

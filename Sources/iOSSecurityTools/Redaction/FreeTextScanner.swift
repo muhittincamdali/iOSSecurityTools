@@ -175,12 +175,18 @@ struct FreeTextScanner {
     /// around it, is plain ASCII, does not name a secret and is on the allowlist. A backslash is
     /// part of the key (`status\=…` escapes the `=` in some formats), so such a key is not plain.
     func allowsValue(ofKey key: Range<Int>?) -> Bool {
-        guard let key, !key.isEmpty else { return false }
+        guard let name = keyName(key), let fold = FieldName.allowableFold(name) else { return false }
+        return redactor.allowedTextKeys.contains(fold)
+    }
+
+    /// The key as written, invisible characters before it included, without the brackets and
+    /// single quotes around it; nil when there is none.
+    func keyName(_ key: Range<Int>?) -> [Unicode.Scalar]? {
+        guard let key, !key.isEmpty else { return nil }
         var name = source[text.originalWithInvisiblesBefore(key)]
         while let first = name.first, "([{<'".unicodeScalars.contains(first) { name = name.dropFirst() }
         while let last = name.last, last == "'" { name = name.dropLast() }
-        guard let fold = FieldName.allowableFold(name) else { return false }
-        return redactor.allowedTextKeys.contains(fold)
+        return Array(name)
     }
 
     // MARK: Lines

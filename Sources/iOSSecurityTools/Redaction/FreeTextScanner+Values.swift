@@ -11,12 +11,30 @@ extension FreeTextScanner {
         let key = pendingKey
         pendingKey = nil
         position = end
-        guard !allowsValue(ofKey: key) else { return }
-        hideValue(after: end, lineEnd: lineEnd)
+        let keyName = keyName(key)
+        guard !allowsValue(ofKey: key) || allowedValueNamesSecret(after: end, key: keyName, lineEnd: lineEnd) else { return }
+        hideValue(after: end, key: keyName, lineEnd: lineEnd)
     }
 
-    /// Hides the value that starts after a separator ending at byte `separatorEnd`.
-    private mutating func hideValue(after separatorEnd: Int, lineEnd: Int) {
+    /// Whether the value of an allowed key that holds a name (`type=…` with `type` allowed) names
+    /// a secret, so it is hidden with what follows it after all (see ``WrittenName``).
+    private func allowedValueNamesSecret(after separatorEnd: Int, key: [Unicode.Scalar]?, lineEnd: Int) -> Bool {
+        guard let key, WrittenName.holdsNameInText(key) else { return false }
+        let start = firstNonSpace(from: separatorEnd, to: lineEnd)
+        guard start < lineEnd else { return false }
+        let byte = text.bytes[start]
+        if byte == UInt8(ascii: "{") || byte == UInt8(ascii: "[") { return true }
+        if byte == UInt8(ascii: "\"") || byte == UInt8(ascii: "'") || byte == UInt8(ascii: "`") {
+            guard let close = closingQuote(after: start, quote: byte, escaped: false, lineEnd: lineEnd) else { return true }
+            return namesSecret(in: (start + 1)..<close, after: key)
+        }
+        return namesSecret(in: start..<wordEnd(from: start, to: lineEnd), after: key)
+    }
+
+    /// Hides the value that starts after a separator ending at byte `separatorEnd`. `key`, when
+    /// it holds a name, decides how a quoted name in the value is read, and a JSON value after
+    /// it, which cannot be read as a name, hides the rest of the line too (`name=["pin"] …`).
+    private mutating func hideValue(after separatorEnd: Int, key: [Unicode.Scalar]?, lineEnd: Int) {
         let start = firstNonSpace(from: separatorEnd, to: lineEnd)
         guard start < lineEnd else {
             carry = .valueOnNextLine(indent: lineIndent)
@@ -26,11 +44,14 @@ extension FreeTextScanner {
         let byte = text.bytes[start]
         let escapedQuote = byte == UInt8(ascii: "\\") && start + 1 < lineEnd && text.bytes[start + 1] == UInt8(ascii: "\"")
         if byte == UInt8(ascii: "\"") || escapedQuote {
-            hideQuoted(open: escapedQuote ? start + 1 : start, lineEnd: lineEnd)
+            hideQuoted(open: escapedQuote ? start + 1 : start, key: key, lineEnd: lineEnd)
         } else if byte == UInt8(ascii: "'") || byte == UInt8(ascii: "`") {
-            hideSimplyQuoted(open: start, lineEnd: lineEnd)
+            hideSimplyQuoted(open: start, key: key, lineEnd: lineEnd)
         } else if byte == UInt8(ascii: "{") || byte == UInt8(ascii: "[") {
             hideJSONValue(from: start, lineEnd: lineEnd)
+            if let key, WrittenName.holdsNameInText(key), position < lineEnd, case .none = carry {
+                hideAfterName(at: start, from: position, valueStart: position, lineEnd: lineEnd)
+            }
         } else {
             // Where an unquoted value ends cannot be told: everything after the separator on the
             // line, from right after the separator so invisible characters before it go too.
@@ -57,7 +78,7 @@ extension FreeTextScanner {
 
     /// A value in double quotes, also escaped as in `\"…\"`: hidden up to its closing quote, which
     /// may be on a later line.
-    private mutating func hideQuoted(open: Int, lineEnd: Int) {
+    private mutating func hideQuoted(open: Int, key: [Unicode.Scalar]?, lineEnd: Int) {
         let escaped = isEscaped(open)
         let quote = UInt8(ascii: "\"")
         let contentStart = text.offsets[open] + 1
@@ -68,7 +89,7 @@ extension FreeTextScanner {
             return
         }
         hide(contentStart..<text.offsets[escaped ? close - 1 : close])
-        guard !namesSecret(in: (open + 1)..<(escaped ? close - 1 : close)) else {
+        guard !namesSecret(in: (open + 1)..<(escaped ? close - 1 : close), after: key) else {
             hideAfterQuotedName(open: open, close: close, lineEnd: lineEnd, quote: (quote, escaped))
             return
         }
@@ -77,7 +98,7 @@ extension FreeTextScanner {
 
     /// A value in single quotes or backticks: hidden up to the closing one, which may be on a
     /// later line, as in a double-quoted value.
-    private mutating func hideSimplyQuoted(open: Int, lineEnd: Int) {
+    private mutating func hideSimplyQuoted(open: Int, key: [Unicode.Scalar]?, lineEnd: Int) {
         let quote = text.bytes[open]
         guard let close = closingQuote(after: open, quote: quote, escaped: false, lineEnd: lineEnd) else {
             hide((text.offsets[open] + 1)..<text.offset(at: lineEnd))
@@ -86,7 +107,7 @@ extension FreeTextScanner {
             return
         }
         hide((text.offsets[open] + 1)..<text.offsets[close])
-        guard !namesSecret(in: (open + 1)..<close) else {
+        guard !namesSecret(in: (open + 1)..<close, after: key) else {
             hideAfterQuotedName(open: open, close: close, lineEnd: lineEnd, quote: (quote, false))
             return
         }
