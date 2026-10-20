@@ -82,7 +82,9 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   headers, and URLs with their hosts, are read with a parser. What the redactor does not fully
   understand there is hidden: a key that is not plain ASCII, a name that cannot be read, a part
   header it does not know, a host that is not an address, a body that does not parse or is
-  larger than the limit.
+  larger than the limit. Structured key names are shown: the names of JSON members and of form
+  and multipart fields are written as they are and only the values under them are hidden, so a
+  secret written into a name (`{"password hunter2":…}` in a body) shows.
 - **Free text is cut at its first trigger.** A log line has no grammar, so everything after the
   first trigger is hidden, to the end of the text. Five rules set the triggers, and none of them
   keeps a list of variants: the first character outside a safe alphabet, any escape, a word
@@ -90,9 +92,9 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   secret name with or without a separator. A URL is shown only when it is clean; any other URL
   cuts the text where it starts. Over-hiding is by design. A value written with a
   separator, ASCII or not, is always hidden. The one limit applies only when no trigger comes
-  before a secret: a name written without a separator in letters of the safe alphabet and
-  disguised on purpose with two or more look-alike letters (`pɑsswoʀd hunter2`) is not guaranteed
-  to be found; <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits. No table of
+  before a secret: a name written without a separator in letters of the safe alphabet with two or
+  more of its letters replaced on purpose by look-alike letters (`pɑsswoʀd hunter2`) is not
+  guaranteed to be found; <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits. No table of
   look-alikes is kept to chase them, since none is ever complete. Write logs with separators, or
   as structured data, and keep secrets out of them.
 
@@ -297,13 +299,16 @@ to four times, timed by the CPU time of such a thread. The default redactor and 
 made once and shared, never per array element or path segment, each path segment is read in a single
 pass, and each word is compared with each secret word in a single pass. Free text is read once and
 keeps a fixed number of positions, the tree of each JSON in it is released before the next one is
-read, and no word longer than 256 characters is copied for reading, so the tests also check that a
+read, no word longer than 256 characters is copied for reading and a quoted key is compared where
+it is, never copied, so the tests also check that a
 megabyte of text takes less than 16 MB more memory, and a body of 256 KiB less than 16 MB, in every
 shape the reviews measured: a start tag of a megabyte of attributes followed by 17 secret names,
 which an earlier design of 2.1.0 read into 583 MB, a megabyte word of backslashes or escapes, which
 took 36 MB, a form of a megabyte, which took 67 MB, and a megabyte of log lines of short JSON
-(`{"count":1}`), whose trees `JSONSerialization` kept until the redaction ended, 19 MB. Memory is
-measured until the thread that redacts has ended, so what it releases only then counts too.
+(`{"count":1}`), whose trees `JSONSerialization` kept until the redaction ended, 19 MB, and a
+quoted key of a megabyte inside another, which an earlier reading of quoted keys copied into
+26 MB. Memory is measured until the thread that redacts has ended, so what it releases only then
+counts too.
 
 ### Free text is cut at its first trigger
 
@@ -351,8 +356,8 @@ kept and reviews got past one variant at a time:
 - **Opaque words.** A word longer than 256 characters cannot be read as a name: it cuts the text
   where it starts. No word is copied for reading at more than that length.
 - **The key rule, in every shape.** In `key=value`, `key: value`, `key = value` and
-  `"key":"value"` the text is read on only after a key that is plain ASCII and on
-  ``SensitiveDataRedactor/allowedTextKeys``. The default list holds keys that logs use for a
+  `"key":"value"` the text is read on only after a key that is plain ASCII, without a space, and
+  on ``SensitiveDataRedactor/allowedTextKeys``. The default list holds keys that logs use for a
   response status, a request method and route, a duration and a count (`status`, `method`, `path`,
   `duration_ms`, `count`); pass your own to the initializer. A key that names a secret or is not
   plain ASCII is never allowed. Any other key cuts the text at its value — `x=hunter2` as well as
@@ -360,19 +365,30 @@ kept and reviews got past one variant at a time:
   separator. The separators are `=` and `:` and runs of them (`:=`, `==`, `=>`); a `:` between two
   digits is part of a number only after a number — a time, a date and time or an address and its
   port (`12:30:45`, `2026-10-19T12:30`, `10.0.0.1:8080`) — and after a key that ends in digits it
-  is a separator (`user1:2345` cuts at `2345`). JSON in the text is parsed and its members follow the
-  same rule, as does the first string of a two-element array, as fetch headers and
-  `URLSearchParams` entries write a pair (`[["X-User","bob"]]` cuts at `"bob"`). A tag is a key
+  is a separator (`user1:2345` cuts at `2345`). A quoted key (`"…":`, `"…"=`) that is not allowed
+  cuts the text at its opening quote, so nothing written in the quotes shows: `cache miss for
+  "session Qz9Wk7rX": refetching` keeps `cache miss for `, and `"password hint": 1` keeps nothing.
+  JSON in the text is parsed and its members follow the same rule, a member name that is not
+  allowed cutting the text at its opening quote (`{"password hunter2": 1}` keeps `{`), as does the
+  first string of a two-element array, as fetch headers and `URLSearchParams` entries write a pair
+  (`[["X-User","bob"]]` cuts at `"X-User"`). A tag is a key
   too: the text of an element whose tag is not allowed cuts the text (`<user>bob</user>` keeps
   `<user>`), and a key in a start tag that is not allowed cuts it at the tag's first attribute
   value (`<input value="…" name="password">`). JSON that does not parse, or is longer than 64 Ki
   scalars, cuts the text at its first bracket.
 - **Secret names.** A word that holds a secret name cuts the text after the name, with or without
   a separator: `password hunter2`, `PIN 1234`. Punctuation inside a word and a space, `|`, `,`,
-  `;`, `&` or `?` between two words are read as a separator (`pass~word`, `pass word`, `p|wd`), and
-  one letter that has no ASCII form (`ɑ`, `ı`) in a secret word as any one letter or, between two
-  letters, as none (`passꞏword`). A name with two or more such letters is not read this way (see
-  "What it does not find"). A name written as a value is read too: `name=`, `key=`, `label=` and
+  `;`, `&` or `?` between two words are read as a separator (`pass~word`, `pass word`, `p|wd`). A
+  word is compared by its ASCII skeleton, the one reading every path uses: once the text is read
+  in compatibility form (`ｐａｓｓ`, `pässword`), every letter still without an ASCII form (`ꞏ`,
+  `ı`, `ɑ`, `ø`) is left out, and what remains is compared with the secret names, a plural `s`
+  included. However many such letters are put in, the name is found: `piꞏn`, `tokeın`, `tokenꞏs`
+  and `keyıs` read as `pin`, `token`, `tokens` and `keys`. A name also counts with one of its
+  letters missing where a letter was left out, so one letter put in place of a letter of the name
+  is found too (`pɑssword`, `user_pın`). A word of another language that reads as a name this way
+  hides what follows it — Turkish `yapın` reads as `pin` — which over-hides on purpose. A name with
+  two or more of its letters replaced is not read this way (see "What it does not find"). A name
+  written as a value is read too: `name=`, `key=`, `label=` and
   the other keys that hold a name are not allowed by default, so they cut the text at once
   (`name="password"`, `<string name="api_key">`, `Content-Disposition: form-data; name="pin"`).
   When the app allows such a key (`id`, `type`, … but not `path`, the route of a request), a
@@ -398,7 +414,9 @@ redactor.redact("user꞉ hunter2")                         // "user[redacted]"
 redactor.redact("status=200 note→ hunter2")              // "status=200 note[redacted]"
 redactor.redact("user&colon;hunter2")                    // "[redacted]"
 redactor.redact("contact alice%40example.com")           // "contact [redacted]"
-redactor.redact(#"log [["X-User","bob"]]"#)              // "log [[\"X-User\",[redacted]"
+redactor.redact(#"log [["X-User","bob"]]"#)              // "log [[[redacted]"
+redactor.redact(#"cache miss for "session Qz9Wk7rX": refetching"#)
+// "cache miss for [redacted]"
 redactor.redact("<user>bob</user>")                      // "<user>[redacted]"
 redactor.redact("password hunter2")                      // "password [redacted]"
 redactor.redact("p\u{0430}ssword=hunter2")               // "pаssword=[redacted]"
@@ -411,7 +429,7 @@ redactor.redact("<key>password</key>\n<string>k-1</string>")
 // "<key>[redacted]"
 redactor.redact("upload ok status=200\n--B\r\nContent-Disposition: form-data; name=\"pin\"\r\n\r\n4831\r\n--B--")
 // "upload ok status=200\n--B\r\nContent-Disposition: [redacted]"
-redactor.redact(#"{"status":200,"user":"bob"} done"#)   // "{\"status\":200,\"user\":[redacted]"
+redactor.redact(#"{"status":200,"user":"bob"} done"#)   // "{\"status\":200,[redacted]"
 redactor.redact("git clone https://bob:hunter2@github.com/x/y.git") // "git clone [redacted]"
 redactor.redact("connect myapp://password=hunter2 ok")   // "connect [redacted]"
 redactor.redact("see https://x.example/a?token= hunter2") // "see [redacted]"
@@ -452,14 +470,17 @@ linear in its length.
 It cannot find a secret that has no label or a label it does not know, such as a word in another
 language, or a value encoded as a whole that is shorter than 32 characters. In free text, when no
 trigger comes before it and no `=` or `:` follows a name, it does not read a name written wholly in
-another script that only looks Latin (Greek `ΡΙΝ`), one disguised with two or more letters of the
-safe alphabet that have no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`, and in a URL passed
-to `redact(url:)` a path `/pɑsswoʀd/…` the segment after it) or written in them throughout (small capitals), one written
+another script that only looks Latin (Greek `ΡΙΝ`), one with two or more of its letters replaced
+by letters of the safe alphabet that have no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`, and
+in a URL passed to `redact(url:)` a path `/pɑsswoʀd/…` the segment after it) or written in them
+throughout (small capitals), one written
 with a space between its letters (`p a s s w o r d`), one spelled with digits and symbols
 (`p@ssword`, `passw0rd`), a value written before its name or glued to a flag (`-pSECRET`), a value
 after a flag or a name that is not on the list without a separator (`--user SECRET`), a name in
 another script as an element of an array of more than two (`["Şifre","…","…"]`), and a name and
-value in two different JSON objects or arrays. It does not find card numbers grouped with dots,
+value in two different JSON objects or arrays. In structured input it shows a secret written into
+a key name, since structured key names are shown (`{"password hunter2":…}` in a JSON body hides
+the value and shows the name). It does not find card numbers grouped with dots,
 underscores or `+`, glued to ASCII letters or written as a JSON floating-point number, an IBAN
 written in lowercase, or a token split by `/` or `-` into pieces shorter than 32 characters. The value of
 an allowed key is shown, also when it is repeated (`status==…`).
