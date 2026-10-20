@@ -55,7 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   word.
 - A text that is a JSON object or array is read with a JSON parser checked against
   `JSONSerialization`: keys are compared after their escapes are decoded, at every depth, inside
-  arrays and for every repetition of a key, and the output stays valid JSON.
+  arrays and for every repetition of a key, and the output stays valid JSON. Structured key names
+  are shown: in a body, the names of JSON members and of form and multipart fields are written as
+  they are and only their values are hidden, so a secret written into a name
+  (`{"password hunter2":…}`) shows.
 - Name and value pairs follow the key rule in every shape, and names are classified by default too:
   non-ASCII names count as secret even when they are written as values. The value of a field that
   holds a name (`name`, `key`, `field`, `label`, `type`, `header`, `param`, `path`, `id`, `k`, `n`,
@@ -115,12 +118,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     word is copied for reading at more than that length.
   - **The key rule in every shape.** A key that is not on `allowedTextKeys` cuts the text at its
     value: in `key=value` and `key: value` (also `x=hunter2` and `Error: …`, a separator without
-    a key and a key on the line before its separator), as a member of JSON in the text, as the
-    first string of a two-element array (`["user","…"]`, `[["X-User","…"]]`) and as the tag of an
-    element, whose text is cut (`<user>…</user>`).
-  - **Secret names**, with or without a separator, split by punctuation or a space or spelled with
-    one letter that has no ASCII form, and names written as values (`name="password"`,
-    `<string name="api_key">`, `Content-Disposition: form-data; name="pin"`).
+    a key and a key on the line before its separator) and as the tag of an element, whose text is
+    cut (`<user>…</user>`). A quoted key (`"…": value`, `"…"=value`), a member name of JSON in
+    the text and the first string of a two-element array (`["user","…"]`, `[["X-User","…"]]`)
+    cut it at their opening quote, so nothing written in them shows. A key with a space in it is
+    never allowed in free text.
+  - **Secret names**, with or without a separator, split by punctuation or a space, and names
+    written as values (`name="password"`, `<string name="api_key">`,
+    `Content-Disposition: form-data; name="pin"`). A word is compared by its ASCII skeleton, one
+    reading for every path: once the text is read in compatibility form, the letters that have
+    no ASCII form are left out, however many (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`), and a name
+    also counts with one of its letters missing where a letter was left out (`pɑssword`,
+    `user_pın`). A word of another language that reads as a name this way hides what follows it
+    (Turkish `yapın` reads as `pin`), on purpose.
   A word that mixes scripts, a quote or bracket left open and JSON that does not parse cut the text
   too. Everything after the first trigger is hidden, to the end of the text and not only of its
   line; a log message, a text/plain body, a JSON string, a form value, an allowed query value and
@@ -128,9 +138,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   apart from the value detectors. Nothing is carried from line to line and no line is read twice:
   the scan keeps a fixed number of positions and stops at the trigger. Free text is a best
   effort, as the threat model in the README and the logging guide now says: a name written
-  without a separator in letters of the safe alphabet and disguised with two or more letters that
-  have no ASCII form (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing before it
-  cuts the text, and no table of look-alikes is kept to chase it.
+  without a separator in letters of the safe alphabet with two or more of its letters replaced by
+  letters that have no ASCII form (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing
+  before it cuts the text, and no table of look-alikes is kept to chase it.
 - A URL in free text is shown only when it is clean — `scheme://host` and an optional path of
   ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or `\`),
   whose host and segments name no secret, followed by white space, a line break or punctuation
@@ -138,8 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   applies only to `redact(url:)`. A clean URL is written as `redact(url:)` writes it, with `:id`
   for an identifier in its path (`GET https://api.example.com/users/12345678 200` keeps
   `GET https://api.example.com/users/:id 200`), and one longer than 256 characters cuts the text
-  like any long word. A quoted key in free text (`"…": value`) is read as a JSON name is: a URL
-  that is not clean, a key or an escape in it cuts the text where it starts.
+  like any long word.
 - A secret name written as a value names what follows it. In free text it is a trigger; in a JSON
   object, a member whose value is such a name hides the values of the other members, apart from
   the members that hold names and a JSON Patch or SCIM `op`. A name that is not secret
@@ -348,6 +357,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with generated tests that no value after or in a URL that is not clean shows in any place, that
   no such character beside a trigger lets a value through, and that clean URLs keep themselves
   and the text after them.
+- The sixteenth review got values past free text in two ways, on every path that reads it. A
+  quoted key was read as a JSON name, whose words are not triggers, so a secret name, a word in
+  two scripts or a tag inside the quotes showed what came after it
+  (`cache miss for "session Qz9Wk7rX": refetching`, `"pаssword hunter2": x`,
+  `"<password>hunter2</password>": x`), and so did the name of a member of JSON in a line
+  (`{"password hunter2": 1}`). A quoted key that is not allowed now cuts the text at its opening
+  quote, and so does such a member name; the reading of quoted keys is removed, and with it the
+  copy it made of every quoted key and of each key inside one, which took 17 MB for a megabyte of
+  text in one key and 26 MB in a key inside another. And the name matching read a letter without
+  an ASCII form as a letter of the name or as none, trying the first and then not the second, so a
+  name with such a letter right before its last letter (`piꞏn 1234`, `tokeın …`, `pꞏw …`) or
+  before its plural `s` (`tokenꞏs …`, `keyıs …`) was not found, 14 of the 16 short names among
+  them; it is replaced by the ASCII skeleton, which reads both at once. The review's 381 probes and
+  the 98 inputs of its second lens are kept as tests, checked claim by claim (7 of them values
+  shown by design), with property tests of generated quoted keys holding secret names, words in
+  two scripts, tags, escapes and separators, and of generated names with letters put in and one
+  put in place, on every path, and with the two quoted-key shapes measured for time and memory.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
