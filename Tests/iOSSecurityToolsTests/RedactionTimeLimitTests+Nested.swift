@@ -6,7 +6,7 @@ import iOSSecurityTools
 /// once more, and a letter without an ASCII form (`ı`, `ɑ`) made each reading slower. The reading
 /// budget bounds the levels and one pass per secret word bounds each reading.
 extension RedactionTimeLimitTests {
-    private static let redactor = SensitiveDataRedactor()
+    private static let redactor = largeBodies
 
     private static func jsonBody(_ text: String) -> String { redactor.redact(body: Data(text.utf8), contentType: "application/json") }
     private static func plainBody(_ text: String) -> String { redactor.redact(body: Data(text.utf8), contentType: "text/plain") }

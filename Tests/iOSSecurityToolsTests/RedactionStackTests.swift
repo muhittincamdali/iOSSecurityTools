@@ -87,14 +87,14 @@ struct RedactionStackTests {
     @Test("the largest quoted JSON under the body limit does not overflow the stack", arguments: [1, 255])
     func largestQuotedJSON(brackets: Int) {
         var levels = 1
-        while Self.quotedSecret(levels: levels + 1, brackets: brackets).utf8.count <= SensitiveDataRedactor.maximumBodySize { levels += 1 }
+        while Self.quotedSecret(levels: levels + 1, brackets: brackets).utf8.count <= SensitiveDataRedactor.defaultMaximumBodySize { levels += 1 }
         expectHidden(Self.quotedSecret(levels: levels, brackets: brackets))
     }
 
     static let deepInputs: [DeepInput] = [
         DeepInput(testDescription: "a megabyte of [ in text") { SensitiveDataRedactor().redact(String(repeating: "[", count: 1_000_000)) },
         DeepInput(testDescription: "a megabyte of [ as a JSON body") {
-            SensitiveDataRedactor().redact(body: Data(String(repeating: "[", count: 1_000_000).utf8), contentType: "application/json")
+            RedactionTimeLimitTests.largeBodies.redact(body: Data(String(repeating: "[", count: 1_000_000).utf8), contentType: "application/json")
         },
         DeepInput(testDescription: "{\"a\": 200,000 times in text") { SensitiveDataRedactor().redact(String(repeating: "{\"a\":", count: 200_000)) },
         DeepInput(testDescription: "a URL in the query value of a URL, 20,000 times, with the value allowed") {

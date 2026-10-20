@@ -102,7 +102,8 @@ import Foundation
 /// Input is read within fixed limits, which bound the stack and the time that hostile input can
 /// use:
 ///
-/// - A body larger than ``maximumBodySize`` (1 MiB) is omitted unread.
+/// - A body larger than ``maximumBodySize`` (256 KiB unless the app sets another) is omitted
+///   unread.
 /// - JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
 ///   document a JSON string is in: JSON in a string inside one object may open 63 more.
 /// - At most four documents are read one inside another. A JSON text, a URL, a body and a
@@ -171,8 +172,8 @@ public struct SensitiveDataRedactor: Sendable {
     /// What is recorded for a URL that `URLComponents` cannot parse.
     public static let unparsedURL = "<unparsed URL>"
 
-    /// Bodies larger than this are omitted without being parsed: 1 MiB.
-    public static let maximumBodySize = 1_048_576
+    /// The default of ``maximumBodySize``: 256 KiB.
+    public static let defaultMaximumBodySize = 262_144
 
     /// A URL whose path has more segments than this is recorded with its scheme, host and port
     /// only: 64.
@@ -201,6 +202,13 @@ public struct SensitiveDataRedactor: Sendable {
     /// How much of a URL is recorded.
     public let urlDetail: URLDetail
 
+    /// Bodies larger than this many bytes are omitted without being parsed (see
+    /// ``redact(body:contentType:)``); ``defaultMaximumBodySize`` unless the initializer is given
+    /// another. Reading a body takes memory in proportion to its size: the tests check that a body
+    /// of 256 KiB in any shape takes less than 16 MB more, and the worst shapes take about 60
+    /// bytes for each byte of the body, so a limit of 1 MiB can take 64 MB.
+    public let maximumBodySize: Int
+
     /// Creates a redactor.
     ///
     /// - Parameters:
@@ -210,11 +218,16 @@ public struct SensitiveDataRedactor: Sendable {
     ///   - allowedQueryParameters: Query parameters whose values URLs keep. A name that is not
     ///     plain ASCII or names a secret is ignored.
     ///   - urlDetail: How much of a URL is recorded.
-    public init(kinds: Kinds = .all, allowedTextKeys: [String] = [], allowedQueryParameters: [String] = [], urlDetail: URLDetail = .full) {
+    ///   - maximumBodySize: The largest body that is read, in bytes; a larger one is omitted.
+    public init(
+        kinds: Kinds = .all, allowedTextKeys: [String] = [], allowedQueryParameters: [String] = [], urlDetail: URLDetail = .full,
+        maximumBodySize: Int = defaultMaximumBodySize
+    ) {
         self.kinds = kinds
         self.allowedTextKeys = Self.defaultAllowedTextFolds.union(Self.allowableFolds(allowedTextKeys))
         self.allowedQueryParameters = Self.allowableFolds(allowedQueryParameters)
         self.urlDetail = urlDetail
+        self.maximumBodySize = maximumBodySize
     }
 
     /// A redactor with the allowlists and URL detail of `other` that looks for `kinds`.
@@ -223,6 +236,7 @@ public struct SensitiveDataRedactor: Sendable {
         self.allowedTextKeys = other.allowedTextKeys
         self.allowedQueryParameters = other.allowedQueryParameters
         self.urlDetail = other.urlDetail
+        self.maximumBodySize = other.maximumBodySize
     }
 
     private static func allowableFolds(_ names: [String]) -> Set<String> {

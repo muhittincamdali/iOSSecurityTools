@@ -34,11 +34,11 @@ extension SensitiveDataRedactor {
     /// - **No content type**: JSON when the whole body parses as a JSON object or array.
     ///
     /// Anything else is omitted: a body that is not UTF-8, has another content type (XML, HTML,
-    /// binary data), is larger than ``maximumBodySize`` or cannot be parsed completely — cut off,
-    /// malformed, nested deeper than 64 levels (see "Limits" in ``SensitiveDataRedactor``) — and a
-    /// body that a common server parser (PHP, Werkzeug, Rack, Go, busboy) could split into fields
-    /// differently, such as a multipart body with `--boundary` after a bare LF or CR, or a form
-    /// with a `;`. The result is then a note such as `[body omitted: 1234 bytes, application/xml]`.
+    /// binary data), is larger than ``maximumBodySize`` (256 KiB by default) or cannot be parsed
+    /// completely — cut off, malformed, nested deeper than 64 levels (see "Limits" in
+    /// ``SensitiveDataRedactor``) — and a body that a common server parser (PHP, Werkzeug, Rack,
+    /// Go, busboy) could split into fields differently, such as a multipart body with `--boundary`
+    /// after a bare LF or CR, or a form with a `;`. The result is then a note such as `[body omitted: 1234 bytes, application/xml]`.
     /// Without a parse that every server agrees with, a secret in it cannot be found reliably.
     ///
     /// - Parameters:
@@ -50,7 +50,7 @@ extension SensitiveDataRedactor {
         guard !body.isEmpty else { return "" }
         let mediaType = contentType.flatMap(MediaType.init)
         let described = contentType == nil ? "no content type" : mediaType?.essence ?? "unreadable content type"
-        guard body.count <= Self.maximumBodySize else { return Self.omitted(body.count, described) }
+        guard body.count <= maximumBodySize else { return Self.omitted(body.count, described) }
         let nesting = Nesting.document(length: Self.scalarCount(body))
         let result = contentType == nil
             ? redactedJSON(body, allowsFragments: false, nesting: nesting)

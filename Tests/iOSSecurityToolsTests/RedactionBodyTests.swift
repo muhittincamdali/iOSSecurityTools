@@ -110,9 +110,25 @@ struct RedactionBodyTests {
 
     @Test("omits a body larger than the maximum size without parsing it")
     func oversized() {
-        let body = Data(("{\"a\":\"" + String(repeating: "x", count: SensitiveDataRedactor.maximumBodySize) + "\"}").utf8)
+        #expect(SensitiveDataRedactor.defaultMaximumBodySize == 262_144)
+        #expect(redactor.maximumBodySize == SensitiveDataRedactor.defaultMaximumBodySize)
+        let body = Data(("{\"a\":\"" + String(repeating: "x", count: SensitiveDataRedactor.defaultMaximumBodySize) + "\"}").utf8)
         #expect(redactor.redact(body: body, contentType: "application/json") == "[body omitted: \(body.count) bytes, application/json]")
         #expect(redactor.redact(body: body, contentType: nil) == "[body omitted: \(body.count) bytes, no content type]")
+        let fits = Data(("{\"a\":\"" + String(repeating: "abc ", count: (SensitiveDataRedactor.defaultMaximumBodySize - 8) / 4) + "\"}").utf8)
+        #expect(fits.count == SensitiveDataRedactor.defaultMaximumBodySize)
+        #expect(redactor.redact(body: fits, contentType: "application/json") == String(decoding: fits, as: UTF8.self))
+    }
+
+    @Test("an app may raise or lower the body limit")
+    func customLimit() {
+        let body = Data(("{\"a\":\"" + String(repeating: "abc ", count: 75_000) + "\"}").utf8)
+        let raised = SensitiveDataRedactor(maximumBodySize: 1_048_576)
+        #expect(raised.redact(body: body, contentType: "application/json") == String(decoding: body, as: UTF8.self))
+        #expect(redactor.redact(body: body, contentType: "application/json") == "[body omitted: \(body.count) bytes, application/json]")
+        let lowered = SensitiveDataRedactor(maximumBodySize: 10)
+        #expect(lowered.redact(body: Data(#"{"a":"bc"}"#.utf8), contentType: "application/json") == #"{"a":"bc"}"#)
+        #expect(lowered.redact(body: Data(#"{"a":"bcd"}"#.utf8), contentType: "application/json") == "[body omitted: 11 bytes, application/json]")
     }
 
     // MARK: Multipart

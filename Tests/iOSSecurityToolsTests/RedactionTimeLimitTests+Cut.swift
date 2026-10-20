@@ -6,7 +6,7 @@ import iOSSecurityTools
 /// by 17 secret names, in one start tag, in one tag after a key and in tags of 4 KB on their own
 /// lines, and the same as a text/plain body. They are read once, up to the first trigger.
 extension RedactionTimeLimitTests {
-    private static let cutRedactor = SensitiveDataRedactor()
+    private static let cutRedactor = largeBodies
 
     /// `unit` repeated to about `total` bytes.
     static func repeated(_ unit: String, to total: Int) -> String {

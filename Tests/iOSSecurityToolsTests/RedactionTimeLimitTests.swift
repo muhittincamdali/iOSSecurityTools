@@ -11,8 +11,9 @@ struct TimedInput: Sendable, CustomTestStringConvertible {
 
 private let redactor = SensitiveDataRedactor()
 
+/// Bodies of a megabyte are read with the limit raised to 1 MiB, as an app may raise it.
 private func body(_ contentType: String) -> @Sendable (String) -> String {
-    { redactor.redact(body: Data($0.utf8), contentType: contentType) }
+    { RedactionTimeLimitTests.largeBodies.redact(body: Data($0.utf8), contentType: contentType) }
 }
 
 /// Whether the tests run in an optimized build: a debug build runs the same code many times
@@ -29,6 +30,10 @@ private var isOptimized: Bool {
 struct RedactionTimeLimitTests {
     static let size = 1_000_000
     static let limit = Duration.seconds(1)
+
+    /// A body limit of 1 MiB, above the default, for the bodies of a megabyte these tests time.
+    static let mebibyte = 1_048_576
+    static let largeBodies = SensitiveDataRedactor(maximumBodySize: mebibyte)
 
     static let nested: [TimedInput] = [
         TimedInput(testDescription: "JSON quoted in JSON 16, 17 and 18 times", make: {
@@ -139,7 +144,7 @@ struct RedactionTimeLimitTests {
     @Test("redacting a megabyte of an ordinary shape takes a 512 KiB thread less than a second", arguments: shapes + namesAsValues + nestedPayloads + namesInHiddenValues + attributeShapes)
     func shape(input: TimedInput) {
         let text = input.make()
-        #expect(text.utf8.count >= Self.size * 9 / 10 && text.utf8.count <= SensitiveDataRedactor.maximumBodySize)
+        #expect(text.utf8.count >= Self.size * 9 / 10 && text.utf8.count <= Self.mebibyte)
         var fastest = Self.threadTime(input, text)
         for _ in 0..<2 where fastest >= Self.limit {
             fastest = min(fastest, Self.threadTime(input, text))
@@ -166,7 +171,7 @@ struct RedactionTimeLimitTests {
     @Test("redacting a megabyte of nested input or a body of a megabyte takes less than a second", arguments: nested + bodies)
     func nestedOrBody(input: TimedInput) {
         let text = input.make()
-        #expect(text.utf8.count >= Self.size * 9 / 10 && text.utf8.count <= SensitiveDataRedactor.maximumBodySize)
+        #expect(text.utf8.count >= Self.size * 9 / 10 && text.utf8.count <= Self.mebibyte)
         expectFast(input.testDescription) { _ = input.redact(text) }
     }
 

@@ -6,7 +6,7 @@ import iOSSecurityTools
 /// headers of a multipart body written to a log, and JSON after `name=` that never closes. The
 /// scan now stops at the first trigger.
 extension RedactionTimeLimitTests {
-    private static let textRedactor = SensitiveDataRedactor()
+    private static let textRedactor = largeBodies
 
     /// `unit` repeated to about a megabyte after `prefix`.
     private static func line(_ prefix: String, _ unit: String) -> String {
