@@ -11,7 +11,9 @@ import iOSSecurityTools
 /// backslashes and 67 MB for a form of a megabyte, before words were limited to 256 scalars and
 /// bodies to 256 KiB. The fourteenth measured 19 MB for a megabyte of log lines of short JSON,
 /// whose trees `JSONSerialization` autoreleased, which an earlier version of this test did not see:
-/// it stopped measuring when the redaction returned, before its thread released them.
+/// it stopped measuring when the redaction returned, before its thread released them. The
+/// sixteenth measured 26 MB for a quoted key of a megabyte inside another, which the reading of
+/// quoted keys copied (see ``QuotedKeyShapes``).
 @Suite("SensitiveDataRedactor peak memory", .serialized)
 struct RedactionPeakMemoryTests {
     static let limit = 16 * 1_048_576
@@ -31,7 +33,7 @@ struct RedactionPeakMemoryTests {
             RedactionTimeLimitTests.repeated("mail alice@example.com\n", to: RedactionTimeLimitTests.size)
         }, redact: redactor.redact),
     ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor) + FourteenthReviewShapes.text
-        + URLInTextShapes.text
+        + URLInTextShapes.text + QuotedKeyShapes.text
 
     /// Bodies just under ``SensitiveDataRedactor/defaultMaximumBodySize``.
     static let bodySize = SensitiveDataRedactor.defaultMaximumBodySize - 144
