@@ -256,7 +256,13 @@ final class CompatibilityText {
     /// The reading of a scalar outside ASCII.
     func reading(_ scalar: Unicode.Scalar) -> Reading {
         if let cached = cache[scalar.value] { return cached }
-        let reading = Reading(bytes: Self.read(scalar), isInvisible: ScalarClass.isInvisible(scalar), alphabet: SafeAlphabet.class(of: scalar))
+        let alphabet = SafeAlphabet.class(of: scalar)
+        var bytes = Self.read(scalar)
+        // A letter, mark or number of the safe alphabet is never read as punctuation or a space
+        // (`⑴` decomposes to `(1)`, `🄁` to `0,`): the free-text rule would split a key or a word
+        // where the text holds one character, and read as allowed a key such as `🄁user`.
+        if alphabet != .unsafe, bytes.contains(where: { $0 < 0x80 && !ASCII.isAlphanumeric($0) }) { bytes = [Self.unreadable] }
+        let reading = Reading(bytes: bytes, isInvisible: ScalarClass.isInvisible(scalar), alphabet: alphabet)
         cache[scalar.value] = reading
         return reading
     }
