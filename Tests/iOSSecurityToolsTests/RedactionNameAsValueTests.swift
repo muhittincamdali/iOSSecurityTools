@@ -5,7 +5,7 @@ import Testing
 /// A secret name written as a value — `name="password"`, `<string name="api_key">`,
 /// `<key>password</key>` — names what follows it. In free text, a text/plain body and text inside a
 /// JSON string, that is hidden: the rest of the line, and in XML and HTML the element's text, its
-/// other attribute values and the lines up to its end tag.
+/// other attribute values and the lines up to its end tag. In a JSON object, the other members.
 @Suite("SensitiveDataRedactor secret names written as values")
 struct RedactionNameAsValueTests {
     let redactor = SensitiveDataRedactor()
@@ -134,10 +134,40 @@ struct RedactionNameAsValueTests {
         #expect(redactor.redact(input) == expected)
     }
 
+    @Test("a JSON member that names a secret hides the other members", arguments: [
+        #"{"label":"Password","value":"S3CR3Tq"}"#,
+        #"{"type":"password","value":"S3CR3Tq"}"#,
+        #"{"variable":"API_KEY","value":"S3CR3Tq"}"#,
+        #"{"ParameterKey":"DbPassword","ParameterValue":"S3CR3Tq"}"#,
+        #"{"key":"pin","text":"S3CR3Tq"}"#,
+        #"{"label":"API Key:","input":"S3CR3Tq"}"#,
+        #"{"title":"pаssword","data2":["S3CR3Tq"]}"#,
+        #"{"label":"Password","value":{"x":"S3CR3Tq"}}"#,
+        #"[{"op":"replace","path":"/user/password","value":"S3CR3Tq"}]"#,
+    ])
+    func jsonMembers(input: String) {
+        for output in [redactor.redact(body: Data(input.utf8), contentType: "application/json"), redactor.redact("body=" + input)] {
+            #expect(!output.contains(Self.secret), "\(input.debugDescription) -> \(output.debugDescription)")
+        }
+    }
+
+    @Test("JSON members beside names that are not secret, sentences and operations stay", arguments: [
+        (#"{"label":"Status","value":"ok"}"#, #"{"label":"Status","value":"ok"}"#),
+        (#"{"label":"Password","value":"x","op":"add"}"#, #"{"label":"Password","value":"[redacted]","op":"add"}"#),
+        (#"{"name":"Cookie","value":"a=b","comment":"x"}"#, #"{"name":"Cookie","value":"[redacted]","comment":"[redacted]"}"#),
+        (#"{"msg":"Error: token expired","user":"bob"}"#, #"{"msg":"Error: [redacted]","user":"bob"}"#),
+        (#"{"query":"mutation","variables":"{\"password\":\"x\"}"}"#, #"{"query":"mutation","variables":"{\"password\":\"[redacted]\"}"}"#),
+    ])
+    func jsonKeepsPlainMembers(input: String, expected: String) {
+        #expect(redactor.redact(body: Data(input.utf8), contentType: "application/json") == expected)
+    }
+
     @Test("the logging guide's examples of names written as values")
     func guideExamples() {
         #expect(redactor.redact("field name=\"password\" hunter2") == "field name=\"[redacted]\"[redacted]")
         #expect(redactor.redact(#"<string name="api_key">k-1</string>"#) == #"<string name="[redacted]"[redacted]"#)
         #expect(redactor.redact("<key>password</key>\n<string>k-1</string>") == "<key>[redacted]\n[redacted]</string>")
+        let pair = #"{"label":"Password","value":"hunter2"}"#
+        #expect(redactor.redact(body: Data(pair.utf8), contentType: "application/json") == #"{"label":"Password","value":"[redacted]"}"#)
     }
 }

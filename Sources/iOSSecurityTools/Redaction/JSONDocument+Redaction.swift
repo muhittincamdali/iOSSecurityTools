@@ -16,6 +16,16 @@ extension JSONDocument {
     ///   array whose first is such a string is hidden whole (`[["Authorization","…"]]`, as fetch
     ///   headers and `URLSearchParams` entries are written), and so is every element of an array
     ///   after a string that names a secret or cannot be read (`["password","…"]`).
+    /// - **A secret name written as a value.** In an object with a member whose value is a name
+    ///   that names a secret or cannot be read, read as free text reads its words
+    ///   (`{"label":"Password","input":…}`, `{"ParameterKey":"DbPassword","ParameterValue":…}`),
+    ///   the values of the other members are hidden whole, whatever their names: an object has no
+    ///   order, so what belongs to the name cannot be told. A name here is a string of letters,
+    ///   marks, digits, spaces and `_`, `-`, `.` and `/`, with any punctuation around it
+    ///   (`"Password:"`); a sentence or JSON in a string is read as free text instead. The
+    ///   members that hold names stay (`name`, `key`, `field`, `header`, `param`, `path`, `k`, `n`
+    ///   with a string), and so does an `op` that names a JSON Patch or SCIM operation (`add`,
+    ///   `remove`, `replace`, `move`, `copy`, `test`).
     /// - Names and strings are free text: one in which anything is found is written again, escaped,
     ///   with the free-text rule applied to its decoded text, which may hold JSON again. They are
     ///   read with the document's ``nesting`` and the objects and arrays around them, so JSON in
@@ -37,16 +47,7 @@ extension JSONDocument {
         let inside = nesting.enteringContainer()
         switch node.value {
         case .object(let members):
-            let hidesPairValue = readsNames && hidesPairValue(in: members)
-            for member in members {
-                spans += stringSpans(member.name, role: .name, nesting: inside, redactor: redactor, compatibility: compatibility)
-                let name = text(of: member.name)
-                if readsNames, FieldName.hidesValue(name) || (hidesPairValue && Self.isPairPart(name, Self.pairValueNames)) {
-                    spans.append(Self.hiding(member.value))
-                } else {
-                    collect(member.value, nesting: inside, into: &spans, redactor: redactor, compatibility: compatibility)
-                }
-            }
+            collectMembers(members, nesting: inside, into: &spans, redactor: redactor, compatibility: compatibility)
         case .array(let elements):
             let isHiddenPair = readsNames && elements.count == 2 && hidesValue(namedBy: elements[0])
             var hidesRest = false
@@ -69,6 +70,29 @@ extension JSONDocument {
         }
     }
 
+    /// The members of an object, inside the objects and arrays that `nesting` counts. A value is
+    /// hidden whole when its name hides it, when the object pairs a name that hides it with the
+    /// value, or when another member names a secret.
+    private func collectMembers(
+        _ members: [Member], nesting: Nesting, into spans: inout [SensitiveDataRedactor.Span], redactor: SensitiveDataRedactor,
+        compatibility: CompatibilityText
+    ) {
+        let readsNames = redactor.kinds.contains(.secretFields)
+        let hidesPairValue = readsNames && hidesPairValue(in: members)
+        let naming = readsNames ? namingMembers(members, compatibility: compatibility) : []
+        for (index, member) in members.enumerated() {
+            spans += stringSpans(member.name, role: .name, nesting: nesting, redactor: redactor, compatibility: compatibility)
+            let name = text(of: member.name)
+            // Another member names a secret: two do, or the one that does is not this one.
+            let followsName = (naming.count > 1 || naming.first.map { $0 != index } == true) && !staysBesideName(member)
+            if readsNames, FieldName.hidesValue(name) || (hidesPairValue && Self.isPairPart(name, Self.pairValueNames)) || followsName {
+                spans.append(Self.hiding(member.value))
+            } else {
+                collect(member.value, nesting: nesting, into: &spans, redactor: redactor, compatibility: compatibility)
+            }
+        }
+    }
+
     private static let pairNameNames: Set<String> = ["name", "key", "field", "header", "param", "path", "k", "n"]
     private static let pairValueNames: Set<String> = ["value", "val", "values", "content", "data", "secret", "v"]
     private static let longestPairPart = (pairNameNames.union(pairValueNames)).map(\.count).max() ?? 0
@@ -88,6 +112,42 @@ extension JSONDocument {
             case .number, .boolean, .null: return false
             }
         }
+    }
+
+    /// The members whose value is a name that names a secret or cannot be read.
+    private func namingMembers(_ members: [Member], compatibility: CompatibilityText) -> [Int] {
+        members.indices.filter { index in
+            guard case .string(let token) = members[index].value.value else { return false }
+            let value = text(of: token)
+            return Self.isName(value) && FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+        }
+    }
+
+    /// Whether a string is a name rather than a sentence or a document: at most
+    /// ``PlainName/maximumKeyLength`` scalars without a line break, and once the punctuation and
+    /// spaces around it are left out, without `:`, `=`, `,`, `;`, quotes or brackets, which pair a
+    /// key with a value or hold one (`Error: token expired`, `{"password":…}`).
+    private static func isName(_ scalars: [Unicode.Scalar]) -> Bool {
+        guard scalars.count <= PlainName.maximumKeyLength,
+              let first = scalars.firstIndex(where: ScalarClass.isLetterOrNumber),
+              let last = scalars.lastIndex(where: ScalarClass.isLetterOrNumber)
+        else { return false }
+        return !scalars.contains { $0 == "\n" || $0 == "\r" } && !scalars[first...last].contains { notInNames.contains($0) }
+    }
+
+    private static let notInNames = Set(":=,;\"'()[]{}<>".unicodeScalars)
+
+    private static let operations: Set<String> = ["add", "remove", "replace", "move", "copy", "test"]
+
+    /// Whether a member stays beside a name that names a secret: one that holds a name (`name`,
+    /// `key`, `path`, … with a string), or the `op` of a JSON Patch or SCIM operation.
+    private func staysBesideName(_ member: Member) -> Bool {
+        guard case .string(let token) = member.value.value else { return false }
+        let name = text(of: member.name)
+        if Self.isPairPart(name, Self.pairNameNames) { return true }
+        guard Self.isPairPart(name, ["op"]) else { return false }
+        let operation = text(of: token)
+        return operation.count <= 7 && Self.operations.contains(String(String.UnicodeScalarView(operation)).lowercased())
     }
 
     /// Whether a value names a field whose value is hidden: a string that is not plain ASCII or

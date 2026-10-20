@@ -3,8 +3,8 @@ import Testing
 @testable import iOSSecurityTools
 
 /// Generated secret names written as values, disguised the ways ``DisguisedName`` disguises them,
-/// in the shapes of free text, XML, HTML and property lists: the secret that follows never shows.
-/// Plain names that hold no secret word keep what follows them.
+/// in the shapes of free text, XML, HTML, property lists and JSON objects: the secret that follows
+/// never shows. Plain names that hold no secret word keep what follows them.
 @Suite("SensitiveDataRedactor names written as values property tests")
 struct RedactionNameAsValuePropertyTests {
     let redactor = SensitiveDataRedactor()
@@ -22,6 +22,14 @@ struct RedactionNameAsValuePropertyTests {
         { n, v in "<string name=\"\(n)\" />\(v)" },
         { n, v in "<key>\(n)</key>\n<string>\(v)</string>" },
         { n, v in "<dict>\n  <key>\(n)</key>\n  <string>a\n\(v)</string>\n</dict>" },
+    ]
+
+    /// Ways to write them in a JSON object.
+    static let jsonShapes: [@Sendable (String, String) -> String] = [
+        { n, v in #"{"label":"\#(n)","value":"\#(v)"}"# },
+        { n, v in #"{"type":"\#(n)","input":"\#(v)"}"# },
+        { n, v in #"[{"ParameterKey":"\#(n)","ParameterValue":"\#(v)"}]"# },
+        { n, v in #"{"title":"\#(n):","data":{"x":["\#(v)"]}}"# },
     ]
 
     /// A disguised secret name that XML can hold in an attribute and an element: without quotes,
@@ -49,6 +57,9 @@ struct RedactionNameAsValuePropertyTests {
             for output in outputs {
                 #expect(!RedactionPropertyTests.leaks(value, in: output), "\(text.debugDescription) -> \(output.debugDescription)")
             }
+            let json = Self.jsonShapes.randomElement(using: &random)!(DisguisedName.json(name), value)
+            let body = redactor.redact(body: Data(json.utf8), contentType: "application/json")
+            #expect(!RedactionPropertyTests.leaks(value, in: body), "\(json.debugDescription) -> \(body.debugDescription)")
         }
     }
 
