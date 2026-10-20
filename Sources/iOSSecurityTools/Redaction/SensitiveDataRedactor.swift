@@ -57,18 +57,26 @@ import Foundation
 /// fields, URL query parameters and multipart parts follow the same rule
 /// (`label=Password&value=…`).
 ///
-/// URLs are read with `URLComponents` (see ``redact(url:)``), and ``redact(body:contentType:)``
-/// reads JSON, form, multipart and plain-text bodies; a body it cannot parse completely is
+/// URLs are read with `URLComponents` (see ``redact(url:)``); a host that is not a name of ASCII
+/// labels or an address, or in which a value detector finds something, is written as
+/// `[redacted]` after the scheme. ``redact(body:contentType:)`` reads JSON, form, multipart and
+/// plain-text bodies of up to ``maximumBodySize`` bytes; a body it cannot parse completely is
 /// omitted, and so is one that a common server parser could split into fields differently, such
-/// as a multipart body with `--boundary` after a bare LF or a form with a `;`.
+/// as a multipart body with `--boundary` after a bare LF or a form with a `;`. The name of a
+/// multipart part header is written only when it is one of the headers a part carries.
 ///
 /// ## Free text
 ///
 /// A log line has no grammar, so it is cut once: **in free text, the first secret name hides
-/// everything after it in that text; this over-hides on purpose.** A key that is not on
-/// ``allowedTextKeys`` (`x=hunter2`, `Error: …`), a word that cannot be read and a quote or
-/// bracket left open cut it too. Strings inside JSON, form values, allowed query values and
-/// multipart text parts are free text, each on its own. ``redact(_:)`` describes the rule.
+/// everything after it in that text; this over-hides on purpose.** Over-hiding is by design. A
+/// key that is not on ``allowedTextKeys`` (`x=hunter2`, `Error: …`), as the first string of a
+/// two-element array (`["user","…"]`) and as the tag of an element (`<user>…`), cuts it too, and
+/// so does the first character outside a safe alphabet — letters, marks and digits of any script,
+/// the ASCII space, tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or
+/// a control character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a
+/// word longer than 256 characters. No list of look-alike separators is kept. Strings inside
+/// JSON, form values, allowed query values and multipart text parts are free text, each on its
+/// own. ``redact(_:)`` describes the rule.
 ///
 /// ## Values
 ///
@@ -118,7 +126,8 @@ import Foundation
 /// a text inside a found document that the reading budget no longer covers. In a log line, JSON
 /// nested deeper than 64 levels or longer than 64 Ki scalars cuts the line at its first bracket,
 /// like JSON that does not parse. Free text is read in one pass that keeps a fixed number of
-/// positions, whatever it holds: a megabyte of it takes less than 16 MB more memory.
+/// positions, whatever it holds, and no word longer than 256 characters is copied for reading: a
+/// megabyte of it takes less than 16 MB more memory, and a body of 256 KiB less than 16 MB.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -133,10 +142,11 @@ public struct SensitiveDataRedactor: Sendable {
         public static let jsonWebTokens = Kinds(rawValue: 1 << 2)
         /// Tokens after the word `Bearer`.
         public static let bearerTokens = Kinds(rawValue: 1 << 3)
-        /// Values hidden by their key: secret and non-ASCII keys in structured input, keys that are
-        /// not allowed in free text, the query values and path segments that ``redact(url:)`` hides
-        /// by its URL rules, and the password in `user:password@host` in text. ``redact(url:)``
-        /// drops a URL's user name, password and fragment with or without it.
+        /// Values hidden by their key: secret and non-ASCII keys in structured input, free text from
+        /// its first trigger on (a key that is not allowed, a character outside the safe alphabet,
+        /// an escape, a long word), the hosts, query values and path segments that ``redact(url:)``
+        /// hides by its URL rules, and the password in `user:password@host` in text.
+        /// ``redact(url:)`` drops a URL's user name, password and fragment with or without it.
         public static let secretFields = Kinds(rawValue: 1 << 4)
         /// International bank account numbers that pass the mod-97 check.
         public static let ibans = Kinds(rawValue: 1 << 5)
@@ -272,44 +282,51 @@ public struct SensitiveDataRedactor: Sendable {
     /// redactor.redact("password hunter2")                         // "password [redacted]"
     /// ```
     ///
-    /// The triggers are read on a scanning copy without invisible characters (format characters,
-    /// marks, default-ignorable code points such as U+3164, control characters) and in Unicode
-    /// compatibility form:
+    /// Five rules decide where the text is cut, and no list of variants is kept for any of them:
     ///
-    /// - **A key that is not allowed.** In `key=value`, `key: value`, `key = value` and
+    /// - **A safe alphabet.** The text is read only as far as it is written in letters, marks and
+    ///   digits of any script (the Unicode categories L, M and N), the ASCII space, tab, line feed
+    ///   and carriage return, and printable ASCII. The first character outside it cuts the text
+    ///   there: punctuation, a symbol or a space outside ASCII (`꞉`, `≔`, `→`, `·`, `＝`, `—`, `€`,
+    ///   an emoji, U+00A0, U+2028), a control or format character (a zero-width space, `DEL`) and
+    ///   every default-ignorable code point (U+3164). A modifier letter (`ː`, `ー`) is in the
+    ///   alphabet only after a letter or digit outside ASCII, as in Japanese or Thai.
+    /// - **Escapes.** An escape is never decoded: one that can stand for any character cuts the
+    ///   text at the start of the word it is in — `%3D`, `%u003D`, `&#61;`, `&colon;`, `&amp;`, and
+    ///   `&` before a letter unless it starts the name of a field before `=` (`&count=3`), `\075`,
+    ///   `\3d`, `\x3D`, `\u003D`, `\u{3D}`, `\U0000003D` and `\N{…}`.
+    /// - **Opaque words.** A word longer than 256 characters cuts the text where it starts: it
+    ///   cannot be read as a name.
+    /// - **The key rule, in every shape.** In `key=value`, `key: value`, `key = value` and
     ///   `"key":"value"` the text is read on only after a key that is plain ASCII and on
     ///   ``allowedTextKeys`` (`status`, `method`, `path`, `duration_ms` and `count` by default).
     ///   Any other key cuts the text at its value, and so does a separator with no key before it
     ///   or a key on the line before its separator. The separators are `=` and `:` and runs of
-    ///   them (`:=`, `==`, `=>`); one written another way than in ASCII (`＝`, `：`, `︓`), escaped
-    ///   (`%3D`, `&#61;`, `%u003D`) or as punctuation or a math symbol outside ASCII (`≔`, `꞉`, `→`)
-    ///   cuts the text there. A `:` between two digits, as in `12:30`, is part of a time.
-    /// - **A secret name without a separator.** A word that holds a secret name cuts the text
-    ///   after the name: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`. Words
-    ///   are read after their escapes are decoded, with punctuation inside them (`pass~word`) and a
-    ///   space or `|` between two of them (`pass word`) read as a separator, and one letter that
-    ///   has no ASCII form (`ɑ`, `ı`) read as any letter or, between two letters, as none
-    ///   (`passꞏword`). A name disguised with two or more such letters and written without a
-    ///   separator (`pɑsswoʀd hunter2`) is not found.
-    /// - **A name written as a value.** After an allowed key that holds a name (`id=`, `type=`, …
-    ///   but not `path=`, the route of a request), a secret name or one that is not plain ASCII
-    ///   cuts the text after it, as in JSON (`type="Пароль"`), and so does JSON there. In markup,
-    ///   the text of an element whose tag holds a name (`<key>Şifre</key>`) is read the same way,
-    ///   and a trigger inside a start tag cuts the text at its first attribute value.
-    /// - **A word that cannot be read.** A word that mixes scripts (`pаssword` with a Cyrillic
-    ///   `а`) or holds an invisible character other than a mark (`pa\u{115F}ssword`, a zero-width
-    ///   space, a control character) cuts the text where it starts.
-    /// - **A quote or bracket that does not close** by the end of the text cuts it after the
-    ///   quote or bracket.
-    /// - **JSON in the text** (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the key rule for
-    ///   structured input, within the limits listed under "Limits"; its members follow the rule for
-    ///   keys, so the text is cut at the value of the first member that is not allowed, or at the
-    ///   first value the key rule hides. JSON that does not parse, or is longer than 64 Ki
-    ///   scalars, cuts the text at its first bracket.
+    ///   them (`:=`, `==`, `=>`); a `:` between two digits, as in `12:30`, is part of a time. JSON
+    ///   in the text follows the same rule member by member, and the first string of a
+    ///   two-element array is a key too (`["user","bob"]` cuts at `"bob"`). A tag is a key: the
+    ///   text of an element whose tag is not allowed cuts the text (`<user>bob</user>` keeps
+    ///   `<user>`), and a trigger inside a start tag cuts the text at its first attribute value.
+    /// - **Secret names.** A word that holds a secret name cuts the text after the name, with or
+    ///   without a separator: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`.
+    ///   Punctuation inside a word (`pass~word`) and a space or `|` between two words
+    ///   (`pass word`) are read as a separator, and one letter that has no ASCII form (`ɑ`, `ı`) as
+    ///   any letter or, between two letters, as none (`passꞏword`). A name disguised with two or
+    ///   more such letters and written without a separator (`pɑsswoʀd hunter2`) is not found.
+    ///   After an allowed key that holds a name (`id=`, `type=`, … but not `path=`, the route of a
+    ///   request), a secret name or one that is not plain ASCII cuts the text after it, as in JSON
+    ///   (`type="Пароль"`), and so does JSON there.
+    ///
+    /// A word that mixes scripts (`pаssword` with a Cyrillic `а`) cuts the text where it starts,
+    /// and a quote or bracket that does not close before the text ends or is cut leaves the end of
+    /// its value unknown, so it cuts the text after it. JSON in the text (`{"…`, `[{…`, `["…`,
+    /// `[[…`) is parsed and redacted by the key rule for structured input, within the limits listed
+    /// under "Limits"; JSON that does not parse, or is longer than 64 Ki scalars, cuts the text at
+    /// its first bracket.
     ///
     /// **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them, and the text
     /// is read on after them.
-        public func redact(_ text: String) -> String {
+    public func redact(_ text: String) -> String {
         redact(text, nesting: .text(length: text.unicodeScalars.count))
     }
 
