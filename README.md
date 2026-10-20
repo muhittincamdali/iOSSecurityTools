@@ -51,7 +51,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   server could split into fields differently.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 296 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 311 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -287,6 +287,9 @@ letters, invisible characters and escapes can disguise a secret name. JSON, form
 bodies are read with a parser, and a body it cannot parse completely is omitted as
 `[body omitted: N bytes, <type>]`, and so is a body that a common server parser could split into
 fields differently, such as a multipart boundary after a bare line feed or a form with a `;`.
+A body over 1 MiB is omitted too, and JSON is read at most 64 objects and arrays deep and four
+documents one inside another, JSON in strings included, which bounds the stack that hostile input
+can use; a string that holds more is redacted whole.
 Free text keeps a value only after an allowed key (`status`,
 `method`, `path`, `duration_ms`, `count` and the keys you pass), so `user=bob` becomes
 `user=[redacted]`. Redaction is a safety net, not a guarantee. The
@@ -395,6 +398,7 @@ Run the tests locally:
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

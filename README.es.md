@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
+<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -59,7 +59,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  296 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  311 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -296,7 +296,11 @@ defecto, porque letras parecidas, caracteres invisibles y secuencias de escape p
 nombre secreto. Los cuerpos JSON, de formulario y multipart se leen con un analizador; un cuerpo
 que no puede analizar por completo se omite como `[body omitted: N bytes, <type>]`, igual que
 un cuerpo que un analizador de servidor habitual podría dividir en campos de otra forma, como un
-límite multipart tras un salto de línea suelto o un formulario con `;`. En texto libre, un valor
+límite multipart tras un salto de línea suelto o un formulario con `;`.
+También se omite un cuerpo de más de 1 MiB, y el JSON se lee hasta 64 niveles de objetos y arrays y
+hasta cuatro documentos uno dentro de otro, contando el JSON dentro de cadenas, lo que limita la
+pila que puede ocupar una entrada hostil; una cadena que contiene más se oculta entera.
+En texto libre, un valor
 solo se conserva después de una clave permitida (`status`, `method`, `path`,
 `duration_ms`, `count` y las claves que usted pase), así que `user=bob` queda como
 `user=[redacted]`. La ocultación es una red de seguridad, no una garantía. La
@@ -406,6 +410,7 @@ Para ejecutar las pruebas en local:
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
+<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -59,7 +59,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 296 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 311 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -297,7 +297,11 @@ gizli adı gizleyebildiği için diğer her anahtarın değeri varsayılan olara
 ve multipart gövdeleri bir ayrıştırıcıyla okunur; tamamen ayrıştıramadığı bir gövdeyi
 `[body omitted: N bytes, <type>]` olarak atlar. Yaygın bir sunucu ayrıştırıcısının alanlara
 farklı bölebileceği bir gövde de atlanır; örneğin tek başına bir satır sonundan sonra gelen
-multipart sınırı ya da `;` içeren bir form. Serbest metin bir değeri yalnız izin verilen bir
+multipart sınırı ya da `;` içeren bir form.
+1 MiB'tan büyük bir gövde de atlanır; JSON, dizelerin içindeki JSON da sayılarak en fazla 64 nesne
+ve dizi derinliğinde ve iç içe en fazla dört belge olarak okunur, böylece kötü niyetli bir girdinin
+kullanabileceği yığın sınırlı kalır; daha fazlasını içeren bir dize bütünüyle maskelenir.
+Serbest metin bir değeri yalnız izin verilen bir
 anahtardan sonra korur (`status`, `method`, `path`, `duration_ms`, `count` ve sizin verdiğiniz
 anahtarlar); bu yüzden `user=bob`, `user=[redacted]` olur. Maskeleme bir güvenlik ağıdır, garanti
 değildir. Serbest metin kuralını, bedelini ve neleri bulmadığını
@@ -407,6 +411,7 @@ Testleri yerelde çalıştırmak için:
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

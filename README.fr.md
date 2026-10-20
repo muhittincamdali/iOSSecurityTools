@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
+<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -60,7 +60,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  296 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  311 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -298,7 +298,12 @@ peuvent déguiser un nom secret. Les corps JSON, de formulaire et multipart sont
 analyseur ; un corps qu’il ne peut pas analyser entièrement est omis sous la forme
 `[body omitted: N bytes, <type>]`, de même qu’un corps qu’un analyseur de serveur courant
 pourrait découper autrement en champs, comme une limite multipart après un saut de ligne seul
-ou un formulaire contenant `;`. Dans le texte libre, une valeur n’est gardée qu’après une clé
+ou un formulaire contenant `;`.
+Un corps de plus de 1 Mio est omis lui aussi, et le JSON est lu sur 64 niveaux d’objets et de
+tableaux au plus et sur quatre documents imbriqués au plus, JSON dans les chaînes compris, ce qui
+borne la pile qu’une entrée hostile peut occuper ; une chaîne qui en contient davantage est masquée
+en entier.
+Dans le texte libre, une valeur n’est gardée qu’après une clé
 autorisée (`status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez),
 donc `user=bob` devient `user=[redacted]`. Le masquage est un filet de sécurité, pas une
 garantie. Le
@@ -408,6 +413,7 @@ Pour lancer les tests en local :
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

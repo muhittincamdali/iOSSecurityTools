@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@1d746a716c028e27b4328256938f7caa52ea3c29 status=reviewed -->
+<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -58,7 +58,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  296 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  311 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -297,7 +297,11 @@ Escape-Sequenzen können einen geheimen Namen tarnen. JSON-, Formular- und Multi
 mit einem Parser gelesen; einen Body, den es nicht vollständig parsen kann, lässt es als
 `[body omitted: N bytes, <type>]` aus, ebenso einen Body, den ein verbreiteter Server-Parser
 anders in Felder aufteilen könnte, etwa mit einer Multipart-Grenze nach einem einzelnen
-Zeilenvorschub oder als Formular mit `;`. Freier Text behält einen Wert nur nach einem erlaubten
+Zeilenvorschub oder als Formular mit `;`.
+Ein Body über 1 MiB wird ebenfalls ausgelassen, und JSON wird höchstens 64 Objekte und Arrays tief
+und vier Dokumente ineinander gelesen, JSON in Strings mitgezählt, was den Stack begrenzt, den
+feindliche Eingaben belegen können; ein String, der mehr enthält, wird ganz geschwärzt.
+Freier Text behält einen Wert nur nach einem erlaubten
 Schlüssel (`status`, `method`, `path`, `duration_ms`, `count` und die Schlüssel, die Sie
 übergeben), sodass aus `user=bob` `user=[redacted]` wird. Schwärzen ist ein Sicherheitsnetz,
 keine Garantie. Der
@@ -407,6 +411,7 @@ Die Tests lokal ausführen:
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
