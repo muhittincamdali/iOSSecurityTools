@@ -50,7 +50,7 @@ extension SensitiveDataRedactor {
         guard let scheme = components.scheme, let host = components.percentEncodedHost else { return Self.unparsedURL }
         var result = scheme + "://" + host
         if let port = components.port { result += ":\(port)" }
-        guard urlDetail == .full else { return result }
+        guard urlDetail == .full, !Self.exceedsLimits(components) else { return result }
         let hidesByName = kinds.contains(.secretFields)
         let path = components.percentEncodedPath
         result += hidesByName ? redacted(path: path, nesting: nesting) : scanned(path: path, nesting: nesting)
@@ -64,6 +64,17 @@ extension SensitiveDataRedactor {
             result += "?" + parameters.joined(separator: "&")
         }
         return result
+    }
+
+    /// Whether the path has more than ``maximumPathSegments`` segments, or the path or the query
+    /// more than ``maximumQueryParameters`` parameters. Each segment and parameter is read on its
+    /// own, so the count bounds the work a URL can ask for; real URLs stay far below both.
+    private static func exceedsLimits(_ components: URLComponents) -> Bool {
+        let path = components.percentEncodedPath.utf8
+        if path.count(where: { $0 == UInt8(ascii: "/") }) > maximumPathSegments { return true }
+        if path.count(where: { $0 == UInt8(ascii: ";") }) > maximumQueryParameters { return true }
+        guard let query = components.percentEncodedQuery else { return false }
+        return query.utf8.count(where: { $0 == UInt8(ascii: "&") }) >= maximumQueryParameters
     }
 
     // MARK: Without secret fields

@@ -142,6 +142,14 @@ public struct SensitiveDataRedactor: Sendable {
     /// Bodies larger than this are omitted without being parsed: 1 MiB.
     public static let maximumBodySize = 1_048_576
 
+    /// A URL whose path has more segments than this is recorded with its scheme, host and port
+    /// only: 64.
+    public static let maximumPathSegments = 64
+
+    /// A URL whose query, or whose path, has more parameters than this is recorded with its
+    /// scheme, host and port only: 128.
+    public static let maximumQueryParameters = 128
+
     /// The keys whose values free text keeps: harmless names that logs use for numbers and routes.
     /// The keys passed to the initializer are added to them.
     public static let defaultAllowedTextKeys: [String] = [

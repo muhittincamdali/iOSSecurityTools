@@ -79,6 +79,27 @@ struct RedactionURLTests {
         #expect(hostOnly.redact(url: try #require(URL(string: "https://bob:pw@example.com:8443/a?email=alice@example.com#x"))) == "https://example.com:8443")
     }
 
+    @Test("a URL with more path segments or parameters than the limits records its scheme, host and port")
+    func limits() throws {
+        let segments = SensitiveDataRedactor.maximumPathSegments
+        let parameters = SensitiveDataRedactor.maximumQueryParameters
+        let longest = "https://example.com:8443" + String(repeating: "/a", count: segments) + "?b=1"
+        #expect(redactor.redact(url: try #require(URL(string: longest))) == "https://example.com:8443" + String(repeating: "/a", count: segments) + "?b=[redacted]")
+        let cases = [
+            "https://example.com:8443" + String(repeating: "/a", count: segments + 1),
+            "https://example.com:8443/a?" + (0...parameters).map { "k\($0)=1" }.joined(separator: "&"),
+            "https://example.com:8443/a" + String(repeating: ";k=1", count: parameters + 1),
+            "https://example.com:8443" + String(repeating: "/pin/4831", count: segments / 2 + 1) + "?password=hunter2",
+        ]
+        for input in cases {
+            #expect(redactor.redact(url: try #require(URL(string: input))) == "https://example.com:8443")
+            #expect(redactor.redact("GET \(input) done") == "GET https://example.com:8443 done")
+            #expect(SensitiveDataRedactor(kinds: .cardNumbers).redact(url: try #require(URL(string: input))) == "https://example.com:8443")
+        }
+        let most = "https://example.com/a?" + (1...parameters).map { "k\($0)=1" }.joined(separator: "&")
+        #expect(redactor.redact(url: try #require(URL(string: most))).hasSuffix("&k\(parameters)=[redacted]"))
+    }
+
     @Test("a segment read once keeps its reading where it comes again, after a label or not")
     func repeatedSegments() throws {
         let url = try #require(URL(string: "https://example.com/pin/pin/users/4831/users/pin/4831/a%40b.com/a%40b.com/users"))
