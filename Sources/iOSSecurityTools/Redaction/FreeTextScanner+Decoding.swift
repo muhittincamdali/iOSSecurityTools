@@ -39,7 +39,7 @@ extension FreeTextScanner {
     static func mentionsSecret(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) -> Bool {
         let text = NormalizedText(scalars, compatibility: compatibility)
         // Only words are read here, never JSON or URLs, so no nesting is entered.
-        let scanner = FreeTextScanner(source: scalars, text: text, redactor: SensitiveDataRedactor(), compatibility: compatibility, nesting: .text)
+        let scanner = FreeTextScanner(source: scalars, text: text, redactor: .standard, compatibility: compatibility, nesting: .text)
         var start = 0
         while start < text.count {
             guard !scanner.endsWord(start) || scanner.referenceLength(at: start) != nil else {

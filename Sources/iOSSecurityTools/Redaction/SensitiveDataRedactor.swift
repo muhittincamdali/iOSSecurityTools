@@ -173,7 +173,7 @@ public struct SensitiveDataRedactor: Sendable {
     ///   - urlDetail: How much of a URL is recorded.
     public init(kinds: Kinds = .all, allowedTextKeys: [String] = [], allowedQueryParameters: [String] = [], urlDetail: URLDetail = .full) {
         self.kinds = kinds
-        self.allowedTextKeys = Self.allowableFolds(Self.defaultAllowedTextKeys + allowedTextKeys)
+        self.allowedTextKeys = Self.defaultAllowedTextFolds.union(Self.allowableFolds(allowedTextKeys))
         self.allowedQueryParameters = Self.allowableFolds(allowedQueryParameters)
         self.urlDetail = urlDetail
     }
@@ -181,6 +181,15 @@ public struct SensitiveDataRedactor: Sendable {
     private static func allowableFolds(_ names: [String]) -> Set<String> {
         Set(names.compactMap { FieldName.allowableFold($0.unicodeScalars) })
     }
+
+    /// The folds of ``defaultAllowedTextKeys``, made once for every redactor.
+    private static let defaultAllowedTextFolds = allowableFolds(defaultAllowedTextKeys)
+
+    /// A redactor with the default settings, made once and shared by the readings that need one
+    /// inside a redaction: the words of an array element, the value detectors of a path segment.
+    /// Making one there for every element or segment folded the default keys again each time,
+    /// which took a third of the time of a JSON array of short strings.
+    static let standard = SensitiveDataRedactor()
 
     /// Returns the text with every match replaced.
     ///

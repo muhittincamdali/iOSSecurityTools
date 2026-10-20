@@ -164,7 +164,7 @@ extension SensitiveDataRedactor {
         if bytes.count >= 6, bytes.allSatisfy(ASCII.isDigit) { return true }
         let isToken = bytes.allSatisfy { ASCII.isAlphanumeric($0) || $0 == UInt8(ascii: "-") || $0 == UInt8(ascii: "_") }
         if isToken, bytes.count >= mixedTokenLength, bytes.contains(where: ASCII.isLetter), bytes.contains(where: ASCII.isDigit) { return true }
-        return !SensitiveDataRedactor().detectorSpans(in: NormalizedText(scalars, compatibility: CompatibilityText())).isEmpty
+        return !SensitiveDataRedactor.standard.detectorSpans(in: NormalizedText(scalars, compatibility: CompatibilityText())).isEmpty
     }
 
     // MARK: Form encoding
