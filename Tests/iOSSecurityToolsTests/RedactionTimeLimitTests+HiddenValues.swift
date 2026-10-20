@@ -1,9 +1,10 @@
 import Foundation
 import iOSSecurityTools
 
-/// Secret names inside values that are hidden already, which the trigger pass reads a second
-/// time: a line of a megabyte after one key, names held by keys on every few characters, part
-/// headers of a multipart body written to a log, and JSON after `name=` that never closes.
+/// Shapes that made earlier designs of the free-text rule read a line again or keep a finding per
+/// name: a line of a megabyte after one key, names held by keys on every few characters, part
+/// headers of a multipart body written to a log, and JSON after `name=` that never closes. The
+/// scan now stops at the first trigger.
 extension RedactionTimeLimitTests {
     private static let textRedactor = SensitiveDataRedactor()
 

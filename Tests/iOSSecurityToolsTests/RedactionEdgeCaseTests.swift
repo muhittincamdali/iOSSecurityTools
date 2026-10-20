@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import iOSSecurityTools
 
@@ -51,11 +52,11 @@ struct RedactionEdgeCaseTests {
         ("user[password]=hunter2&user[name]=bob", "user[password]=[redacted]"),
         ("user[password][confirmation]=x", "user[password][redacted]"),
         ("<password>hunter2</password><user>bob</user>", "<password>[redacted]"),
-        ("<ApiKey>\nk-1\n</ApiKey>", "<ApiKey>\n[redacted]\n</ApiKey>"),
-        ("<token>unclosed\nnext line", "<token>[redacted]\nnext line"),
+        ("<ApiKey>\nk-1\n</ApiKey>", "<ApiKey>[redacted]"),
+        ("<token>unclosed\nnext line", "<token>[redacted]"),
         ("<password type=\"text\">hunter2</password>", "<password [redacted]"),
-        ("<password >hunter2</password>", "<password [redacted]"),
-        ("<Token\n  kind=\"a>b\">abc</Token>", "<Token\n  [redacted]</Token>"),
+        ("<password >hunter2</password>", "<password >[redacted]"),
+        ("<Token\n  kind=\"a>b\">abc</Token>", "<Token[redacted]"),
         ("<ns:password>hunter2</ns:password>", "<ns:[redacted]"),
         ("<wsse:Password Type=\"PasswordText\">hunter2</wsse:Password>", "<wsse:[redacted]"),
         ("password%3Dhunter2", "password[redacted]"),
@@ -73,7 +74,7 @@ struct RedactionEdgeCaseTests {
         ("password: <hunter2>", "password: [redacted]"),
         ("token=<abc 123>; next", "token=[redacted]"),
         ("password: <hunter2", "password: [redacted]"),
-        ("password=<hunter2\n>", "password=[redacted]\n>"),
+        ("password=<hunter2\n>", "password=[redacted]"),
         ("password:<a password:<b>", "password:[redacted]"),
     ])
     func otherSyntaxes(input: String, expected: String) {
@@ -83,14 +84,14 @@ struct RedactionEdgeCaseTests {
     @Test("hides the value after assignment and comparison operators", arguments: [
         ("PASSWORD := hunter2", "PASSWORD := [redacted]"),
         ("password:=hunter2", "password:=[redacted]"),
-        ("apiKey := \"k-1\"", "apiKey := \"[redacted]\""),
+        ("apiKey := \"k-1\"", "apiKey := [redacted]"),
         ("API_TOKEN ?= abc123", "API_TOKEN [redacted]"),
         ("SECRET += abc123", "SECRET [redacted]"),
         ("password=>hunter2", "password=>[redacted]"),
-        ("password == \"hunter2\"", "password == \"[redacted]\""),
+        ("password == \"hunter2\"", "password == [redacted]"),
         ("token!=abc123", "token!=[redacted]"),
         ("password === hunter2", "password === [redacted]"),
-        ("password === \"hunter2\"", "password === \"[redacted]\""),
+        ("password === \"hunter2\"", "password === [redacted]"),
         ("password=== hunter2", "password=== [redacted]"),
         ("password!==hunter2", "password!==[redacted]"),
         ("password :== hunter2", "password :== [redacted]"),
@@ -144,7 +145,8 @@ struct RedactionEdgeCaseTests {
         "passport", "bypass", "compass", "passed", "session_start", "sessionCount",
     ])
     func lookalikeNames(name: String) {
-        #expect(redactor.redact("{\"\(name)\":\"x\"}") == "{\"\(name)\":\"x\"}")
+        let json = "{\"\(name)\":\"x\"}"
+        #expect(redactor.redact(body: Data(json.utf8), contentType: "application/json") == json)
         #expect(SensitiveDataRedactor(allowedTextKeys: [name]).redact("\(name)=x") == "\(name)=x")
         #expect(redactor.redact("\(name)=x") == "\(name)=[redacted]")
     }
@@ -178,7 +180,7 @@ extension RedactionEdgeCaseTests {
     // Free text keeps a value only after an allowed key, so comparisons, times and object
     // descriptions written as `key: value` are hidden unless the app allows their keys.
     @Test("pairs in free text keep their value only after an allowed key", arguments: [
-        ("<a href=\"x\">y</a>", "<a href=\"[redacted]\">y</a>"),
+        ("<a href=\"x\">y</a>", "<a href=[redacted]"),
         ("count>=5", "count>=[redacted]"),
         ("a <= b", "a <= [redacted]"),
         ("x == y", "x == [redacted]"),

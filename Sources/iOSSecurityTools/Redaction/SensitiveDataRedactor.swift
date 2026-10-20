@@ -5,8 +5,9 @@ import Foundation
 ///
 /// ```swift
 /// let redactor = SensitiveDataRedactor()
-/// redactor.redact(#"POST /login {"user":"alice@example.com","password":"hunter2"}"#)
-/// // POST /login {"user":"a•••@example.com","password":"[redacted]"}
+/// let body = Data(#"{"user":"alice@example.com","password":"hunter2"}"#.utf8)
+/// redactor.redact(body: body, contentType: "application/json")
+/// // {"user":"a•••@example.com","password":"[redacted]"}
 /// redactor.redact("login failed user=alice status=401")
 /// // login failed user=[redacted]
 /// ```
@@ -63,10 +64,11 @@ import Foundation
 ///
 /// ## Free text
 ///
-/// A log line has no grammar, so its keys are read the other way round, with an allowlist: in
-/// `key=value`, `key: value` and `"key":"value"` the value is kept only when the key is plain ASCII
-/// and on ``allowedTextKeys``. Strings inside JSON, form values and multipart text parts are free
-/// text too. ``redact(_:)`` describes the rule.
+/// A log line has no grammar, so it is cut once: **in free text, the first secret name hides
+/// everything after it in that text; this over-hides on purpose.** A key that is not on
+/// ``allowedTextKeys`` (`x=hunter2`, `Error: …`), a word that cannot be read and a quote or
+/// bracket left open cut it too. Strings inside JSON, form values, allowed query values and
+/// multipart text parts are free text, each on its own. ``redact(_:)`` describes the rule.
 ///
 /// ## Values
 ///
@@ -112,8 +114,9 @@ import Foundation
 /// JSON that goes past a limit is not read. A body is then omitted, and a string or other text
 /// inside a document that holds such JSON, or a URL one level too many, is hidden whole, as is
 /// a text inside a found document that the reading budget no longer covers. In a log line, JSON
-/// nested deeper than 64 levels hides the line from its first bracket, like JSON that does not
-/// parse.
+/// nested deeper than 64 levels cuts the line at its first bracket, like JSON that does not
+/// parse. Free text is read in one pass that keeps a fixed number of positions, whatever it
+/// holds.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -178,18 +181,17 @@ public struct SensitiveDataRedactor: Sendable {
     /// scheme, host and port only: 128.
     public static let maximumQueryParameters = 128
 
-    /// The keys whose values free text keeps: harmless names that logs use for numbers and routes.
-    /// The keys passed to the initializer are added to them.
-    public static let defaultAllowedTextKeys: [String] = [
-        "status", "status_code", "method", "path", "duration", "duration_ms", "count", "size", "bytes",
-        "page", "limit", "offset", "attempt", "level",
-    ]
+    /// The keys whose values free text reads on by default: harmless names that logs use for a
+    /// response status, a request method and route, a duration and a count. The keys passed to the
+    /// initializer are added to them.
+    public static let defaultAllowedTextKeys: [String] = ["status", "method", "path", "duration_ms", "count"]
 
     /// The kinds this redactor looks for.
     public let kinds: Kinds
 
-    /// The folded keys whose values free text keeps: ``defaultAllowedTextKeys`` and the keys passed
-    /// to the initializer, lowercased and without `_`, `-`, `.` and spaces.
+    /// The folded keys whose values free text reads on: ``defaultAllowedTextKeys`` and the keys
+    /// passed to the initializer, lowercased and without `_`, `-`, `.` and spaces. After any other
+    /// key, free text is cut (see ``redact(_:)``).
     public let allowedTextKeys: Set<String>
 
     /// The folded names of the query parameters whose values a URL keeps. Empty by default.
@@ -202,7 +204,7 @@ public struct SensitiveDataRedactor: Sendable {
     ///
     /// - Parameters:
     ///   - kinds: The kinds of data to look for; all of them by default.
-    ///   - allowedTextKeys: Keys whose values free text keeps, in addition to
+    ///   - allowedTextKeys: Keys after which free text is read on, in addition to
     ///     ``defaultAllowedTextKeys``. A key that is not plain ASCII or names a secret is ignored.
     ///   - allowedQueryParameters: Query parameters whose values URLs keep. A name that is not
     ///     plain ASCII or names a secret is ignored.
@@ -229,6 +231,13 @@ public struct SensitiveDataRedactor: Sendable {
     /// The folds of ``defaultAllowedTextKeys``, made once for every redactor.
     private static let defaultAllowedTextFolds = allowableFolds(defaultAllowedTextKeys)
 
+    /// Whether free text is read on after the key `name`: it is plain ASCII, names no secret and
+    /// is on ``allowedTextKeys`` once folded.
+    func allowsTextKey(_ name: some Collection<Unicode.Scalar>) -> Bool {
+        guard let fold = FieldName.allowableFold(name) else { return false }
+        return allowedTextKeys.contains(fold)
+    }
+
     /// A redactor with the default settings, made once and shared by the readings that need one
     /// inside a redaction: the words of an array element, the value detectors of a path segment.
     /// Making one there for every element or segment folded the default keys again each time,
@@ -237,62 +246,55 @@ public struct SensitiveDataRedactor: Sendable {
 
     /// Returns the text with every match replaced.
     ///
-    /// The text is read as free text, on a scanning copy without invisible characters (format
-    /// characters, marks, default-ignorable code points such as U+3164, control characters) and
-    /// in Unicode compatibility form:
+    /// The text is read as free text, which has no grammar, so it follows one rule: **the first
+    /// trigger hides everything after it, to the end of the text** — not only the rest of its
+    /// line. This hides more than it has to on purpose. A text without a trigger is written as it
+    /// is, apart from the card numbers, IBANs, email addresses and tokens in it.
     ///
-    /// - **Pairs.** In `key=value`, `key: value`, `key = value` and `"key":"value"` the value is
-    ///   kept only when the key is plain ASCII and on ``allowedTextKeys``. Any other value is
-    ///   replaced: a quoted one (`"`, `'` or a backtick) up to its closing quote, a JSON object or
-    ///   array whole, anything else with the rest of its line, because where it ends cannot be
-    ///   told. The separators are `=` and `:`, also as characters whose compatibility form is one
-    ///   (`＝`, `：`, `︓`) and as escapes (`%3D`, `&#61;`); a `:` between two digits, as in
-    ///   `12:30`, is part of a time. Punctuation and math symbols outside ASCII (`≔`, `꞉`, `→`,
-    ///   `·`) separate too, where they follow other text.
-    /// - **Secret names without a separator.** A word that holds a secret name hides the rest of
-    ///   its line: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`. Words are read
-    ///   after their escapes are decoded, with punctuation inside them (`pass~word`) and a space or
-    ///   `|` between two of them (`pass word`) read as a separator, and one letter that has no
-    ///   ASCII form (`ɑ`, `ı`) read as any letter or, between two letters, as none (`passꞏword`).
-    ///   This is a best effort: a name disguised with two or more such letters and written
-    ///   without a separator (`pɑsswoʀd hunter2`) is not found.
-    /// - **Ambiguity.** A word that mixes scripts (`pаssword` with a Cyrillic `а`) or holds an
-    ///   invisible character other than a mark (`pa\u{115F}ssword`, a zero-width space, a control
-    ///   character) hides itself and the rest of its line.
-    /// - **Values that go on.** A quote that does not close on its line hides the lines up to the
-    ///   one where it closes, and that line whole. After a value hidden to the end of its line, the
-    ///   lines indented more and the line after a trailing `\` are hidden; so is the next line with
-    ///   text when nothing but punctuation followed the name, the line ends open (`(`, `:`, `<key>`,
-    ///   `"""`) or it ends at a break other than LF and CRLF.
-    /// - **Secret names written as values.** A quoted value that names a secret or cannot be read
-    ///   (`name="password"`, `<string name="api_key">`) hides the rest of its line after the
-    ///   closing quote. After a key that holds a name (`name=`, `key=`, `label=`, `id=`, … but not
-    ///   `path=`, the route of a request) a name that is not plain ASCII counts as secret, as in
-    ///   JSON (`label="Пароль"`), and so does JSON there (`name=["pin"]`), to the end of the line
-    ///   where it closes when it spans lines. In XML and HTML the other attribute values of its
-    ///   start tag are hidden too, and the lines below up to the end of the element and the rest of
-    ///   the line where it ends; a secret name in an element's text (`<key>password</key>`) names
-    ///   the element after it, also on the lines below, as a property list writes them. An element
-    ///   that holds nothing (`<string/>`, `<string></string>`) holds no value, so the text after
-    ///   it, or the next line with text that is not markup, is hidden too. A name that is plain
-    ///   and not secret keeps what follows it. An unquoted name after such a key
-    ///   (`name=password`) names what follows it as a quoted one does.
-    /// - **Names inside hidden values.** Each line is read a second time for the names written as
-    ///   values in what the first reading hid without reading it, and in quoted values, so a name
-    ///   hides what follows it wherever it is on its line: `Content-Disposition: form-data;
-    ///   name="pin"` hides the value of `Content-Disposition`, and the name in it the part's value
-    ///   below. A secret name in a header of a multipart part written into text hides the part's
-    ///   other headers and its value, up to the delimiter line written before the header, or,
-    ///   without one, up to a blank line or a line that starts with `--`.
-    /// - **Embedded JSON.** JSON in a line (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the
-    ///   key rule for structured input, within the limits listed under "Limits". JSON that does not
-    ///   parse hides the rest of the line, and the lines below until its brackets close.
-    /// - **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them.
-    /// - **Values** are scanned for card numbers, IBANs, email addresses and tokens everywhere.
+    /// ```swift
+    /// redactor.redact("GET /items status=200 duration_ms=12")    // kept as it is
+    /// redactor.redact("login user=bob status=401\nretry 2")      // "login user=[redacted]"
+    /// redactor.redact("password hunter2")                         // "password [redacted]"
+    /// ```
     ///
-    /// U+2028, U+2029, U+0085, vertical tab and form feed end a line and are written as line feeds,
-    /// so the result breaks lines where the rule did; CR and CRLF end a line too and are kept.
-    public func redact(_ text: String) -> String {
+    /// The triggers are read on a scanning copy without invisible characters (format characters,
+    /// marks, default-ignorable code points such as U+3164, control characters) and in Unicode
+    /// compatibility form:
+    ///
+    /// - **A key that is not allowed.** In `key=value`, `key: value`, `key = value` and
+    ///   `"key":"value"` the text is read on only after a key that is plain ASCII and on
+    ///   ``allowedTextKeys`` (`status`, `method`, `path`, `duration_ms` and `count` by default).
+    ///   Any other key cuts the text at its value, and so does a separator with no key before it
+    ///   or a key on the line before its separator. The separators are `=` and `:` and runs of
+    ///   them (`:=`, `==`, `=>`); one written another way than in ASCII (`＝`, `：`, `︓`), escaped
+    ///   (`%3D`, `&#61;`, `%u003D`) or as punctuation or a math symbol outside ASCII (`≔`, `꞉`, `→`)
+    ///   cuts the text there. A `:` between two digits, as in `12:30`, is part of a time.
+    /// - **A secret name without a separator.** A word that holds a secret name cuts the text
+    ///   after the name: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`. Words
+    ///   are read after their escapes are decoded, with punctuation inside them (`pass~word`) and a
+    ///   space or `|` between two of them (`pass word`) read as a separator, and one letter that
+    ///   has no ASCII form (`ɑ`, `ı`) read as any letter or, between two letters, as none
+    ///   (`passꞏword`). A name disguised with two or more such letters and written without a
+    ///   separator (`pɑsswoʀd hunter2`) is not found.
+    /// - **A name written as a value.** After an allowed key that holds a name (`id=`, `type=`, …
+    ///   but not `path=`, the route of a request), a secret name or one that is not plain ASCII
+    ///   cuts the text after it, as in JSON (`type="Пароль"`), and so does JSON there. In markup,
+    ///   the text of an element whose tag holds a name (`<key>Şifre</key>`) is read the same way,
+    ///   and a trigger inside a start tag cuts the text at its first attribute value.
+    /// - **A word that cannot be read.** A word that mixes scripts (`pаssword` with a Cyrillic
+    ///   `а`) or holds an invisible character other than a mark (`pa\u{115F}ssword`, a zero-width
+    ///   space, a control character) cuts the text where it starts.
+    /// - **A quote or bracket that does not close** by the end of the text cuts it after the
+    ///   quote or bracket.
+    /// - **JSON in the text** (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the key rule for
+    ///   structured input, within the limits listed under "Limits"; its members follow the rule for
+    ///   keys, so the text is cut at the value of the first member that is not allowed, or at the
+    ///   first value the key rule hides. JSON that does not parse cuts the text at its first
+    ///   bracket.
+    ///
+    /// **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them, and the text
+    /// is read on after them.
+        public func redact(_ text: String) -> String {
         redact(text, nesting: .text(length: text.unicodeScalars.count))
     }
 

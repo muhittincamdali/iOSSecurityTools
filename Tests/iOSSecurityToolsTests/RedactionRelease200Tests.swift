@@ -75,8 +75,11 @@ struct RedactionRelease200Tests {
             let range = text.range(of: part)!
             #expect(ranges.contains { $0.contains(range.lowerBound) && $0.upperBound >= range.upperBound }, "\(part)")
         }
-        #expect(redactor.redact(#"POST /login {"user":"alice@example.com","password":"hunter2"}"#)
-            == #"POST /login {"user":"a•••@example.com","password":"[redacted]"}"#)
+        // 2.0.0 kept the user of this line; free text now hides everything after a key that is not
+        // allowed, which hides more and never less.
+        #expect(redactor.redact(#"POST /login {"user":"alice@example.com","password":"hunter2"}"#) == #"POST /login {"user":[redacted]"#)
+        let body = #"{"user":"alice@example.com","password":"hunter2"}"#
+        #expect(redactor.redact(body: Data(body.utf8), contentType: "application/json") == #"{"user":"a•••@example.com","password":"[redacted]"}"#)
     }
 
     /// 2.0.0's samples with a character before and after them.

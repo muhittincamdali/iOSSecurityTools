@@ -12,7 +12,7 @@ struct RedactionDetectorTests {
         ("pay to DE89370400440532013000", "pay to •••• 3000"),
         ("to DE89 3704 0044 0532 0130 00 today", "to •••• 3000 today"),
         ("GB82 WEST 1234 5698 7654 32", "•••• 5432"),
-        ("{\"note\":\"DE89370400440532013000\"}", "{\"note\":\"•••• 3000\"}"),
+        ("[\"DE89370400440532013000\"]", "[\"•••• 3000\"]"),
     ])
     func ibans(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -30,7 +30,7 @@ struct RedactionDetectorTests {
         ("fingerprint 0123456789abcdef0123456789abcdef ok", "fingerprint [redacted] ok"),
         // The `==` that pads base64 is also read as a separator, so the rest of the line goes.
         ("b64 dGhpcyBpcyBhIHNlY3JldCB2YWx1ZSAxMjM0NTY3OA== end", "b64 [redacted] [redacted]"),
-        ("{\"note\":\"sk_\("live")_51HxQ2wErTyUiOpAsDfGhJkLzXcVbNm1234\"}", "{\"note\":\"[redacted]\"}"),
+        ("[\"sk_\("live")_51HxQ2wErTyUiOpAsDfGhJkLzXcVbNm1234\"]", "[\"[redacted]\"]"),
     ])
     func longTokens(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

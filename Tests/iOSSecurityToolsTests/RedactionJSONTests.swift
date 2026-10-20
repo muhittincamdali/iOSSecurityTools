@@ -33,33 +33,46 @@ struct RedactionJSONTests {
         #expect(try JSONSerialization.jsonObject(with: Data(output.utf8), options: .fragmentsAllowed) is NSObject)
     }
 
-    @Test("a text that is JSON stays valid JSON too", arguments: documents)
-    func textStaysJSON(input: String, expected: String) throws {
-        let output = redactor.redact(input)
-        #expect(output == expected)
-        #expect(try JSONSerialization.jsonObject(with: Data(output.utf8), options: .fragmentsAllowed) is NSObject)
+    /// The same documents in free text: the text is cut at the value of the first member whose
+    /// name is not on the allowlist of keys in text.
+    static let textCuts: [(String, String)] = [
+        (#"{"credentials":{"email":"alice@example.com"}}"#, #"{"credentials":[redacted]"#),
+        (#"{"otp":[4111111111111111]}"#, #"{"otp":[redacted]"#),
+        (#"{"password":["\#(jwt)"]}"#, #"{"password":[redacted]"#),
+        (#"{"amount":4111111111111111}"#, #"{"amount":[redacted]"#),
+        (#"{"note":"paid 4111 1111 1111 1111","user":"bob"}"#, #"{"note":[redacted]"#),
+        (#"[{"token":"\#(jwt)"},{"id":7}]"#, #"[{"token":[redacted]"#),
+        (#"{"a":{"b":[{"api_key":true}]},"c":null}"#, #"{"a":[redacted]"#),
+        (#"{"status":200,"count":3}"#, #"{"status":200,"count":3}"#),
+        (#"[{"status":200},{"count":2}]"#, #"[{"status":200},{"count":2}]"#),
+    ]
+
+    @Test("a text that is JSON is cut at its first member that is not allowed", arguments: textCuts)
+    func textCutsJSON(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
     }
 
-    @Test("JSON inside a line stays valid JSON", arguments: documents)
-    func embeddedStaysJSON(input: String, expected: String) throws {
-        let output = redactor.redact("response \(input) done")
-        #expect(output == "response \(expected) done")
+    @Test("JSON inside a line cuts the line at the same place", arguments: textCuts)
+    func embeddedCutsJSON(input: String, expected: String) {
+        let kept = expected == input
+        #expect(redactor.redact("response \(input) done") == "response \(expected)" + (kept ? " done" : ""))
     }
 
     @Test("names are compared at every depth, after their escapes are decoded, for every repetition")
     func names() {
-        #expect(redactor.redact(#"{"pass\u0077ord":"x","user":"bob"}"#) == #"{"pass\u0077ord":"[redacted]","user":"bob"}"#)
-        #expect(redactor.redact(#"{"a":{"b":{"c":{"token":"x"}}}}"#) == #"{"a":{"b":{"c":{"token":"[redacted]"}}}}"#)
-        #expect(redactor.redact(#"{"password":"a","password":"b"}"#) == #"{"password":"[redacted]","password":"[redacted]"}"#)
-        #expect(redactor.redact(#"{"p\u0430ssword":"x"}"#) == #"{"p\u0430ssword":"[redacted]"}"#)
-        #expect(redactor.redact("{\"p\u{0430}ssword\":\"x\"}") == "{\"p\u{0430}ssword\":\"[redacted]\"}")
-        #expect(redactor.redact(#"{"user name":"bob","user.id":7,"user-role":"admin"}"#) == #"{"user name":"bob","user.id":7,"user-role":"admin"}"#)
-        #expect(redactor.redact(#"{"user[name]":"bob","café":"x"}"#) == #"{"user[name]":"[redacted]","café":"[redacted]"}"#)
+        func body(_ json: String) -> String { redactor.redact(body: Data(json.utf8), contentType: "application/json") }
+        #expect(body(#"{"password":"x","user":"bob"}"#) == #"{"password":"[redacted]","user":"bob"}"#)
+        #expect(body(#"{"a":{"b":{"c":{"token":"x"}}}}"#) == #"{"a":{"b":{"c":{"token":"[redacted]"}}}}"#)
+        #expect(body(#"{"password":"a","password":"b"}"#) == #"{"password":"[redacted]","password":"[redacted]"}"#)
+        #expect(body(#"{"pаssword":"x"}"#) == #"{"pаssword":"[redacted]"}"#)
+        #expect(body("{\"p\u{0430}ssword\":\"x\"}") == "{\"p\u{0430}ssword\":\"[redacted]\"}")
+        #expect(body(#"{"user name":"bob","user.id":7,"user-role":"admin"}"#) == #"{"user name":"bob","user.id":7,"user-role":"admin"}"#)
+        #expect(body(#"{"user[name]":"bob","café":"x"}"#) == #"{"user[name]":"[redacted]","café":"[redacted]"}"#)
     }
 
     @Test("a pair written as an array or as a name and value object hides its value", arguments: [
-        (#"req {"headers":[["X-Api-Key","k125"]]}"#, #"req {"headers":[["X-Api-Key","[redacted]"]]}"#),
-        (#"login ["password","e11"]"#, #"login ["password","[redacted]"]"#),
+        (#"{"headers":[["X-Api-Key","k125"]]}"#, #"{"headers":[["X-Api-Key","[redacted]"]]}"#),
+        (#"["password","e11"]"#, #"["password","[redacted]"]"#),
         (#"["user","bob","token","abc","next"]"#, #"["user","bob","token","[redacted]","[redacted]"]"#),
         (#"[{"name":"Authorization","value":"Basic x"},{"name":"Accept","value":"*/*"}]"#,
          #"[{"name":"Authorization","value":"[redacted]"},{"name":"Accept","value":"*/*"}]"#),
@@ -67,26 +80,39 @@ struct RedactionJSONTests {
         ("{\"key\":\"p\u{0430}ss word\",\"value\":\"x\"}", "{\"key\":\"[redacted]\",\"value\":\"[redacted]\"}"),
     ])
     func pairs(input: String, expected: String) {
+        #expect(redactor.redact(body: Data(input.utf8), contentType: "application/json") == expected)
+    }
+
+    // In free text an array has no members, so the key rule for structured input finds its pairs.
+    @Test("a pair written as an array in a line cuts the line at its value", arguments: [
+        (#"login ["password","e11"]"#, #"login ["password",[redacted]"#),
+        (#"["user","bob","token","abc","next"]"#, #"["user","bob","token",[redacted]"#),
+        (#"got [["Authorization","Basic x"]] ok"#, #"got [["Authorization",[redacted]"#),
+        ("got [[\"\u{15E}ifre\",\"1234\"]] ok", "got [[\"\u{15E}ifre\",[redacted]"),
+        (#"got [["X-Custom","v"]] ok"#, #"got [["X-Custom","v"]] ok"#),
+    ])
+    func pairsInText(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("JSON in a line is parsed with the parser; a key before it hides it whole", arguments: [
+    @Test("JSON in a line is parsed with the parser; a key before it hides it", arguments: [
         (#"headers=[["X-Api-Key","k123"]]"#, "headers=[redacted]"),
-        (#"data={"user":"bob"} status=1"#, "data=[redacted] status=1"),
-        (#"got {"user":"bob","password":"x"} and [{"pin":1}]"#, #"got {"user":"bob","password":"[redacted]"} and [{"pin":"[redacted]"}]"#),
-        ("log {\n  \"token\": \"abc\",\n  \"user\": \"bob\"\n} status=1", "log {\n  \"token\": \"[redacted]\",\n  \"user\": \"bob\"\n} status=1"),
-        (#"{"wrapper":"{\"password\":\"x\"}"}"#, #"{"wrapper":"{\"password\":\"[redacted]\"}"}"#),
-        (#"{"msg":"user=bob status=1"}"#, #"{"msg":"user=[redacted]"}"#),
+        (#"data={"user":"bob"} status=1"#, "data=[redacted]"),
+        (#"got {"user":"bob","password":"x"} and [{"pin":1}]"#, #"got {"user":[redacted]"#),
+        ("log {\n  \"token\": \"abc\",\n  \"user\": \"bob\"\n} status=1", "log {\n  \"token\": [redacted]"),
+        (#"{"wrapper":"{\"password\":\"x\"}"}"#, #"{"wrapper":[redacted]"#),
+        (#"{"msg":"user=bob status=1"}"#, #"{"msg":[redacted]"#),
+        (#"got [{"status":200},{"count":2}] and ["a",1] ok"#, #"got [{"status":200},{"count":2}] and ["a",1] ok"#),
     ])
     func embedded(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("JSON that does not parse hides the rest of the line, and on until its brackets close", arguments: [
+    @Test("JSON that does not parse hides everything from its first bracket", arguments: [
         (#"login {"pass" "word":"e8"}"#, "login [redacted]"),
         (#"login {"pass" "word":"e8"} next"#, "login [redacted]"),
-        ("x {\"a\":1,\n\"password\" \"e9\"}\nstatus=1", "x [redacted]\nstatus=1"),
-        ("x {\"a\":1,\n\"password\":\"e9\"}\nstatus=1", "x {\"a\":1,\n\"password\":\"[redacted]\"}\nstatus=1"),
+        ("x {\"a\":1,\n\"password\" \"e9\"}\nstatus=1", "x [redacted]"),
+        ("x {\"a\":1,\n\"password\":\"e9\"}\nstatus=1", "x {\"a\":[redacted]"),
         ("x {\"a\":1,\n\"password\":\"e9\"", "x [redacted]"),
         (#"x ["a" "b"] y"#, "x [redacted]"),
         (#"x {"a":1,} y"#, "x [redacted]"),

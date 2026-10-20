@@ -2,23 +2,26 @@ import Foundation
 import Testing
 @testable import iOSSecurityTools
 
-/// The free-text rule: an allowlist of keys, values hidden to where they surely end, secret names
-/// without a separator, and the rest of a line hidden where the rule cannot tell.
+/// The free-text rule: the first trigger hides everything after it, to the end of the text. A
+/// trigger is a key that is not on the allowlist, a secret name with or without a separator, a
+/// word that cannot be read and a quote or bracket that does not close.
 @Suite("SensitiveDataRedactor free-text rule")
 struct RedactionFreeTextRuleTests {
     let redactor = SensitiveDataRedactor()
 
-    @Test("only allowed keys keep their value", arguments: [
+    @Test("only allowed keys are read on", arguments: [
         ("status=200 method=GET path=/a duration_ms=12 count=3", "status=200 method=GET path=/a duration_ms=12 count=3"),
-        ("status: 500, attempt: 2, level: warn", "status: 500, attempt: 2, level: warn"),
-        ("--status=1 (count=2) [page=3]", "--status=1 (count=2) [page=3]"),
-        ("\"status\":\"ok\" 'limit':5", "\"status\":\"ok\" 'limit':5"),
+        ("status: 500, count: 2, method: GET", "status: 500, count: 2, method: GET"),
+        ("--status=1 (count=2) [path=/a]", "--status=1 (count=2) [path=/a]"),
+        ("\"status\":\"ok\" 'count':5", "\"status\":\"ok\" 'count':5"),
+        ("Status=1 STATUS=2 Duration-MS=3 duration.ms=4", "Status=1 STATUS=2 Duration-MS=3 duration.ms=4"),
+        ("status==200 x", "status==200 x"),
         ("status=200 user=bob", "status=200 user=[redacted]"),
         ("user=bob status=200", "user=[redacted]"),
-        ("db_pw=ft1 pw=ft2", "db_pw=[redacted]"),
-        ("refresh=ft42", "refresh=[redacted]"),
-        ("Status=1 STATUS_CODE=2 status-code=3", "Status=1 STATUS_CODE=2 status-code=3"),
-        ("ｓｔａｔｕｓ=200", "ｓｔａｔｕｓ=[redacted]"),
+        ("status=200 attempt=2 level=warn", "status=200 attempt=[redacted]"),
+        ("--status=1 (count=2) [page=3]", "--status=1 (count=2) [page=[redacted]"),
+        ("x=hunter2", "x=[redacted]"),
+        ("\u{FF53}\u{FF54}\u{FF41}\u{FF54}\u{FF55}\u{FF53}=200", "\u{FF53}\u{FF54}\u{FF41}\u{FF54}\u{FF55}\u{FF53}=[redacted]"),
         ("st%61tus=200", "st%61tus=[redacted]"),
         ("status\u{0301}=200", "status\u{0301}=[redacted]"),
         ("status=200&user=bob", "status=200&user=[redacted]"),
@@ -26,6 +29,11 @@ struct RedactionFreeTextRuleTests {
         ("status=200,user=bob", "status=200,user=[redacted]"),
         ("path=/x?token=abc", "path=/x?token=[redacted]"),
         ("status=200 password=x", "status=200 password=[redacted]"),
+        ("user=\"bob smith\" status=1", "user=[redacted]"),
+        ("data={\"a\":[1,2]} status=1", "data=[redacted]"),
+        ("Error: connection refused", "Error: [redacted]"),
+        ("[INFO] app: started", "[INFO] app: [redacted]"),
+        ("curl -u bob:Vq302Lm8x https://x.example", "curl -u bob:[redacted]"),
     ])
     func allowlist(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -35,6 +43,7 @@ struct RedactionFreeTextRuleTests {
     func customAllowlist() {
         let custom = SensitiveDataRedactor(allowedTextKeys: ["user", "request_id", "token"])
         #expect(custom.redact("user=bob request-id=7 token=abc") == "user=bob request-id=7 token=[redacted]")
+        #expect(custom.redact("login user=bob status=401 password=hunter2") == "login user=bob status=401 password=[redacted]")
     }
 
     @Test("separators are = and :, runs of them, and their compatibility forms; a : between digits is a time", arguments: [
@@ -58,49 +67,30 @@ struct RedactionFreeTextRuleTests {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("a hidden value runs to its closing quote, over its JSON, or to the end of the line", arguments: [
-        ("user=\"bob smith\" status=1", "user=\"[redacted]\" status=1"),
-        ("user='bob smith' status=1", "user='[redacted]' status=1"),
-        ("user=`bob` status=1", "user=`[redacted]` status=1"),
-        ("user=\"a\\\"b\" status=1", "user=\"[redacted]\" status=1"),
-        ("{\\\"password\\\":\\\"x\\\"}", "{\\\"password\\\":\\\"[redacted]\\\"}"),
-        ("data={\"a\":[1,2]} status=1", "data=[redacted] status=1"),
-        ("data=[\"a\",\"b\"],status=1", "data=[redacted],status=1"),
-        ("password=hunter 2 status=ok", "password=[redacted]"),
-        ("password=(hunter2)tail", "password=[redacted]"),
-        ("token=abc) tail", "token=[redacted]"),
-        ("password=[hunter]2 x", "password=[redacted]"),
-        ("password={hunter}2 x", "password=[redacted]"),
-        ("password=\"x\"y z", "password=\"[redacted]\"[redacted]"),
-        ("password='x'\"y\" z", "password='[redacted]'[redacted]"),
-        ("password=\"x\", status=1", "password=\"[redacted]\", status=1"),
-        ("password=", "password="),
-    ])
-    func valueExtent(input: String, expected: String) {
-        #expect(redactor.redact(input) == expected)
-    }
-
-    @Test("a value goes on in later lines: after an empty separator, in indented lines, after a backslash or a comment", arguments: [
-        ("password:\n  hunter2\nnext", "password:\n  [redacted]\nnext"),
-        ("password:\n\n\nhunter2", "password:\n\n\n[redacted]"),
-        ("config:\n  password: x\n  user: bob\nstatus=1", "config:\n  [redacted]\n  [redacted]\nstatus=1"),
-        ("key: |\n  line one\n  line two\nstatus=1", "key: [redacted]\n  [redacted]\n  [redacted]\nstatus=1"),
-        ("export TOKEN=abc \\\ndef\nstatus=1", "export TOKEN=[redacted]\n[redacted]\nstatus=1"),
-        ("password: // rotate\nhunter2", "password: [redacted]\n[redacted]"),
-        ("password: /* x */\nhunter2", "password: [redacted]\n[redacted]"),
-        ("password: # later\nhunter2", "password: [redacted]\n[redacted]"),
-        // The line where a quoted value closes is hidden whole.
-        ("password=\"abc\ndef\" status=1", "password=\"[redacted]\n[redacted]"),
-        ("password=\"abc\nnext line", "password=\"[redacted]\n[redacted]"),
+    // Nothing is carried from one line to the next: the cut covers them all.
+    @Test("everything after the first trigger is hidden, to the end of the text", arguments: [
+        ("status=200\nlogin ok\nuser=bob\nstatus=201\nmore text", "status=200\nlogin ok\nuser=[redacted]"),
+        ("password:\n  hunter2\nnext", "password:[redacted]"),
+        ("config:\n  password: x\n  user: bob\nstatus=1", "config:[redacted]"),
+        ("key: |\n  line one\n  line two\nstatus=1", "key: [redacted]"),
+        ("export TOKEN=abc \\\ndef\nstatus=1", "export TOKEN=[redacted]"),
+        ("password=\"abc\ndef\" status=1", "password=[redacted]"),
         ("password\n= hunter2", "password\n= [redacted]"),
-        ("password\n:\n\"hunter2\" status=1", "password\n:\n[redacted]"),
+        ("password\n:\n\"hunter2\" status=1", "password\n:[redacted]"),
+        ("status=1 msg=\"a\nb\" status=2\nlast line", "status=1 msg=[redacted]"),
+        ("done in 12 ms\nError: x\nstatus=200", "done in 12 ms\nError: [redacted]"),
+        ("status=1\r\nuser=bob\r\nstatus=2", "status=1\r\nuser=[redacted]"),
+        ("status=1\r\nuser=bob\rstatus=2", "status=1\r\nuser=[redacted]"),
+        ("password=hunter\u{2028}2", "password=[redacted]"),
+        ("password=hunter\u{0B}2\nstatus=3", "password=[redacted]"),
     ])
-    func laterLines(input: String, expected: String) {
+    func cutToTheEnd(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("a secret name without a separator hides the rest of its line", arguments: [
+    @Test("a secret name without a separator hides everything after it", arguments: [
         ("password hunter2", "password [redacted]"),
+        ("password hunter2\nnext line", "password [redacted]"),
         ("login secret e32", "login secret [redacted]"),
         ("login api_key e33", "login api_key [redacted]"),
         ("--client-secret k128", "--client-secret [redacted]"),
@@ -116,21 +106,12 @@ struct RedactionFreeTextRuleTests {
         ("password\u{2254}hunter2", "password[redacted]"),
         ("pass word=hunter2", "pass [redacted]"),
         ("<password>hunter2</password>", "<password>[redacted]"),
+        ("<password>\nhunter2\n</password>", "<password>[redacted]"),
+        ("<key>password</key>\n<string>hunter2</string>", "<key>[redacted]"),
+        ("password\nhunter2", "password[redacted]"),
         ("wrong password", "wrong password"),
     ])
     func secretNameWithoutSeparator(input: String, expected: String) {
-        #expect(redactor.redact(input) == expected)
-    }
-
-    @Test("a secret name that ends its line, or markup after it, hides the next line too", arguments: [
-        ("<password>\nhunter2\n</password>", "<password>\n[redacted]\n</password>"),
-        // The element after a key is its value, up to its end tag.
-        ("<key>password</key>\n<string>hunter2</string>", "<key>[redacted]\n[redacted]</string>"),
-        ("password\nhunter2", "password\n[redacted]"),
-        // A value that ends at a line break other than LF may go on below it, up to the end tag.
-        ("<password>\u{2028}hunter2\u{2028}</password>", "<password>\n[redacted]\n</password>"),
-    ])
-    func secretNameBeforeNextLine(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
@@ -147,14 +128,14 @@ struct RedactionFreeTextRuleTests {
         #expect(output.hasSuffix("[redacted]"))
     }
 
-    @Test("a word that mixes scripts, or an unbalanced double quote, hides the rest of the line", arguments: [
+    @Test("a word that mixes scripts, or a quote that does not close, hides everything after it", arguments: [
         ("login p\u{0430}ssword hunter2", "login [redacted]"),
         ("\u{0440}\u{0430}\u{0455}\u{0455}\u{051D}\u{043E}\u{0433}d hunter2", "[redacted]"),
         ("t\u{03BF}ken hunter2", "[redacted]"),
         ("p%D0%B0ssword hunter2", "[redacted]"),
         ("status=\u{043E}k", "status=[redacted]"),
-        ("say \"hunter2", "say [redacted]"),
-        ("say \"hi\" and 5\" more", "say \"hi\" and 5[redacted]"),
+        ("say \"hunter2", "say \"[redacted]"),
+        ("say \"hi\" and 5\" more", "say \"hi\" and 5\"[redacted]"),
     ])
     func ambiguity(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -171,32 +152,43 @@ struct RedactionFreeTextRuleTests {
         ("\u{AD}status: hunter2", "\u{AD}status: [redacted]"),
         ("\u{FEFF}status=200", "\u{FEFF}status=[redacted]"),
         ("status=200 \u{200B}", "status=200 \u{200B}"),
-        ("\u{202E}drowssap Qz071Wk7r", "\u{202E}[redacted]"),
-        ("login \u{202E}zyx2retnuh drowssap", "login \u{202E}[redacted]"),
-        ("\u{2066}\u{202E}drowssap hunter2", "\u{2066}\u{202E}[redacted]"),
+        ("\u{202E}drowssap Qz071Wk7r", "[redacted]"),
+        ("login \u{202E}zyx2retnuh drowssap", "login [redacted]"),
+        ("\u{2066}\u{202E}drowssap hunter2", "[redacted]"),
     ])
     func invisibleBeforeKeyOrWord(input: String, expected: String) {
         let output = redactor.redact(input)
         #expect(Array(output.unicodeScalars) == Array(expected.unicodeScalars), "\(output.debugDescription)")
     }
 
-    @Test("prose, other scripts and quoted text stay as they are", arguments: [
+    @Test("text without a trigger stays as it is", arguments: [
         "Merhaba Kullanıcı giriş yaptı", "Straße naïve café", "заказ отправлен", "東京 ログイン成功", "iPhoneで決済しました",
         "say \"hi\" now", "[INFO] started in 12 ms", "keyboard layout changed", "tokenizer ready", "bypass mode",
+        "user logged in at 12:30 from 10.0.0.1", "status=200 method=GET path=/api/items",
     ])
     func unchanged(input: String) {
         #expect(redactor.redact(input) == input)
     }
 
-    @Test("U+2028, U+2029, U+0085, VT and FF end a line and are written as line feeds; CR and CRLF are kept")
+    // The line breaks of the input are written as they are: the cut needs no line of its own.
+    @Test("U+2028, U+2029, U+0085, VT and FF are kept, and a cut covers the lines after them")
     func lineSeparators() {
-        #expect(redactor.redact("password\u{2028}=hunter2") == "password\n=[redacted]")
-        #expect(redactor.redact("user\u{2028}=bob") == "user\n=[redacted]")
-        #expect(redactor.redact("a\u{2029}b\u{85}c\u{0B}d\u{0C}e") == "a\nb\nc\nd\ne")
-        #expect(redactor.redact("status=1\r\nuser=bob\r\nstatus=2") == "status=1\r\nuser=[redacted]\r\nstatus=2")
-        // A value hidden to the end of a line that ends at any other break may go on below it.
-        #expect(redactor.redact("status=1\r\nuser=bob\rstatus=2") == "status=1\r\nuser=[redacted]\r[redacted]")
-        #expect(redactor.redact("password=hunter\u{2028}2") == "password=[redacted]\n[redacted]")
-        #expect(redactor.redact("password=hunter\u{0B}2\nstatus=3") == "password=[redacted]\n[redacted]\nstatus=3")
+        #expect(redactor.redact("a\u{2029}b\u{85}c\u{0B}d\u{0C}e") == "a\u{2029}b\u{85}c\u{0B}d\u{0C}e")
+        #expect(redactor.redact("password\u{2028}=hunter2") == "password\u{2028}=[redacted]")
+        #expect(redactor.redact("user\u{2028}=bob") == "user\u{2028}=[redacted]")
+        #expect(redactor.redact("status=1\u{2029}user=bob\u{85}status=2") == "status=1\u{2029}user=[redacted]")
+    }
+
+    @Test("JSON in a line follows the allowlist member by member", arguments: [
+        ("{\"status\":200,\"count\":3} tail", "{\"status\":200,\"count\":3} tail"),
+        ("{\"status\":200,\"user\":\"bob\"} tail", "{\"status\":200,\"user\":[redacted]"),
+        ("{\"status\":\"ok\",\"items\":[1,2]} {\"count\":1}", "{\"status\":\"ok\",\"items\":[redacted]"),
+        ("{\"path\":\"/a\",\"items\":[{\"count\":1},{\"name\":\"x\"}]} tail", "{\"path\":\"/a\",\"items\":[redacted]"),
+        ("{\"status\":\"x password=1\"} tail", "{\"status\":\"[redacted]"),
+        ("[\"a\",\"b\"] ok", "[\"a\",\"b\"] ok"),
+        ("[[\"\u{15E}ifre\",\"1234\"]] ok", "[[\"\u{15E}ifre\",[redacted]"),
+    ])
+    func jsonMembers(input: String, expected: String) {
+        #expect(redactor.redact(input) == expected)
     }
 }

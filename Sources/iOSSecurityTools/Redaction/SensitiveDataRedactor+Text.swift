@@ -13,6 +13,10 @@ extension SensitiveDataRedactor {
     /// the segment `:id`. A text inside a document found in the input that the reading budget no
     /// longer covers (see ``ReadingBudget``) is one finding, and so is a text longer than
     /// ``maximumTextLength``, whose offsets the scanning copy cannot hold.
+    ///
+    /// The free-text rule cuts the text at its first trigger (see ``FreeTextScanner``): what comes
+    /// before the cut keeps the findings of the JSON, URLs and value detectors in it, and the cut
+    /// hides the rest.
     func textSpans(
         in scalars: [Unicode.Scalar], text: NormalizedText, compatibility: CompatibilityText, role: FreeTextScanner.Role = .text,
         nesting: Nesting, detectsInRegions: Bool = false
@@ -25,6 +29,7 @@ extension SensitiveDataRedactor {
         var scanner = FreeTextScanner(source: scalars, text: text, redactor: self, compatibility: compatibility, role: role, nesting: nesting)
         scanner.run()
         if scanner.hidesWholeText { return whole }
+        let cut = scanner.cut.flatMap { $0 < scalars.count ? [Span(start: $0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] : nil } ?? []
         // JSON and URLs were redacted by their own rules; the detectors do not read them again.
         let regions = scanner.regions
         // The findings are collected in the array of the value detectors, which is the largest:
@@ -37,7 +42,7 @@ extension SensitiveDataRedactor {
             found += Self.crossing(detectorSpans(in: text), regions)
         }
         found += scanner.spans
-        found += Self.lineSeparatorFolds(in: scalars, outside: regions)
+        found += cut
         return Self.merged(found)
     }
 
@@ -126,20 +131,4 @@ extension SensitiveDataRedactor {
     func redactedName(_ name: String, nesting: Nesting) -> String {
         redactedText(Array(name.unicodeScalars), compatibility: CompatibilityText(), role: .name, nesting: nesting)?.text ?? name
     }
-
-    /// U+2028, U+2029, U+0085, vertical tab and form feed, written as line feeds, since the
-    /// free-text rule ends a line at them. Inside JSON they are kept: a JSON string may hold them.
-    private static func lineSeparatorFolds(in scalars: [Unicode.Scalar], outside regions: [Range<Int>]) -> [Span] {
-        var folds: [Span] = []
-        let sortedRegions = regions.sorted { $0.lowerBound < $1.lowerBound }
-        var regionIndex = 0
-        for (offset, scalar) in scalars.enumerated() where foldedLineSeparators.contains(scalar) {
-            while regionIndex < sortedRegions.count, sortedRegions[regionIndex].upperBound <= offset { regionIndex += 1 }
-            if regionIndex < sortedRegions.count, sortedRegions[regionIndex].contains(offset) { continue }
-            folds.append(Span(start: offset, end: offset + 1, kind: [], replacement: "\n"))
-        }
-        return folds
-    }
-
-    private static let foldedLineSeparators: Set<Unicode.Scalar> = ["\u{0B}", "\u{0C}", "\u{85}", "\u{2028}", "\u{2029}"]
 }

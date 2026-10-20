@@ -8,9 +8,10 @@ struct SensitiveDataRedactorTests {
 
     @Test("redacts the documentation examples")
     func documentationExamples() {
-        let input = #"POST /login {"user":"alice@example.com","password":"hunter2"}"#
-        #expect(redactor.redact(input) == #"POST /login {"user":"a•••@example.com","password":"[redacted]"}"#)
+        let body = #"{"user":"alice@example.com","password":"hunter2"}"#
+        #expect(redactor.redact(body: Data(body.utf8), contentType: "application/json") == #"{"user":"a•••@example.com","password":"[redacted]"}"#)
         #expect(redactor.redact("login failed user=alice status=401") == "login failed user=[redacted]")
+        #expect(redactor.redact("sent receipt to alice@example.com") == "sent receipt to a•••@example.com")
         #expect(redactor.redact("GET /orders status=200 duration_ms=41") == "GET /orders status=200 duration_ms=41")
     }
 
@@ -96,7 +97,7 @@ struct SensitiveDataRedactorTests {
     @Test("the allowlists are folded, and secret or non-ASCII names cannot be added")
     func allowlists() {
         let custom = SensitiveDataRedactor(allowedTextKeys: ["Request-ID", "api_key", "ｓｔａｔｅ"], allowedQueryParameters: ["Page", "token"])
-        #expect(custom.allowedTextKeys.isSuperset(of: ["status", "statuscode", "durationms", "requestid"]))
+        #expect(custom.allowedTextKeys == ["status", "method", "path", "durationms", "count", "requestid"])
         #expect(!custom.allowedTextKeys.contains("apikey"))
         #expect(custom.allowedTextKeys.allSatisfy { $0.unicodeScalars.allSatisfy(\.isASCII) })
         #expect(custom.allowedQueryParameters == ["page"])

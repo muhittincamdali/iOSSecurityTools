@@ -4,7 +4,7 @@ import Testing
 
 /// Generated secret names written as values, disguised the ways ``DisguisedName`` disguises them,
 /// in the shapes of free text, XML, HTML, property lists and JSON objects: the secret that follows
-/// never shows. Plain names that hold no secret word keep what follows them.
+/// never shows. Plain names that hold no secret word keep what follows them after an allowed key.
 @Suite("SensitiveDataRedactor names written as values property tests")
 struct RedactionNameAsValuePropertyTests {
     let redactor = SensitiveDataRedactor()
@@ -63,8 +63,9 @@ struct RedactionNameAsValuePropertyTests {
         }
     }
 
-    @Test("plain names without a secret word keep the text after them")
+    @Test("plain names without a secret word keep the text after them after an allowed key")
     func plainNamesKeepText() {
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["name"])
         var random = SeededRandom(seed: 0xA1_2B_0091)
         var checked = 0
         for _ in 0..<4_000 {
@@ -74,8 +75,9 @@ struct RedactionNameAsValuePropertyTests {
             else { continue }
             // Without vowels, `s`, `p`, `c`, `k`, `v` and `w` the text spells no secret word.
             let text = String((0..<12).map { _ in "BDFGHJLMNRTXYZ23456789".randomElement(using: &random)! })
-            #expect(redactor.redact("<string name=\"\(name)\">\(text)</string>").contains(text))
-            #expect(redactor.redact("name=\"\(name)\" \(text)").contains(text))
+            #expect(allowing.redact("<string name=\"\(name)\">\(text)</string>").contains(text))
+            #expect(allowing.redact("name=\"\(name)\" \(text)").contains(text))
+            #expect(!redactor.redact("name=\"\(name)\" \(text)").contains(text))
             let json = #"{"label":"\#(name)","value":"\#(text)"}"#
             #expect(redactor.redact(body: Data(json.utf8), contentType: "application/json") == json)
             checked += 1

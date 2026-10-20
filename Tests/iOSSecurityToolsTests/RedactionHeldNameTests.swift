@@ -137,7 +137,7 @@ struct RedactionHeldNameTests {
         let fields = #"[{"label":"Şifre","value":"hunter2"},{"label":"ⓟⓘⓝ","value":"1234"},{"label":"status","value":"ok"}]"#
         #expect(json(fields) == #"[{"label":"Şifre","value":"[redacted]"},{"label":"ⓟⓘⓝ","value":"[redacted]"},{"label":"status","value":"ok"}]"#)
         #expect(json(#"{"name":"Ayşe","role":"admin"}"#) == #"{"name":"Ayşe","role":"[redacted]"}"#)
-        #expect(redactor.redact("<string name=\"password\" />\nhunter2") == "<string name=\"[redacted]\"[redacted]\n[redacted]")
+        #expect(redactor.redact("<string name=\"password\" />\nhunter2") == "<string name=[redacted]")
     }
 
     @Test("an allowed key that holds a name is read too, and a route under path stays")
@@ -146,6 +146,7 @@ struct RedactionHeldNameTests {
         #expect(allowing.redact("type=Пароль S3CR3Tq") == "type=[redacted]")
         #expect(allowing.redact("type=status kept") == "type=status kept")
         #expect(redactor.redact("method=GET path=/v1/users/me status=200") == "method=GET path=/v1/users/me status=200")
-        #expect(redactor.redact(#"name="status" kept"#) == #"name="[redacted]" kept"#)
+        #expect(redactor.redact(#"name="status" kept"#) == "name=[redacted]")
+        #expect(SensitiveDataRedactor(allowedTextKeys: ["name"]).redact(#"name="status" kept"#) == #"name="status" kept"#)
     }
 }

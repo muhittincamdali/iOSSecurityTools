@@ -3,8 +3,8 @@ import Testing
 import iOSSecurityTools
 
 /// Layouts that spread a name and its value over lines: a property list writes `<key>password</key>`
-/// and its value on lines of their own, and JSON after `name=` may span lines. Once a name hides
-/// what follows it, the value is hidden until it closes and to the end of the line where it closes.
+/// and its value on lines of their own, and JSON after `name=` may span lines. They need nothing
+/// carried from line to line: the first trigger hides every line after it.
 @Suite("SensitiveDataRedactor values over several lines")
 struct RedactionMultiLineTests {
     static let secret = "Xq7Secret"
@@ -68,17 +68,17 @@ struct RedactionMultiLineTests {
         expectHidden(layout.replacingOccurrences(of: "S", with: Self.secret))
     }
 
-    @Test("names that are not secret keep what follows them over lines")
-    func usefulness() {
-        // `<key>` is itself the secret word `key`, so the rest of its line goes; an element with a
-        // name that is not secret in it is no empty value, and the lines below stay.
-        #expect(redactor.redact("<key>CFBundleName</key>\n<string/>\nMyApp") == "<key>[redacted]\n<string/>\nMyApp")
-        #expect(redactor.redact("<key>user</key>\n<string>bob</string>\nstatus=200") == "<key>[redacted]\n<string>bob</string>\nstatus=200")
+    @Test("a trigger on one line hides every line after it, and text without one stays")
+    func cutOverLines() {
+        // `<key>` is itself the secret word `key`, so a property list is hidden from its first key.
+        #expect(redactor.redact("<key>CFBundleName</key>\n<string/>\nMyApp") == "<key>[redacted]")
+        #expect(redactor.redact("<key>password</key>\n<string>k-1</string>\nnext") == "<key>[redacted]")
+        #expect(redactor.redact("<string name=\"title\"></string>\nHello") == "<string name=[redacted]")
         #expect(redactor.redact("status=[\n1,\n2\n] ok") == "status=[\n1,\n2\n] ok")
-        // The value of `name=` is hidden by the allowlist; the name is not secret, so the next
-        // line stays.
-        #expect(redactor.redact("<string name=\"title\"></string>\nHello") == "<string name=\"[redacted]\"></string>\nHello")
-        #expect(redactor.redact("<key>password</key>\n<string>k-1</string>\nnext") == "<key>[redacted]\n[redacted]</string>\nnext")
+        #expect(redactor.redact("started\nstatus=200\ncount=3\ndone") == "started\nstatus=200\ncount=3\ndone")
+        // After an allowed key that holds a name, a plain name is read on over the lines.
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["name"])
+        #expect(allowing.redact("<string name=\"title\"></string>\nHello") == "<string name=\"title\"></string>\nHello")
     }
 
     /// Generated layouts of a property list and of JSON after `name=`, with names that are secret

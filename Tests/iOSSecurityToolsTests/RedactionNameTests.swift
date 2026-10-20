@@ -8,6 +8,8 @@ import Testing
 struct RedactionNameTests {
     let redactor = SensitiveDataRedactor()
 
+    private func json(_ body: String) -> String { redactor.redact(body: Data(body.utf8), contentType: "application/json") }
+
     static let sharedNames = [
         "password", "passwd", "pwd", "secret", "token", "access_token", "refresh_token", "id_token", "api_key", "apikey",
         "key", "auth", "authorization", "cookie", "set-cookie", "session", "sid", "otp", "pin", "cvv", "card", "iban",
@@ -60,7 +62,7 @@ struct RedactionNameTests {
 
     @Test("the inputs that got past the first fix after 2.0.0", arguments: [
         ("{\"otp\":\"123456\",\"cvv\":\"123\",\"ssn\":\"078-05-1120\",\"auth\":\"a\",\"key\":\"k\",\"signature\":\"s\"}",
-         "{\"otp\":\"[redacted]\",\"cvv\":\"[redacted]\",\"ssn\":\"[redacted]\",\"auth\":\"[redacted]\",\"key\":\"[redacted]\",\"signature\":\"[redacted]\"}"),
+         "{\"otp\":[redacted]"),
         // In free text an unquoted value goes to the end of its line: `;`, `&` and spaces do not
         // end it, so the pairs after it are hidden with it.
         ("Cookie: session=x; sid=SECRET", "Cookie: [redacted]"),
@@ -86,7 +88,7 @@ struct RedactionNameTests {
         "sidebar", "description", "bypass", "passport", "tokenizer", "secretary", "discard_count",
     ])
     func lettersOfSecretWords(name: String) {
-        #expect(redactor.redact("{\"\(name)\":\"bob\"}") == "{\"\(name)\":\"bob\"}")
+        #expect(json("{\"\(name)\":\"bob\"}") == "{\"\(name)\":\"bob\"}")
         let form = Data("\(name)=bob".utf8)
         #expect(redactor.redact(body: form, contentType: "application/x-www-form-urlencoded") == "\(name)=bob")
         // Free text keeps a value only after an allowed key.
@@ -101,7 +103,7 @@ struct RedactionNameTests {
         "signature_version", "cookie_policy", "token_type", "secret_name",
     ])
     func describingNames(name: String) {
-        #expect(redactor.redact("{\"\(name)\":\"bob\"}") == "{\"\(name)\":\"[redacted]\"}")
+        #expect(json("{\"\(name)\":\"bob\"}") == "{\"\(name)\":\"[redacted]\"}")
         let form = Data("\(name)=bob".utf8)
         #expect(redactor.redact(body: form, contentType: "application/x-www-form-urlencoded") == "\(name)=[redacted]")
         #expect(SensitiveDataRedactor(allowedTextKeys: [name]).redact("\(name)=bob") == "\(name)=[redacted]")
@@ -110,8 +112,8 @@ struct RedactionNameTests {
     @Test("a long name is compared in time linear in its length and hidden past 256 characters")
     func longNames() {
         let plain = String(repeating: "user", count: 64)
-        #expect(redactor.redact("{\"\(plain)\":\"bob\"}") == "{\"\(plain)\":\"bob\"}")
-        #expect(redactor.redact("{\"\(plain)x\":\"bob\"}") == "{\"\(plain)x\":\"[redacted]\"}")
+        #expect(json("{\"\(plain)\":\"bob\"}") == "{\"\(plain)\":\"bob\"}")
+        #expect(json("{\"\(plain)x\":\"bob\"}") == "{\"\(plain)x\":\"[redacted]\"}")
         #expect(SensitiveDataRedactor(allowedTextKeys: [plain]).redact("\(plain)=bob") == "\(plain)=bob")
         #expect(SensitiveDataRedactor(allowedTextKeys: [plain + "x"]).redact("\(plain)x=bob") == "\(plain)x=[redacted]")
     }

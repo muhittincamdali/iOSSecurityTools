@@ -6,7 +6,9 @@ import Testing
 /// strings, and documents one inside another.
 @Suite("SensitiveDataRedactor nesting budget")
 struct RedactionNestingTests {
-    let redactor = SensitiveDataRedactor()
+    /// Documents are nested in the member `note`, which is allowed in text, so that free text reads
+    /// on into the document in it instead of being cut at its value.
+    let redactor = SensitiveDataRedactor(allowedTextKeys: ["note"])
 
     private func redact(_ body: String, _ contentType: String = "application/json") -> String {
         redactor.redact(body: Data(body.utf8), contentType: contentType)
@@ -47,7 +49,8 @@ struct RedactionNestingTests {
         #expect(redactor.redact("log " + fits) == "log " + fits)
         let tooDeep = Self.noted(Self.brackets(64, around: "\"status=ok\""))
         #expect(redact(tooDeep) == #"{"note":"[redacted]"}"#)
-        #expect(redactor.redact("log " + tooDeep) == #"log {"note":"[redacted]"}"#)
+        // The string is hidden whole, and the line that holds it is cut there.
+        #expect(redactor.redact("log " + tooDeep) == #"log {"note":"[redacted]"#)
     }
 
     @Test("reads four documents one inside another and hides the string that holds a fifth")
@@ -57,16 +60,23 @@ struct RedactionNestingTests {
         #expect(redact(four) == four)
         #expect(redactor.redact("log " + four) == "log " + four)
         let five = Self.noted(innermost, times: 4)
-        let fifthHidden = Self.noted(#"{"note":"[redacted]"}"#, times: 3)
-        #expect(redact(five) == fifthHidden)
-        #expect(redactor.redact("log " + five) == "log " + fifthHidden)
+        // The string that holds the fifth is hidden whole, and each text around it is cut where
+        // it holds that string; a log line is a level fewer, so its second string goes.
+        #expect(redact(five) == #"{"note":"{\"note\":\"[redacted]"}"#)
+        #expect(redactor.redact("log " + five) == #"log {"note":"[redacted]"#)
     }
 
     @Test("a URL counts as a document")
     func urlLevel() {
         let url = "see https://example.com/a?status=ok"
-        #expect(redact(Self.noted(url, times: 3)) == Self.noted("see https://example.com/a?status=[redacted]", times: 3))
-        #expect(redact(Self.noted(url, times: 4)) == Self.noted(#"{"note":"[redacted]"}"#, times: 3))
+        // With `status` allowed in the query, the URL that is the fourth document is kept whole,
+        // and one a level deeper is hidden with the text that holds it.
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["note"], allowedQueryParameters: ["status"])
+        func redactAllowing(_ body: String) -> String { allowing.redact(body: Data(body.utf8), contentType: "application/json") }
+        #expect(redactAllowing(Self.noted(url, times: 3)) == Self.noted(url, times: 3))
+        #expect(!redactAllowing(Self.noted(url, times: 4)).contains("example.com"))
+        // Without it, the query value is hidden by the URL rule, which cuts each text around it.
+        #expect(redact(Self.noted(url, times: 3)) == #"{"note":"{\"note\":\"[redacted]"}"#)
         // Each URL writes the redacted value of the next one encoded again. Every URL of a chain
         // holds all the URLs after it, so reading them goes past the reading budget (four times
         // the line) at the third, whose value is hidden whole; two fit.
@@ -82,7 +92,7 @@ struct RedactionNestingTests {
         let content = Self.noted(#"{"status":"ok"}"#, times: 3)
         let body = "--B\r\nContent-Disposition: form-data; name=\"a\"\r\nContent-Type: application/json\r\n\r\n\(content)\r\n--B--"
         let expected = "--B\r\nContent-Disposition: form-data; name=\"a\"\r\nContent-Type: application/json\r\n\r\n"
-            + Self.noted(#"{"note":"[redacted]"}"#, times: 2) + "\r\n--B--"
+            + #"{"note":"{\"note\":\"[redacted]"}"# + "\r\n--B--"
         #expect(redact(body, "multipart/form-data; boundary=B") == expected)
     }
 
@@ -97,6 +107,6 @@ struct RedactionNestingTests {
     @Test("JSON deeper than the limit in a log line hides the line from its first bracket")
     func deepJSONInFreeText() {
         let line = "note " + Self.brackets(65, around: "\"status=ok\"") + " status=200\nstatus=200"
-        #expect(redactor.redact(line) == "note [redacted]\nstatus=200")
+        #expect(redactor.redact(line) == "note [redacted]")
     }
 }

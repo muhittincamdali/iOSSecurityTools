@@ -62,7 +62,7 @@ struct RedactionAllowlistPropertyTests {
     @Test("allowed keys keep their value in free text", arguments: [
         "GET /v1/users status=200 duration_ms=12 count=3",
         "status: 200 method: GET path: /v1/orders/42",
-        "retry attempt=2 limit=50 offset=100 page=3 level=info",
+        "retry status=503 count=2 duration_ms=40 method=POST",
         "{\"status\":\"ok\",\"count\":3}",
         "Order 1234 shipped to Istanbul at 12:30",
         "Request finished in 12 ms",
@@ -92,10 +92,13 @@ struct RedactionAllowlistPropertyTests {
     @Test("plain ASCII names that hold no secret word keep their value in structured input", arguments: keptNames)
     func keptInStructuredInput(name: String) {
         let encoded = name.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? name
+        // In free text the members of JSON follow the allowlist of keys in text.
+        let allowing = SensitiveDataRedactor(allowedTextKeys: [name, "list"])
         for value in Self.keptValues {
             let json = "{\"\(name)\":\"\(value)\",\"list\":[{\"\(name)\":\"\(value)\"}]}"
             #expect(redactor.redact(body: Data(json.utf8), contentType: "application/json") == json)
-            #expect(redactor.redact("log \(json)") == "log \(json)")
+            #expect(allowing.redact("log \(json)") == "log \(json)")
+            #expect(redactor.redact("log \(json)") == "log {\"\(name)\":[redacted]" || Self.allowedFolds.contains(name.lowercased()))
             let form = "a=1&\(encoded)=\(value)"
             #expect(redactor.redact(body: Data(form.utf8), contentType: "application/x-www-form-urlencoded") == form)
         }

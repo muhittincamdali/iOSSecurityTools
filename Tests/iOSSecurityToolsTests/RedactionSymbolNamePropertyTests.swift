@@ -8,7 +8,7 @@ import Testing
 /// takes. The names are generated from symbols (So, Sk), emoji, circled, squared and
 /// parenthesized letters, mathematical alphanumerics, full-width letters and words in other
 /// scripts, with or without a secret word in them. Plain-ASCII names without a secret word keep
-/// the value.
+/// the value in structured input, and in free text after an allowed key.
 @Suite("SensitiveDataRedactor symbol name property tests")
 struct RedactionSymbolNamePropertyTests {
     let redactor = SensitiveDataRedactor()
@@ -97,11 +97,15 @@ struct RedactionSymbolNamePropertyTests {
             let field = Self.holdingFields.randomElement(using: &random)!
             let object = #"{"\#(field)":"\#(name)","value":"\#(value)"}"#
             #expect(redactor.redact(body: Data(object.utf8), contentType: "application/json") == object)
-            for output in outputs(of: object) {
+            // The paths that read the object as JSON keep the value; on the paths that read it as
+            // free text the members follow the allowlist of keys in text, which cuts the text.
+            let all = outputs(of: object)
+            for output in [all[0], all[6]] {
                 #expect(output.contains(value), "\(object.debugDescription) -> \(output.debugDescription)")
             }
             #expect(redactor.redact(body: Data(#"[["\#(name)","\#(value)"]]"#.utf8), contentType: "application/json").contains(value))
-            #expect(redactor.redact("label=\"\(name)\" \(value)").contains(value))
+            #expect(SensitiveDataRedactor(allowedTextKeys: ["label"]).redact("label=\"\(name)\" \(value)").contains(value))
+            #expect(!redactor.redact("label=\"\(name)\" \(value)").contains(value))
         }
     }
 }

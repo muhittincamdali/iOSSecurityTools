@@ -53,7 +53,8 @@ struct RedactionReadingBudgetTests {
         let twice = Self.quoted(Self.payload, levels: 2)
         #expect(body(twice) == twice)
         let thrice = Self.quoted(Self.payload, levels: 3)
-        #expect(body(thrice) == Self.quoted("[redacted]", levels: 2))
+        // The innermost string is hidden whole, and the text that holds it is cut there.
+        #expect(body(thrice) == #"["[\"[redacted]"]"#)
         let secret = Self.quoted("password=hunter2 " + Self.payload, levels: 3)
         #expect(!body(secret).contains("hunter2"))
     }
@@ -62,7 +63,7 @@ struct RedactionReadingBudgetTests {
     func longTextInLine() {
         let once = "log " + Self.quoted(Self.payload, levels: 1)
         #expect(redactor.redact(once) == once)
-        #expect(redactor.redact("log " + Self.quoted(Self.payload, levels: 2)) == "log " + Self.quoted("[redacted]", levels: 1))
+        #expect(redactor.redact("log " + Self.quoted(Self.payload, levels: 2)) == #"log ["[redacted]"#)
     }
 
     @Test("many small documents side by side all fit")
@@ -78,7 +79,10 @@ struct RedactionReadingBudgetTests {
     func smallDeepDocuments() {
         let innermost = #"{"status":"ok"}"#
         let four = (0..<3).reduce(innermost) { inner, _ in #"{"note":""# + RedactionStackTests.escaped(inner) + #""}"# }
-        #expect(body(four) == four)
+        // `note` is allowed in text, so the text in it reads on into the document it holds.
+        let allowing = SensitiveDataRedactor(allowedTextKeys: ["note"])
+        #expect(allowing.redact(body: Data(four.utf8), contentType: "application/json") == four)
+        #expect(body(four) == #"{"note":"{\"note\":[redacted]"}"#)
     }
 
     /// A secret in a text nested in documents of every kind, inside or past the budget, never

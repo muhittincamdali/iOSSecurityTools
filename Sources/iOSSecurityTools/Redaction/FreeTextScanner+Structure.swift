@@ -23,11 +23,16 @@ extension FreeTextScanner {
     private static let arrayStarts = ByteSet("{[\"]")
     private static let jsonWhitespace = ByteSet(" \t\n\r")
 
-    /// JSON in a line, parsed and redacted by the key rule for structured input. JSON that does
-    /// not parse cannot be read with certainty and is hidden. In a text inside a document, JSON
-    /// one level too many, deeper than the depth left or longer than the reading budget leaves
-    /// (see ``ReadingBudget``) hides the whole text.
-    mutating func embeddedJSON(lineEnd: Int) {
+    /// JSON in the text, parsed and redacted by the key rule for structured input, whose members
+    /// follow the rule for keys in text: the text is cut at the value of the first member whose
+    /// name is not on ``SensitiveDataRedactor/allowedTextKeys``, or at the first value that the key
+    /// rule hides, whichever comes first (`{"status":200,"user":"bob"}` keeps `"status":200`).
+    /// JSON that holds a word naming a secret or one that cannot be read (`["password"]=> "…"`)
+    /// cuts the text at its end. JSON that does not parse cannot be read with certainty: the text
+    /// is cut at its first bracket. In a text inside a document, JSON one level too many, deeper
+    /// than the depth left or longer than the reading budget leaves (see ``ReadingBudget``) hides
+    /// the whole text.
+    mutating func embeddedJSON() {
         let start = text.offsets[position]
         guard let inner = nesting.enteringDocument() else {
             hideWholeText()
@@ -43,63 +48,42 @@ extension FreeTextScanner {
             hideWholeText()
             return
         } catch {
-            hideUnparsedJSON(from: position, lineEnd: lineEnd)
+            cut(atByte: position)
             return
         }
         let region = start..<document.root.range.upperBound
         // The reader stopped within what the budget leaves, so this always fits.
         _ = inner.reads(region.count)
-        record(spans: document.secretSpans(using: redactor, compatibility: compatibility), region: region)
-        position = text.byteIndex(atOrAfter: region.upperBound)
-    }
-
-    /// Hides JSON that does not parse: to the end of its line, and on over the lines below until
-    /// its brackets close, outside strings, or to the end of the text.
-    mutating func hideUnparsedJSON(from start: Int, lineEnd: Int) {
-        let end = max(bracketsClose(from: start), lineEnd)
-        let stopsOnLine = end == lineEnd
-        hide(text.offset(at: start)..<text.offset(at: end))
-        position = stopsOnLine ? lineEnd : end
-        guard stopsOnLine else { return }
-        carry = carryAfterHiding(from: start, valueStart: start, lineEnd: lineEnd, indent: lineIndent)
-    }
-
-    /// The byte after the bracket that closes the one at `start`, counting brackets outside
-    /// double-quoted strings; a string ends at its closing quote or its line.
-    private func bracketsClose(from start: Int) -> Int {
-        var depth = 0
-        var inString = false
-        var k = start
-        while k < text.count {
-            let byte = text.bytes[k]
-            if inString {
-                if byte == UInt8(ascii: "\"") && !isEscaped(k) || text.isLineTerminator(k) { inString = false }
-            } else if byte == UInt8(ascii: "\"") {
-                inString = true
-            } else if byte == UInt8(ascii: "{") || byte == UInt8(ascii: "[") {
-                depth += 1
-            } else if byte == UInt8(ascii: "}") || byte == UInt8(ascii: "]") {
-                depth -= 1
-                if depth == 0 { return k + 1 }
-            }
-            k += 1
+        let found = document.secretSpans(using: redactor, compatibility: compatibility)
+        let end = text.byteIndex(atOrAfter: region.upperBound)
+        let hidden = found.lazy.filter { $0.kind.contains(.secretFields) }.map(\.start).min()
+        let unallowed = role == .text ? document.firstValue(underMemberWhere: { !redactor.allowsTextKey($0) }) : nil
+        if let first = [hidden, unallowed].compactMap({ $0 }).min() {
+            // What the key rule found before the cut stays: the masks of the value detectors.
+            record(spans: found.filter { $0.start < first }, region: region)
+            cut(atOffset: first)
+        } else {
+            record(spans: found, region: region)
+            if mentionsSecret(in: position..<end) { cut(atByte: valueStart(after: end)) }
         }
-        return text.count
+        position = end
     }
 
     // MARK: URLs
 
     /// The end of a URL with a scheme and `//` that starts at `i` (`https://…`, `redis://…`): up to
-    /// white space, a quote or an angle bracket, without punctuation that ends a sentence.
-    func urlEnd(from i: Int, lineEnd: Int) -> Int? {
+    /// white space, a line break, a quote or an angle bracket, without punctuation that ends a
+    /// sentence.
+    func urlEnd(from i: Int) -> Int? {
+        let limit = text.count
         guard ASCII.isLetter(text.bytes[i]), i == 0 || !Self.isSchemeCharacter(text.bytes[i - 1]) else { return nil }
         var k = i + 1
-        while k < lineEnd, k - i <= Self.maximumSchemeLength, Self.isSchemeCharacter(text.bytes[k]) { k += 1 }
-        guard k + 2 < lineEnd, text.bytes[k] == UInt8(ascii: ":"), text.bytes[k + 1] == UInt8(ascii: "/"), text.bytes[k + 2] == UInt8(ascii: "/") else {
+        while k < limit, k - i <= Self.maximumSchemeLength, Self.isSchemeCharacter(text.bytes[k]) { k += 1 }
+        guard k + 2 < limit, text.bytes[k] == UInt8(ascii: ":"), text.bytes[k + 1] == UInt8(ascii: "/"), text.bytes[k + 2] == UInt8(ascii: "/") else {
             return nil
         }
         var end = k + 3
-        while end < lineEnd, !text.isSpace(end), !Self.urlEnds.contains(text.bytes[end]) { end += 1 }
+        while end < limit, !text.isSpace(end), !text.isLineTerminator(end), !Self.urlEnds.contains(text.bytes[end]) { end += 1 }
         while end > k + 3, Self.trailingPunctuation.contains(text.bytes[end - 1]) { end -= 1 }
         return end
     }

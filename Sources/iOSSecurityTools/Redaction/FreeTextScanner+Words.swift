@@ -12,88 +12,63 @@ extension FreeTextScanner {
     }
 
     /// A run of characters up to white space, a separator, a quote or a boundary: a key when a
-    /// separator follows, otherwise a word that hides the rest of the line when it names a secret
-    /// (`password hunter2`, `PIN 1234`, also split by a space: `pass word`) or cannot be read. A
-    /// key or word with a separator of its own in it, look-alike or escaped, holds its value too:
-    /// it is hidden from there on. In every case the value may go on to the lines below (see
-    /// ``carryAfterHiding(from:valueStart:lineEnd:indent:)``).
-    ///
-    /// The trigger pass reads keys, and of the other words only those of markup
-    /// (`<key>password</key>`, `<password>`): it looks for names written as values, and a word that
-    /// names a secret only hides the rest of its line, which is hidden already.
-    mutating func word(lineEnd: Int) {
+    /// separator follows (see ``separator()``), otherwise a word. A word that holds a secret name
+    /// (`password hunter2`, `PIN 1234`, also split by a space: `pass word`) hides what follows
+    /// the name; one that cannot be read hides itself and what follows. A key or word with a
+    /// separator of its own in it, look-alike or escaped, hides what follows that separator.
+    /// `followsText` says whether text came before the word on its line.
+    mutating func word(followsText: Bool) {
         let start = position
-        let end = wordEnd(from: start, to: lineEnd)
-        position = end
-        let readsWord = pass == .hiding || isMarkupWord(start..<end)
-        if readsWord, let embedded = embeddedSeparator(in: start..<end, lineEnd: lineEnd) {
-            pendingKey = nil
-            // The whole word may be a disguised name (`pass‧word`) whose value is below it.
-            hideAfterName(at: start, from: embedded, valueStart: end, lineEnd: lineEnd)
+        let end = wordEnd(from: start, to: text.count)
+        if let embedded = embeddedSeparator(in: start..<end, followsText: followsText) {
+            cut(atByte: embedded)
             return
         }
-        let next = firstNonSpace(from: end, to: lineEnd)
-        if next < lineEnd, isSeparator(next) {
+        let next = nextNonBlank(from: end)
+        if next < text.count, isSeparator(next) {
             pendingKey = start..<end
+            advance(to: end)
             return
         }
         pendingKey = nil
-        guard role == .text, readsWord, !isEndTag(start..<end) else { return }
-        if isSeparatorWord(start..<end, lineEnd: lineEnd) {
-            hideRestOfLine(from: next, valueStart: next, lineEnd: lineEnd)
+        guard role == .text else {
+            advance(to: end)
+            return
+        }
+        if isSeparatorWord(start..<end, followsText: followsText) {
+            cut(atByte: nextNonSpace(from: end))
             return
         }
         switch read(start..<end) {
-        case .plain:
-            guard let (secretEnd, nextWord) = secretEndAcrossSpace(after: start..<end, lineEnd: lineEnd) else { return }
-            // `verification code: 1234`: the next word is a key whose value the scan hides.
-            let afterNextWord = firstNonSpace(from: nextWord.upperBound, to: lineEnd)
-            if secretEnd == nextWord.upperBound, afterNextWord < lineEnd, isSeparator(afterNextWord), !allowsValue(ofKey: nextWord) {
-                return
-            }
-            let from = firstNonSpace(from: secretEnd, to: lineEnd)
-            hideAfterName(at: start, from: from, valueStart: from, lineEnd: lineEnd)
         case .ambiguous:
-            hideAfterName(at: start, from: start, valueStart: end, lineEnd: lineEnd)
+            cut(atByte: start)
         case .valueStart(let valueStart):
-            let from = valueAfterName(from: valueStart, wordEnd: end, lineEnd: lineEnd)
-            hideAfterName(at: start, from: from, valueStart: from, lineEnd: lineEnd)
+            cut(atByte: self.valueStart(after: valueStart))
+        case .plain:
+            if let secretEnd = secretEndAcrossSpace(after: start..<end) {
+                cut(atByte: valueStart(after: secretEnd))
+            } else {
+                advance(to: end)
+            }
         }
     }
 
     /// A secret word split by white space or by one of `|`, `,`, `;`, `&` and `?` (`pass word`,
     /// `to ken`, `p|wd`): the byte after it, when it starts in this word and ends in the next one
-    /// on the line, and that next word.
-    private func secretEndAcrossSpace(after word: Range<Int>, lineEnd: Int) -> (Int, Range<Int>)? {
-        var nextStart = firstNonSpace(from: word.upperBound, to: lineEnd)
-        if nextStart < lineEnd, Self.splittingBoundaries.contains(text.bytes[nextStart]) {
-            nextStart = firstNonSpace(from: nextStart + 1, to: lineEnd)
+    /// on the line.
+    private func secretEndAcrossSpace(after word: Range<Int>) -> Int? {
+        var nextStart = nextNonSpace(from: word.upperBound)
+        if nextStart < text.count, Self.splittingBoundaries.contains(text.bytes[nextStart]) {
+            nextStart = nextNonSpace(from: nextStart + 1)
         }
-        guard nextStart > word.upperBound, nextStart < lineEnd, !endsWord(nextStart) else { return nil }
-        let next = nextStart..<wordEnd(from: nextStart, to: lineEnd)
+        guard nextStart > word.upperBound, nextStart < text.count, !endsWord(nextStart) else { return nil }
+        let next = nextStart..<wordEnd(from: nextStart, to: text.count)
         guard let reading = LooseReading(text, [word, next], source: source) else { return nil }
         let split = reading.letterCount(before: nextStart)
-        return reading.secretEnd { $0.lowerBound < split && $0.upperBound > split }.map { ($0, next) }
+        return reading.secretEnd { $0.lowerBound < split && $0.upperBound > split }
     }
 
     private static let splittingBoundaries = ByteSet("|,;&?")
-
-    /// Whether the word is the name of an end tag (`</key>`): it closes an element and names no
-    /// value, so `<key>user</key>` names nothing on the lines below it.
-    private func isEndTag(_ word: Range<Int>) -> Bool {
-        guard word.count >= 2, word.lowerBound > 0, text.bytes[word.lowerBound - 1] == UInt8(ascii: "<"),
-              text.bytes[word.lowerBound] == UInt8(ascii: "/") else { return false }
-        var k = word.lowerBound + 1
-        while k < word.upperBound, ASCII.isAlphanumeric(text.bytes[k]) || "-_:.".utf8.contains(text.bytes[k]) { k += 1 }
-        let endsName = k == word.upperBound || (text.bytes[k] == UInt8(ascii: ">") && k + 1 == word.upperBound)
-        return k > word.lowerBound + 1 && endsName
-    }
-
-    /// Whether the word is part of markup: it starts a tag (`<password>`, `<key>password`) or ends
-    /// one (`password>`).
-    private func isMarkupWord(_ word: Range<Int>) -> Bool {
-        (word.lowerBound > 0 && text.bytes[word.lowerBound - 1] == UInt8(ascii: "<")) || text.bytes[word].contains(UInt8(ascii: ">"))
-    }
 
     /// Punctuation, a math symbol or a modifier letter or symbol outside ASCII, such as `꞉`, `∶`,
     /// `≔`, `→` or `·`, may be meant as a separator. Glued between other characters of a word
@@ -103,15 +78,15 @@ extension FreeTextScanner {
     /// kind is read as `-` (see ``CompatibilityText``), which joins words. Quotation marks,
     /// brackets, currency signs, emoji and the punctuation of East Asian scripts are not read this
     /// way.
-    private func embeddedSeparator(in range: Range<Int>, lineEnd: Int) -> Int? {
+    private func embeddedSeparator(in range: Range<Int>, followsText: Bool) -> Int? {
         let first = text.offsets[range.lowerBound]
         // At the start of a word, such a character separates the text before it on the line
-        // (`a ≔b`, `a;꞉b`), or the word that ended the line before at a break other than LF.
-        let followsText = firstNonSpace(from: lineStartOfText, to: lineEnd) < range.lowerBound || lineFollowsBrokenWord
+        // (`a ≔b`, `a;꞉b`).
         let glued = range.first { k in
             guard text.offsets[k] > first || followsText, isSeparatorLike(k, glued: true) else { return false }
             let after = scalarEnd(k)
-            return after < range.upperBound || (range.upperBound < lineEnd && !text.isSpace(range.upperBound))
+            let end = range.upperBound
+            return after < end || (end < text.count && !text.isSpace(end) && !text.isLineTerminator(end))
         }
         return [glued, escapedValueStart(in: range)].compactMap { $0 }.min()
     }
@@ -125,10 +100,10 @@ extension FreeTextScanner {
 
     /// Whether the word is only such characters, between another word and more text on its line
     /// (`user ꞉ bob`).
-    private func isSeparatorWord(_ range: Range<Int>, lineEnd: Int) -> Bool {
-        guard range.allSatisfy({ isSeparatorLike($0) }) else { return false }
-        let followsWord = firstNonSpace(from: lineStartOfText, to: lineEnd) < range.lowerBound || lineFollowsBrokenWord
-        return followsWord && firstNonSpace(from: range.upperBound, to: lineEnd) < lineEnd
+    private func isSeparatorWord(_ range: Range<Int>, followsText: Bool) -> Bool {
+        guard followsText, range.allSatisfy({ isSeparatorLike($0) }) else { return false }
+        let next = nextNonSpace(from: range.upperBound)
+        return next < text.count && !text.isLineTerminator(next)
     }
 
     /// A character without an ASCII reading that may be a separator; one that has an ASCII
@@ -152,19 +127,6 @@ extension FreeTextScanner {
     private static func isEastAsian(_ scalar: Unicode.Scalar) -> Bool {
         (0x3000...0x30FF).contains(scalar.value) || (0xFF00...0xFFEF).contains(scalar.value)
     }
-
-    /// Where the value after a secret name starts: after the quotes and brackets that close
-    /// around the name (`<password>`, `"token"`), and after the spaces when the name ends the word.
-    private mutating func valueAfterName(from cut: Int, wordEnd: Int, lineEnd: Int) -> Int {
-        var k = cut
-        while k < lineEnd, pairedQuotes.contains(k) || Self.closingMarks.contains(text.bytes[k]) {
-            pairedQuotes.remove(k)
-            k += 1
-        }
-        return k >= wordEnd ? firstNonSpace(from: max(k, wordEnd), to: lineEnd) : k
-    }
-
-    private static let closingMarks = ByteSet(")]}>")
 
     /// The end of the word that starts at `start`. An HTML character reference (`&#97;`) and a
     /// `\u{…}` escape are part of a word, though `&`, `;` and `{` end words elsewhere.

@@ -1,7 +1,6 @@
 /// Replacements: where findings are, how they join, and the text they make.
 extension SensitiveDataRedactor {
-    /// A replacement, in offsets of the original scalars. A span without a kind is no finding: it
-    /// writes a line separator as a line feed.
+    /// A replacement, in offsets of the original scalars, and the kinds of what it hides.
     struct Span {
         var start: Int
         var end: Int

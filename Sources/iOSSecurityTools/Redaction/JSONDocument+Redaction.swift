@@ -105,6 +105,31 @@ extension JSONDocument {
         return WrittenName.namesSecret(text(of: token), in: .pairName, compatibility: compatibility)
     }
 
+    /// Where the first value in the text is whose member's name, with its escapes decoded, `matches`:
+    /// the offset of its first scalar, or nil when no member's name does. The objects and arrays
+    /// are walked with a stack of their own, not by recursion.
+    func firstValue(underMemberWhere matches: ([Unicode.Scalar]) -> Bool) -> Int? {
+        var first: Int?
+        var pending = [root]
+        while let node = pending.popLast() {
+            switch node.value {
+            case .object(let members):
+                for member in members {
+                    if matches(text(of: member.name)) {
+                        first = min(first ?? member.value.range.lowerBound, member.value.range.lowerBound)
+                    } else {
+                        pending.append(member.value)
+                    }
+                }
+            case .array(let elements):
+                pending += elements
+            case .string, .number, .boolean, .null:
+                break
+            }
+        }
+        return first
+    }
+
     /// Any value, quotes and brackets included, becomes the string `"[redacted]"`.
     private static func hiding(_ node: Node) -> SensitiveDataRedactor.Span {
         SensitiveDataRedactor.Span(
