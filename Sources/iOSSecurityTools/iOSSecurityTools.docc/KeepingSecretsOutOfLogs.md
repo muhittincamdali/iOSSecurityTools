@@ -164,6 +164,36 @@ redactor.redact(url: URL(string: "https://example.com/v1/cards/4242/pin/4831")!)
 // https://example.com/v1/cards/:id/pin/:id
 ```
 
+### Limits keep hostile input from exhausting the stack
+
+Strings are read as free text, and free text may hold JSON or a URL again, so a reader can find a
+document inside a document many times over. A single budget bounds that descent, and with it the
+stack that a log line or body from an attacker can use:
+
+- A body larger than ``SensitiveDataRedactor/maximumBodySize`` (1 MiB) is omitted unread.
+- JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
+  document a JSON string is in: JSON in a string inside one object may open 63 more.
+- At most four documents are read one inside another. A JSON text, a URL, a body and a multipart
+  part each count: in a JSON body, JSON in a string is the second.
+
+JSON past a limit is not read. A body is omitted, and a string or other text inside a document
+that holds such JSON, or a URL one level too many, is hidden whole:
+
+```swift
+let deep = String(repeating: "[", count: 65) + String(repeating: "]", count: 65)
+redactor.redact(body: Data(deep.utf8), contentType: "application/json")
+// [body omitted: 130 bytes, application/json]
+let note = #"{"note":""# + String(repeating: "[", count: 64) + String(repeating: "]", count: 64) + #" ok"}"#
+redactor.redact(body: Data(note.utf8), contentType: "application/json")
+// {"note":"[redacted]"}
+```
+
+In a log line, JSON nested deeper than 64 levels hides the line from its first bracket, like JSON
+that does not parse. The package's tests run every limit on a thread with 512 KiB of stack, the
+default of a secondary thread, a GCD queue and a Swift concurrency task, and with
+`swift test -c release` they check that a megabyte of text, nested input or a body takes less than
+a second.
+
 ### Free text keeps a value only after an allowed key
 
 A log line has no grammar, so name matching in it can always be bypassed. Free text is therefore
