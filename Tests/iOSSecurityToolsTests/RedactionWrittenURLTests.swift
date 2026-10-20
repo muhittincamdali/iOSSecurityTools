@@ -2,12 +2,13 @@ import Foundation
 import Testing
 @testable import iOSSecurityTools
 
-/// A URL in free text is not a safe place to read on from. The fourteenth review got 168 values
-/// past the redactor that stood right after a URL whose end named them: an empty query parameter
-/// (`?token= hunter2`), a path that ends in `=` or `:`, a last segment, query name or host that is
-/// a secret name. Path parameters, a query or a fragment cut the text at their start unless every
-/// parameter in them is allowed and has a value, and a URL whose end names a value cuts the text
-/// after it.
+/// A URL in free text is shown only when it is clean: `scheme://host` with an optional path of
+/// ASCII letters, digits, `.`, `_`, `-` and `/`, a host and segments that name no secret, and
+/// white space, a line break or punctuation that ends a sentence after it. Any other URL cuts the
+/// text where it starts. The fourteenth and fifteenth reviews got values past every reading of
+/// the query, fragment and path parameters of a URL in text, one ending at a time: an empty or
+/// allowed section after a secret segment (`/password# hunter2`), an encoded `=` or `:` at the
+/// end (`/user%3A hunter2`), a character outside the safe alphabet inside the URL.
 @Suite("SensitiveDataRedactor URLs written in text")
 struct RedactionWrittenURLTests {
     static let secret = "Kp7Zw3Qx9"
@@ -16,13 +17,19 @@ struct RedactionWrittenURLTests {
     static let starts = [
         "http://x.example", "HTTPS://X.EXAMPLE", "ftp://files.example", "wss://rt.example", "postgres://app@db.example:5432",
         "https://[::1]:8443", "https://10.0.0.1", "https://x.example:8443", "https://bob@x.example", "myapp://callback",
-        "mongodb+srv://c.example",
+        "mongodb+srv://c.example", "a+b://x.example",
     ]
 
-    /// How the URL ends: with a name whose value comes after it.
+    /// How the URL ends: with a name whose value comes after it, with an empty or allowed section,
+    /// with an escape, or with a character outside the safe alphabet.
     static let ends = [
         "/a?token=", "/a;token=", "/password=", "/a#access_token=", "/v1/api_key:", "/password", "/a?secret", "/api/password/",
         "/a?x=1&pin=", "/a?page=2&pin=", "/a?b=1#password", "/t%6Fken=", "/a?t%6Fken=", "/a?t\u{043E}ken=", "/a?TOKEN=",
+        "/password#", "/password?#", "/password;/", "/token;#", "/password#!", "/password#)", "/password;#,", "/password/#",
+        "/a/../password#", "//password#", "/v1/users/passwd#", "/session#", "/x-api-key#", "/a=#", "/a:#", "/token=;/", "/a:;/",
+        "/a%3D", "/a%3d", "/a%3A", "/user%3A", "/a/note%3A", "/a%253D", "/user%3A%22", "/a%3A%20", "/a\\x3D", "/a&#61", "/a=", "/a:",
+        "/a?page=2", "/a;page=2", "/a#page=2", "/password?page=2", "/a;page=1/password", "/a?q=user%3A", "/a?page=%3D",
+        "/a;page=user%3D", "/a?q=%22user%22%3A", "/a?q=1", "/a\u{2192}b", "/\u{1F511}", "/a\u{00B7}", "/a\u{200B}", "/a\u{FF1D}",
     ]
 
     /// What can stand between the URL and the value.
@@ -32,9 +39,10 @@ struct RedactionWrittenURLTests {
     ]
 
     /// Every place free text is read: a log line, after an allowed key, a text/plain body, a JSON
-    /// string, a form value and a multipart text part.
+    /// string, a JSON string in an array, a form value and a multipart text part. The query
+    /// parameters are allowed, which free text does not use.
     static func places(_ line: String) -> [(String, String)] {
-        let redactor = SensitiveDataRedactor(allowedTextKeys: ["note", "url"])
+        let redactor = SensitiveDataRedactor(allowedTextKeys: ["note", "url"], allowedQueryParameters: ["page", "q"])
         let json = String(decoding: (try? JSONSerialization.data(withJSONObject: ["msg": line])) ?? Data(), as: UTF8.self)
         let form = "note=" + SensitiveDataRedactor.formEncoded(line)
         let multipart = "--B\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\n" + line + "\r\n--B--"
@@ -49,7 +57,7 @@ struct RedactionWrittenURLTests {
         ]
     }
 
-    @Test("no value after a URL whose end names it shows, in any place, after any scheme and gap", arguments: starts)
+    @Test("no value after a URL that is not clean shows, in any place, after any scheme and gap", arguments: starts)
     func valueAfterURLIsHidden(start: String) {
         for end in Self.ends {
             for gap in Self.gaps {
@@ -61,56 +69,111 @@ struct RedactionWrittenURLTests {
         }
     }
 
-    @Test("the review's examples are cut at the query, the fragment or the end of the URL", arguments: [
-        ("GET https://api.example/v1/items?api_key='X1' 200", "GET https://api.example/v1/items?[redacted]"),
-        ("GET https://api.example/v1/items?password=\"X1\" 200", "GET https://api.example/v1/items?[redacted]"),
-        ("see https://x.example/a?token= X1", "see https://x.example/a?[redacted]"),
-        ("[docs](https://x.example/a?token=) X1", "[docs](https://x.example/a?[redacted]"),
-        ("open(\"https://x.example/a?token=\", \"X1\")", "open(\"https://x.example/a?[redacted]"),
-        ("see https://x.example/a#access_token= X1", "see https://x.example/a#[redacted]"),
-        ("see https://x.example/a?t\u{043E}ken= X1", "see https://x.example/a?[redacted]"),
-        ("see https://x.example/v1/api_key: X1", "see https://x.example/v1/api_key: [redacted]"),
-        ("see https://x.example/a/password X1", "see https://x.example/a/password [redacted]"),
-        ("see https://password X1", "see https://password [redacted]"),
-        ("see https://x.example/token= X1", "see https://x.example/token= [redacted]"),
-        ("see myapp://pass%77ord X1", "see myapp://[redacted]"),
-        ("see myapp://password= X1", "see myapp://[redacted]"),
-        ("connect myapp://password=hunter2 ok", "connect myapp://[redacted] ok"),
+    /// What can come in a URL before a value that is written in it.
+    static let insides = [
+        "\u{2192}", "\u{1F511}", "\u{00A0}", "\u{3000}", "\u{FF0F}", "\u{2215}", "\u{200B}", "%3D", "%3A", "%2F", "%253D", "?q=", "?page=",
+        "#", "#q=", ";p=", ";page=", "=", ":", "@", "\\", "?", "&", "~", "!", "(", "*", "+", "$", ",",
+    ]
+
+    @Test("no value written in a URL after a character that makes it not clean shows, in any place")
+    func valueInURLIsHidden() {
+        for inside in Self.insides {
+            var layouts = ["https://x.example/a\(inside)b/\(Self.secret)?q=1 tail", "https://x.example/a\(inside)\(Self.secret) tail",
+                           "https://x.example\(inside)\(Self.secret)/a tail"]
+            // A clean URL that ends a sentence (`…/value, tail`) shows its path, the value in it too.
+            if ![",", "!"].contains(inside) { layouts.append("https://x.example/a/\(Self.secret)\(inside) tail") }
+            for layout in layouts {
+                for (place, output) in Self.places(layout) {
+                    #expect(!output.contains(Self.secret), "\(place): \(layout.debugDescription) -> \(output.debugDescription)")
+                }
+            }
+        }
+    }
+
+    @Test("the reviews' examples are cut where the URL starts, whatever the allowed query parameters", arguments: [
+        ("GET https://api.example/v1/items?api_key='X1' 200", "GET [redacted]"),
+        ("GET https://api.example/v1/items?password=\"X1\" 200", "GET [redacted]"),
+        ("see https://x.example/a?token= X1", "see [redacted]"),
+        ("[docs](https://x.example/a?token=) X1", "[docs]([redacted]"),
+        ("open(\"https://x.example/a?token=\", \"X1\")", "open(\"[redacted]"),
+        ("see https://x.example/a#access_token= X1", "see [redacted]"),
+        ("see https://x.example/v1/api_key: X1", "see [redacted]"),
+        ("see https://x.example/a/password X1", "see [redacted]"),
+        ("see https://password X1", "see [redacted]"),
+        ("see https://x.example/token= X1", "see [redacted]"),
+        ("see myapp://pass%77ord X1", "see [redacted]"),
+        ("connect myapp://password=hunter2 ok", "connect [redacted]"),
+        ("see https://x.example/password# hunter2", "see [redacted]"),
+        ("see https://x.example/password?page=2 hunter2", "see [redacted]"),
+        ("see https://x.example/a=# hunter2", "see [redacted]"),
+        ("see https://x.example/a%3D hunter2", "see [redacted]"),
+        ("see https://x.example/user%3A Qz9Wk7rX", "see [redacted]"),
+        ("see https://x.example/a?q=user%3A Qz9Wk7rX", "see [redacted]"),
+        ("see https://x.example/a\u{2192}b/Qz9Wk7rX?q=1 tail", "see [redacted]"),
+        ("see https://x.example/\u{1F511}/Qz9Wk7rX?q=1", "see [redacted]"),
+        ("path=https://x.example/a\u{2192}/Qz9Wk7rX?q=1", "path=[redacted]"),
+        ("see https://x.example/a: hunter2", "see [redacted]"),
+        ("see https://x.example:8443/a ok", "see [redacted]"),
+        ("see https://bob@x.example/a ok", "see [redacted]"),
+        ("see https://[::1]/a ok", "see [redacted]"),
+        ("see https://auth.example.com/login ok", "see [redacted]"),
     ])
     func reviewExamples(input: String, expected: String) {
         #expect(SensitiveDataRedactor().redact(input) == expected)
+        #expect(SensitiveDataRedactor(allowedQueryParameters: ["page", "q"]).redact(input) == expected)
     }
 
-    @Test("a URL past the limits of segments or parameters cuts the text after its host")
-    func limits() {
-        let segments = "see https://x.example" + String(repeating: "/a", count: SensitiveDataRedactor.maximumPathSegments + 6) + "?token= X1"
-        #expect(SensitiveDataRedactor().redact(segments) == "see https://x.example[redacted]")
-        let parameters = "see https://x.example/a?" + String(repeating: "b=1&", count: SensitiveDataRedactor.maximumQueryParameters + 1) + "token= X1"
-        #expect(SensitiveDataRedactor().redact(parameters) == "see https://x.example[redacted]")
-    }
-
-    // The library stays useful: a URL whose parameters are all allowed and have values, and one
-    // without parameters whose end names nothing, keep the text after them.
-    @Test("a URL that leaves nothing for the text after it keeps that text")
-    func usefulURLsAreKept() {
-        let redactor = SensitiveDataRedactor(allowedQueryParameters: ["page", "sort"])
+    // The library stays useful: a clean URL keeps the text after it, with identifiers in its path
+    // written as `:id`.
+    @Test("a clean URL keeps the text after it")
+    func cleanURLsAreKept() {
+        let redactor = SensitiveDataRedactor(allowedQueryParameters: ["page"])
         for line in [
-            "GET https://x.example/a?page=2 status=200 duration_ms=12",
-            "GET https://x.example/a?page=2&sort=name status=200",
-            "GET https://x.example/a;page=2/b status=200",
+            "GET https://api.example.com/items 200",
+            "GET https://x.example/v1/items/42 status=200",
             "see https://x.example/docs/getting-started. status=200",
             "see https://x.example status=200",
-            "GET https://x.example/v1/items/42 status=200",
+            "see [docs](https://x.example/docs) status=200",
+            "see (https://x.example/a) ok",
+            "see \"https://x.example/a\" ok",
+            "see https://x.example/a, ok",
+            "fetched https://cdn.example.com/assets/app.min.js in 12 ms",
+            "ping http://10.0.0.1/health ok",
+            "GET https://x.example/a_b/c-d/e.f ok",
+            "git clone https://github.com/x/y.git",
+            "open https://x.example/a.) then",
+            "https://x.example/a\nnext line",
         ] {
-            #expect(redactor.redact(line) == line)
+            #expect(redactor.redact(line) == line, "\(line.debugDescription)")
         }
         #expect(redactor.redact("GET https://x.example/users/12345678 status=200") == "GET https://x.example/users/:id status=200")
-        #expect(redactor.redact("GET https://bob:pw@x.example/a?page=2 status=200") == "GET https://x.example/a?page=2 status=200")
+        #expect(redactor.redact("GET https://x.example/orders/550e8400-e29b-41d4-a716-446655440000 ok")
+            == "GET https://x.example/orders/:id ok")
+    }
+
+    @Test("a clean URL longer than the longest word cuts the text; one of more segments than the limit keeps its host")
+    func limits() {
+        let long = "see https://x.example/" + String(repeating: "a", count: FreeTextScanner.longestWord) + " ok"
+        #expect(SensitiveDataRedactor().redact(long) == "see [redacted]")
+        let segments = "see https://x.example" + String(repeating: "/a", count: SensitiveDataRedactor.maximumPathSegments + 1) + " ok"
+        #expect(SensitiveDataRedactor().redact(segments) == "see https://x.example ok")
     }
 
     @Test("the same text without a scheme is cut as it was")
     func withoutScheme() {
         #expect(SensitiveDataRedactor().redact("GET /v1/items?api_key='X1' 200") == "GET /v1/items?api_key=[redacted]")
         #expect(SensitiveDataRedactor().redact("see x.example/a?token= X1") == "see x.example/a?token= [redacted]")
+    }
+
+    @Test("the fifteenth review's correctness inputs: every one that is not a control hides its value, in every place")
+    func correctnessPlaces() {
+        for line in [
+            "see https://x.example/token\u{2192}/Qz9Wk7rX?q=1 tail", "https://x.example/user%3A Qz9Wk7rX 200",
+            "https://x.example/a?q=user%3D Qz9Wk7rX 200",
+        ] {
+            for (place, output) in Self.places(line) {
+                #expect(!output.contains("Qz9Wk7rX"), "\(place): \(line.debugDescription) -> \(output.debugDescription)")
+            }
+        }
     }
 }

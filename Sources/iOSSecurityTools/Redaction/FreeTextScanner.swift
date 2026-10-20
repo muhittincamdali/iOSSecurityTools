@@ -9,10 +9,11 @@
 /// `key=value`, as a JSON member, as the first string of a two-element JSON array and as the tag
 /// of an element; a secret name written without a separator; a name written as a value that names
 /// a secret or is not plain ASCII; an escape (see ``isEscape(at:)``); a word that cannot be read or
-/// is longer than ``longestWord``; JSON that does not parse; and a quote or bracket that is still
-/// open at the end of the text. Nothing is carried from one line to the next: the cut covers every
-/// line after it. JSON and URLs before the cut are redacted by their own rules and recorded as
-/// regions, which the value detectors do not read again.
+/// is longer than ``longestWord``; JSON that does not parse; a URL that is not clean; and a quote
+/// or bracket that is still open at the end of the text. Nothing is carried from one line to the next: the cut covers every
+/// line after it. JSON and clean URLs before the cut are redacted by their own rules and recorded
+/// as regions, which the value detectors do not read again; a URL that is not clean is a trigger
+/// where it starts (see ``url(to:)``).
 ///
 /// Besides the findings of the JSON and URLs it reads, the scan keeps a few positions: the cut,
 /// the key before the next separator, the quote that is open, the outermost open bracket and the
@@ -91,9 +92,10 @@ struct FreeTextScanner {
         let unsafe = text.firstUnsafeOffset
         scanEnd = unsafe.map(text.byteIndex(atOrAfter:)) ?? text.count
         while position < scanEnd, cut == nil, !hidesWholeText { step() }
-        guard cut == nil, !hidesWholeText else { return }
+        let foundTrigger = cut != nil
+        // The earlier of the two cuts holds, whatever the scan recorded before it.
         if let unsafe { cut(atOffset: unsafe) }
-        guard role == .text else { return }
+        guard !foundTrigger, !hidesWholeText, role == .text else { return }
         // A quote or bracket that does not close before the text ends, or before the character
         // that cuts it, leaves the end of what it holds unknown.
         let open = [openQuote?.at, bracketDepth > 0 ? outermostBracket : nil].compactMap { $0 }.min()

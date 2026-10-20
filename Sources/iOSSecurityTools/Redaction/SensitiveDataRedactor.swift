@@ -74,9 +74,10 @@ import Foundation
 /// so does the first character outside a safe alphabet — letters, marks and digits of any script,
 /// the ASCII space, tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or
 /// a control character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a
-/// word longer than 256 characters. No list of look-alike separators is kept. Strings inside
-/// JSON, form values, allowed query values and multipart text parts are free text, each on its
-/// own. ``redact(_:)`` describes the rule.
+/// word longer than 256 characters. No list of look-alike separators is kept. A URL in free text
+/// is shown only when it is clean, and any other URL cuts the text where it starts. Strings
+/// inside JSON, form values, allowed query values and multipart text parts are free text, each on
+/// its own. ``redact(_:)`` describes the rule.
 ///
 /// ## Values
 ///
@@ -206,7 +207,8 @@ public struct SensitiveDataRedactor: Sendable {
     /// key, free text is cut (see ``redact(_:)``).
     public let allowedTextKeys: Set<String>
 
-    /// The folded names of the query parameters whose values a URL keeps. Empty by default.
+    /// The folded names of the query parameters whose values ``redact(url:)`` keeps. Empty by
+    /// default. Free text does not use them: a URL with a query cuts the text where it starts.
     public let allowedQueryParameters: Set<String>
 
     /// How much of a URL is recorded.
@@ -225,8 +227,8 @@ public struct SensitiveDataRedactor: Sendable {
     ///   - kinds: The kinds of data to look for; all of them by default.
     ///   - allowedTextKeys: Keys after which free text is read on, in addition to
     ///     ``defaultAllowedTextKeys``. A key that is not plain ASCII or names a secret is ignored.
-    ///   - allowedQueryParameters: Query parameters whose values URLs keep. A name that is not
-    ///     plain ASCII or names a secret is ignored.
+    ///   - allowedQueryParameters: Query parameters whose values ``redact(url:)`` keeps; free
+    ///     text does not use them. A name that is not plain ASCII or names a secret is ignored.
     ///   - urlDetail: How much of a URL is recorded.
     ///   - maximumBodySize: The largest body that is read, in bytes; a larger one is omitted.
     public init(
@@ -325,15 +327,16 @@ public struct SensitiveDataRedactor: Sendable {
     /// under "Limits"; JSON that does not parse, or is longer than 64 Ki scalars, cuts the text at
     /// its first bracket.
     ///
-    /// **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them, but a URL is
-    /// not a safe place to read on from: its path parameters (`;`), query (`?`) or fragment (`#`)
-    /// cut the text right after their mark unless every parameter in them is on
-    /// ``allowedQueryParameters`` and has a value in the URL (`?page=2` with `page` allowed), and a
-    /// URL that ends in `=` or `:`, or whose last path segment, or host when it has no path, names a
-    /// secret, cannot be read or is not plain ASCII, cuts the text after it
-    /// (`see https://x.example/a?token= hunter2` keeps `see https://x.example/a?`). A URL that
-    /// `URLComponents` cannot read cuts the text where it starts, one whose host is not written
-    /// after its scheme, and one past the limits of ``redact(url:)`` after its host.
+    /// **URLs.** A URL in free text is shown only when it is clean — `scheme://host` and an
+    /// optional path of ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`,
+    /// `:`, `@` or `\`), whose host and segments name no secret, followed by white space, a line
+    /// break or punctuation that ends a sentence — and any other URL cuts the text where it starts;
+    /// ``allowedQueryParameters`` applies only to ``redact(url:)``. A clean URL is written as
+    /// ``redact(url:)`` writes it, so an identifier in its path becomes `:id`
+    /// (`GET https://api.example.com/users/12345678 200` keeps
+    /// `GET https://api.example.com/users/:id 200`), and one longer than 256 characters cuts the
+    /// text like any long word. `see https://x.example/a?page=2 ok` keeps `see `, with `page`
+    /// allowed or not.
     public func redact(_ text: String) -> String {
         redact(text, nesting: .text(length: text.unicodeScalars.count))
     }

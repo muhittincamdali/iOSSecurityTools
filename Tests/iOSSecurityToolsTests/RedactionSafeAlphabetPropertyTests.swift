@@ -33,6 +33,11 @@ struct RedactionSafeAlphabetPropertyTests {
         { key, unsafe, value in "status=200 " + key + unsafe + value },
         { key, unsafe, value in key + "=" + unsafe + value },
         { key, unsafe, value in unsafe + key + "=" + value },
+        // Inside a URL, which never runs past the character: the text is cut where it starts.
+        { key, unsafe, value in key + " https://x.example/a" + unsafe + "b/" + value + "?q=1 tail" },
+        { key, unsafe, value in key + " https://x.example/a" + unsafe + "b/" + value + " tail" },
+        { key, unsafe, value in "path=https://x.example/" + unsafe + "/" + value + " " + key },
+        { key, unsafe, value in key + " https://x.example/" + value + unsafe },
     ]
 
     static let keys = ["user", "status", "note", "x", "db_host", "Error", "count", "card_holder", "msg"]
@@ -79,6 +84,10 @@ struct RedactionSafeAlphabetPropertyTests {
         { key, escape, value in key + "=" + escape + value },
         { key, escape, value in "status=200&" + key + escape + value },
         { key, escape, value in "msg: \"" + key + escape + value + "\"" },
+        // At the end of a URL, inside it and in its query.
+        { key, escape, value in "see https://x.example/" + key + escape + " " + value },
+        { key, escape, value in "see https://x.example/a/" + key + escape + value + " tail" },
+        { key, escape, value in "see https://x.example/a?q=" + key + escape + " " + value },
     ]
 
     @Test("no value after an escape shows, on any path that reads free text", arguments: 0..<4)
