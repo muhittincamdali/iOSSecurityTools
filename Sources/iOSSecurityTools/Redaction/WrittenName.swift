@@ -138,6 +138,9 @@ enum WrittenName {
 /// value. The value of every other field is hidden whole, whatever the field is called, unless it
 /// stays beside the name (see ``WrittenName/staysBesideName(_:value:)``): the fields have no
 /// order, so what belongs to the name cannot be told.
+///
+/// Only the positions of the fields that name a secret are kept, not the fields: a form of a
+/// quarter of a megabyte has 60,000 of them.
 struct NamingFields {
     enum Value {
         case string([Unicode.Scalar])
@@ -147,25 +150,39 @@ struct NamingFields {
         case other
     }
 
-    private let naming: [Int]
-    private let fields: [(name: [Unicode.Scalar], value: Value)]
+    typealias Field = (name: [Unicode.Scalar], value: Value)
 
-    init(_ fields: [(name: [Unicode.Scalar], value: Value)], compatibility: CompatibilityText) {
-        self.fields = fields
-        naming = fields.indices.filter { index in
-            let (name, value) = fields[index]
-            switch value {
-            case .string(let text): return WrittenName.namesSecret(text, in: .field(name), compatibility: compatibility)
-            case .structure: return WrittenName.holdsName(name)
-            case .other: return false
-            }
+    private var naming: [Int] = []
+    private var count = 0
+
+    /// No fields yet; ``read(_:compatibility:)`` reads them in order.
+    init() {}
+
+    /// Reads the fields in order, one at a time.
+    init(_ fields: some Sequence<Field>, compatibility: CompatibilityText) {
+        for field in fields { read(field, compatibility: compatibility) }
+    }
+
+    /// Reads the next field.
+    mutating func read(_ field: Field, compatibility: CompatibilityText) {
+        if Self.namesSecret(field, compatibility: compatibility) { naming.append(count) }
+        count += 1
+    }
+
+    private static func namesSecret(_ field: Field, compatibility: CompatibilityText) -> Bool {
+        switch field.value {
+        case .string(let text): WrittenName.namesSecret(text, in: .field(field.name), compatibility: compatibility)
+        case .structure: WrittenName.holdsName(field.name)
+        case .other: false
         }
     }
 
-    /// Whether the value of field `index` is hidden because another field names a secret.
-    func hidesValue(at index: Int) -> Bool {
+    /// Whether the value of field `index`, which is `field`, is hidden because another field
+    /// names a secret. The field is made only when one does.
+    func hidesValue(at index: Int, of field: @autoclosure () -> Field) -> Bool {
         guard naming.count > 1 || naming.first.map({ $0 != index }) == true else { return false }
-        guard case .string(let text) = fields[index].value else { return true }
-        return !WrittenName.staysBesideName(fields[index].name, value: text)
+        let field = field()
+        guard case .string(let text) = field.value else { return true }
+        return !WrittenName.staysBesideName(field.name, value: text)
     }
 }

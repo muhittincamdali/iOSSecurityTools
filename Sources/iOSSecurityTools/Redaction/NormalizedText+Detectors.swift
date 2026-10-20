@@ -11,8 +11,10 @@ extension NormalizedText {
                 i += 1
                 continue
             }
-            // Digit groups separated by up to three spaces, tabs or dashes.
-            var groups: [Range<Int>] = []
+            // Digit groups separated by up to three spaces, tabs or dashes, read through a window
+            // of the groups a card number can still span: a megabyte of `4242 4242 …` is one chain
+            // of groups, which an array of them all held in memory.
+            var window = CardWindow()
             var groupStart = i
             var j = i
             while j < count {
@@ -25,16 +27,13 @@ extension NormalizedText {
                     separatorEnd += 1
                 }
                 guard separatorEnd > j, separatorEnd < count, isDigit(separatorEnd) else { break }
-                groups.append(groupStart..<j)
+                window.append(groupStart..<j, into: &spans, in: self)
                 groupStart = separatorEnd
                 j = separatorEnd
             }
-            groups.append(groupStart..<j)
-            if j < count, isLetter(j), gluesToWord(j) {
-                // Digits that run into letters are an identifier, not a card number.
-                groups.removeLast()
-            }
-            spans += cardCandidates(in: groups)
+            // Digits that run into letters are an identifier, not a card number.
+            let runsIntoLetters = j < count && isLetter(j) && gluesToWord(j)
+            window.finish(last: runsIntoLetters ? nil : groupStart..<j, into: &spans, in: self)
             i = max(j, i + 1)
         }
         return spans
@@ -44,43 +43,78 @@ extension NormalizedText {
         bytes[i] == UInt8(ascii: " ") || bytes[i] == UInt8(ascii: "-") || bytes[i] == UInt8(ascii: "\t")
     }
 
-    /// The longest run of consecutive groups starting at each group that holds 13 to 19 digits and
-    /// passes the Luhn check.
-    private func cardCandidates(in groups: [Range<Int>]) -> [SensitiveDataRedactor.Span] {
-        var spans: [SensitiveDataRedactor.Span] = []
-        var first = 0
-        while first < groups.count {
-            var digits: [UInt8] = []
+    /// The digit groups of a chain that a card number may still start in. From each group on, the
+    /// longest run of consecutive groups that holds 13 to 19 digits and passes the Luhn check is a
+    /// card number, and the next run starts after it. A run is read once the groups after its start
+    /// hold more than 19 digits without the newest group, which may still turn out to run into
+    /// letters, so the window holds the groups of 19 digits at most and a few more.
+    private struct CardWindow {
+        private var groups: [Range<Int>] = []
+        private var first = 0
+
+        mutating func append(_ group: Range<Int>, into spans: inout [SensitiveDataRedactor.Span], in text: NormalizedText) {
+            groups.append(group)
+            while first < groups.count, digitCount(from: first, to: groups.count - 1) > 19 {
+                read(into: &spans, in: text)
+            }
+            if first > 64 {
+                groups.removeFirst(first)
+                first = 0
+            }
+        }
+
+        mutating func finish(last: Range<Int>?, into spans: inout [SensitiveDataRedactor.Span], in text: NormalizedText) {
+            if let last { groups.append(last) }
+            while first < groups.count { read(into: &spans, in: text) }
+        }
+
+        private func digitCount(from start: Int, to end: Int) -> Int {
+            var digits = 0
+            var k = start
+            while k < end, digits <= 19 {
+                digits += groups[k].count
+                k += 1
+            }
+            return digits
+        }
+
+        /// The card number that starts in group `first`, if any, and the group the next one may
+        /// start in. The Luhn sum of every run of groups from `first` is kept as it grows: the
+        /// digits at even and at odd places from the start, each as written and doubled, so that
+        /// either can be the last digit.
+        private mutating func read(into spans: inout [SensitiveDataRedactor.Span], in text: NormalizedText) {
+            var count = 0
+            var even = (plain: 0, doubled: 0)
+            var odd = (plain: 0, doubled: 0)
             var best: Int?
             var last = first
-            while last < groups.count {
-                digits += groups[last].map { bytes[$0] - UInt8(ascii: "0") }
-                if digits.count > 19 { break }
-                if digits.count >= 13, Self.passesLuhn(digits) { best = last }
+            groups: while last < groups.count {
+                for k in groups[last] {
+                    let digit = Int(text.bytes[k] - UInt8(ascii: "0"))
+                    let doubled = digit < 5 ? digit * 2 : digit * 2 - 9
+                    if count % 2 == 0 {
+                        even.plain += digit
+                        even.doubled += doubled
+                    } else {
+                        odd.plain += digit
+                        odd.doubled += doubled
+                    }
+                    count += 1
+                    if count > 19 { break groups }
+                }
+                // The last digit is never doubled, the one before it is, and so on.
+                let sum = (count - 1) % 2 == 0 ? even.plain + odd.doubled : even.doubled + odd.plain
+                if count >= 13, sum % 10 == 0 { best = last }
                 last += 1
             }
-            if let best {
-                let range = groups[first].lowerBound..<groups[best].upperBound
-                spans.append(span(range, .cardNumbers, Mask.cardNumber(string(range))))
-                first = best + 1
-            } else {
+            guard let best else {
                 first += 1
+                return
             }
+            let range = groups[first].lowerBound..<groups[best].upperBound
+            spans.append(text.span(range, .cardNumbers, Mask.cardNumber(text.string(range))))
+            first = best + 1
         }
-        return spans
-    }
-
-    static func passesLuhn(_ digits: [UInt8]) -> Bool {
-        var sum = 0
-        for (position, digit) in digits.reversed().enumerated() {
-            var value = Int(digit)
-            if position % 2 == 1 {
-                value *= 2
-                if value > 9 { value -= 9 }
-            }
-            sum += value
-        }
-        return sum % 10 == 0
     }
 
     // MARK: Email addresses

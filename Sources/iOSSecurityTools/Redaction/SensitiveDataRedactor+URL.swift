@@ -64,10 +64,14 @@ extension SensitiveDataRedactor {
         if let query = components.percentEncodedQuery, !Self.isStrictForm(query) { return result + "?" + Self.replacement }
         if let items = components.percentEncodedQueryItems {
             // `?label=Password&value=…`: a parameter that names a secret hides the others.
-            let naming = hidesByName ? Self.namingFields(items.map { (Self.formDecoded($0.name) ?? "", $0.value.flatMap(Self.formDecoded)) }) : nil
+            let field = { (item: URLQueryItem) in Self.namingField(name: Self.formDecoded(item.name) ?? "", value: item.value.flatMap(Self.formDecoded)) }
+            let naming = hidesByName ? NamingFields(items.lazy.map(field), compatibility: CompatibilityText()) : nil
             let parameters = items.indices.map { index in
                 hidesByName
-                    ? redacted(parameter: items[index].name, value: items[index].value, hidesValue: naming?.hidesValue(at: index) == true, nesting: nesting)
+                    ? redacted(
+                        parameter: items[index].name, value: items[index].value, hidesValue: naming?.hidesValue(at: index, of: field(items[index])) == true,
+                        nesting: nesting
+                    )
                     : scanned(parameter: items[index].name, value: items[index].value, nesting: nesting)
             }
             result += "?" + parameters.joined(separator: "&")

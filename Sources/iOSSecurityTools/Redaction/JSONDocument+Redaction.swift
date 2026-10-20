@@ -76,10 +76,10 @@ extension JSONDocument {
         compatibility: CompatibilityText
     ) {
         let readsNames = redactor.kinds.contains(.secretFields)
-        let naming = readsNames ? namingFields(members, compatibility: compatibility) : nil
+        let naming = readsNames ? NamingFields(members.lazy.map(namingField), compatibility: compatibility) : nil
         for (index, member) in members.enumerated() {
             spans += stringSpans(member.name, role: .name, nesting: nesting, redactor: redactor, compatibility: compatibility)
-            if readsNames, FieldName.hidesValue(text(of: member.name)) || naming?.hidesValue(at: index) == true {
+            if readsNames, FieldName.hidesValue(text(of: member.name)) || naming?.hidesValue(at: index, of: namingField(member)) == true {
                 spans.append(Self.hiding(member.value))
             } else {
                 collect(member.value, nesting: nesting, into: &spans, redactor: redactor, compatibility: compatibility)
@@ -87,15 +87,13 @@ extension JSONDocument {
         }
     }
 
-    private func namingFields(_ members: [Member], compatibility: CompatibilityText) -> NamingFields {
-        NamingFields(members.map { member in
-            let value: NamingFields.Value = switch member.value.value {
-            case .string(let token): .string(text(of: token))
-            case .object, .array: .structure
-            case .number, .boolean, .null: .other
-            }
-            return (text(of: member.name), value)
-        }, compatibility: compatibility)
+    private func namingField(_ member: Member) -> NamingFields.Field {
+        let value: NamingFields.Value = switch member.value.value {
+        case .string(let token): .string(text(of: token))
+        case .object, .array: .structure
+        case .number, .boolean, .null: .other
+        }
+        return (text(of: member.name), value)
     }
 
     /// Whether the first element of a two-element array names its second: a string that the key

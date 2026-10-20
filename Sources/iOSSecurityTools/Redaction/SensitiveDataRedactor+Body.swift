@@ -90,26 +90,50 @@ extension SensitiveDataRedactor {
     // MARK: Forms
 
     /// Only a body that ``isStrictForm(_:)`` accepts is read, so no server splits it otherwise.
-    /// Fields are split at `&` and `=` scalar by scalar, as a server reads the bytes.
+    /// Fields are split at `&` and `=` scalar by scalar, as a server reads the bytes. The form is
+    /// read twice, field by field, without keeping its fields: once for the fields that name a
+    /// secret in their value (`label=Password&value=…`, see ``NamingFields``), once to write it.
     private func redactedForm(_ body: Data, nesting: Nesting) -> String? {
         guard let text = String(data: body, encoding: .utf8), Self.isStrictForm(text) else { return nil }
-        var fields: [FormField] = []
-        for raw in text.unicodeScalars.split(separator: "&", omittingEmptySubsequences: false) {
+        let readsNames = kinds.contains(.secretFields)
+        var naming = NamingFields()
+        let compatibility = CompatibilityText()
+        for raw in FormFields(text) {
             guard let field = FormField(raw) else { return nil }
-            fields.append(field)
+            if readsNames { naming.read(Self.namingField(name: field.name, value: field.value), compatibility: compatibility) }
         }
-        let naming = kinds.contains(.secretFields) ? Self.namingFields(fields.map { ($0.name, $0.value) }) : nil
-        return fields.indices.map { index in
-            redacted(fields[index], hidesValue: naming?.hidesValue(at: index) == true, nesting: nesting)
-        }.joined(separator: "&")
+        var output = ""
+        output.reserveCapacity(text.utf8.count)
+        for (index, raw) in FormFields(text).enumerated() {
+            guard let field = FormField(raw) else { return nil }
+            if index > 0 { output += "&" }
+            let hidesValue = readsNames && naming.hidesValue(at: index, of: Self.namingField(name: field.name, value: field.value))
+            output += redacted(field, hidesValue: hidesValue, nesting: nesting)
+        }
+        return output
     }
 
-    /// The fields of a form or a URL query that name a secret in their value, as
-    /// `label=Password&value=…` does (see ``NamingFields``).
-    static func namingFields(_ fields: [(name: String, value: String?)]) -> NamingFields {
-        NamingFields(fields.map { field in
-            (Array(field.name.unicodeScalars), field.value.map { .string(Array($0.unicodeScalars)) } ?? .other)
-        }, compatibility: CompatibilityText())
+    /// A field of a form or a URL query as ``NamingFields`` reads it.
+    static func namingField(name: String, value: String?) -> NamingFields.Field {
+        (Array(name.unicodeScalars), value.map { .string(Array($0.unicodeScalars)) } ?? .other)
+    }
+
+    /// The fields of a form, split at every `&`, one after another.
+    private struct FormFields: Sequence, IteratorProtocol {
+        private let scalars: String.UnicodeScalarView
+        private var start: String.UnicodeScalarView.Index?
+
+        init(_ text: String) {
+            scalars = text.unicodeScalars
+            start = scalars.startIndex
+        }
+
+        mutating func next() -> Substring.UnicodeScalarView? {
+            guard let fieldStart = start else { return nil }
+            let end = scalars[fieldStart...].firstIndex(of: "&") ?? scalars.endIndex
+            start = end == scalars.endIndex ? nil : scalars.index(after: end)
+            return scalars[fieldStart..<end]
+        }
     }
 
     /// A form field, as sent and decoded: `+` is a space, then percent-decoding as UTF-8.

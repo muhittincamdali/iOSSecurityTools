@@ -23,12 +23,12 @@ extension SensitiveDataRedactor {
               let multipart = MultipartBody(Array(body), boundary: parameter.value)
         else { return nil }
         let boundary = parameter.value
-        let naming = kinds.contains(.secretFields) ? Self.namingParts(multipart.parts) : nil
+        let naming = kinds.contains(.secretFields) ? NamingFields(multipart.parts.lazy.map(Self.namingField), compatibility: CompatibilityText()) : nil
         var output = ""
         for (index, part) in multipart.parts.enumerated() {
             output += "--\(boundary)\r\n"
             output += renderedHeaders(of: part, nesting: nesting).map { $0 + "\r\n" }.joined()
-            let hidesValue = naming?.hidesValue(at: index) == true
+            let hidesValue = naming?.hidesValue(at: index, of: Self.namingField(part)) == true
             output += "\r\n" + (hidesValue ? Self.replacement : redactedContent(of: part, nesting: nesting)) + "\r\n"
         }
         return output + "--\(boundary)--"
@@ -73,11 +73,9 @@ extension SensitiveDataRedactor {
     /// any other content of a part that holds a name (`label` in base64, as JSON, in another
     /// charset, as a file) cannot be read as one, so it counts as naming a secret, as an array or
     /// object does in JSON.
-    private static func namingParts(_ parts: [MultipartBody.Part]) -> NamingFields {
-        NamingFields(parts.map { part in
-            let value: NamingFields.Value = plainText(of: part).map { .string(Array($0.unicodeScalars)) } ?? .structure
-            return (Array(part.name.unicodeScalars), value)
-        }, compatibility: CompatibilityText())
+    private static func namingField(_ part: MultipartBody.Part) -> NamingFields.Field {
+        let value: NamingFields.Value = plainText(of: part).map { .string(Array($0.unicodeScalars)) } ?? .structure
+        return (Array(part.name.unicodeScalars), value)
     }
 
     /// The content of a field sent as plain UTF-8 text without a transfer encoding; nil for a
