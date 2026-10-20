@@ -56,10 +56,12 @@ extension SensitiveDataRedactor {
         result += hidesByName ? redacted(path: path, nesting: nesting) : scanned(path: path, nesting: nesting)
         if let query = components.percentEncodedQuery, !Self.isStrictForm(query) { return result + "?" + Self.replacement }
         if let items = components.percentEncodedQueryItems {
-            let parameters = items.map { item in
+            // `?label=Password&value=…`: a parameter that names a secret hides the others.
+            let naming = hidesByName ? Self.namingFields(items.map { (Self.formDecoded($0.name) ?? "", $0.value.flatMap(Self.formDecoded)) }) : nil
+            let parameters = items.indices.map { index in
                 hidesByName
-                    ? redacted(parameter: item.name, value: item.value, nesting: nesting)
-                    : scanned(parameter: item.name, value: item.value, nesting: nesting)
+                    ? redacted(parameter: items[index].name, value: items[index].value, hidesValue: naming?.hidesValue(at: index) == true, nesting: nesting)
+                    : scanned(parameter: items[index].name, value: items[index].value, nesting: nesting)
             }
             result += "?" + parameters.joined(separator: "&")
         }
@@ -167,14 +169,15 @@ extension SensitiveDataRedactor {
         return redact(decoded, nesting: nesting) != decoded
     }
 
-    /// `name=value` from a query or path parameter, both percent-encoded.
-    private func redacted(parameter rawName: String, value rawValue: String?, nesting: Nesting) -> String {
+    /// `name=value` from a query or path parameter, both percent-encoded. The value is kept only
+    /// when the name is allowed and no other parameter names a secret (`hidesValue`).
+    private func redacted(parameter rawName: String, value rawValue: String?, hidesValue: Bool = false, nesting: Nesting) -> String {
         let name = Self.formDecoded(rawName)
         let shownName = name.map { PlainName($0.unicodeScalars) != nil && redactedName($0, nesting: nesting) == $0 } == true ? rawName : Self.replacement
         let allowed = name.flatMap { FieldName.allowableFold($0.unicodeScalars) }.map(allowedQueryParameters.contains) ?? false
         guard let rawValue else { return allowed ? shownName : Self.replacement }
         guard !rawValue.isEmpty else { return shownName + "=" }
-        guard allowed, let value = Self.formDecoded(rawValue) else { return shownName + "=" + Self.replacement }
+        guard allowed, !hidesValue, let value = Self.formDecoded(rawValue) else { return shownName + "=" + Self.replacement }
         let redactedValue = redact(value, nesting: nesting)
         return shownName + "=" + (redactedValue == value ? rawValue : Self.formEncoded(redactedValue))
     }

@@ -17,11 +17,13 @@ extension SensitiveDataRedactor {
               let multipart = MultipartBody(Array(body), boundary: parameter.value)
         else { return nil }
         let boundary = parameter.value
+        let naming = kinds.contains(.secretFields) ? Self.namingFields(multipart.parts.map { ($0.name, Self.plainText(of: $0)) }) : nil
         var output = ""
-        for part in multipart.parts {
+        for (index, part) in multipart.parts.enumerated() {
             output += "--\(boundary)\r\n"
             output += renderedHeaders(of: part, nesting: nesting).map { $0 + "\r\n" }.joined()
-            output += "\r\n" + redactedContent(of: part, nesting: nesting) + "\r\n"
+            let hidesValue = naming?.hidesValue(at: index) == true
+            output += "\r\n" + (hidesValue ? Self.replacement : redactedContent(of: part, nesting: nesting)) + "\r\n"
         }
         return output + "--\(boundary)--"
     }
@@ -55,6 +57,13 @@ extension SensitiveDataRedactor {
             return Self.omitted(part.content.count, type.essence)
         }
         return redacted(Data(part.content), as: type, nesting: inner) ?? Self.omitted(part.content.count, type.essence)
+    }
+
+    /// The content of a field sent as plain text, which may name the field another part holds
+    /// (`label` and `value` parts); nil for a file or a part of another type.
+    private static func plainText(of part: MultipartBody.Part) -> String? {
+        guard part.filename == nil, part.contentType.map(\.isPlainText) ?? true else { return nil }
+        return String(bytes: part.content, encoding: .utf8)
     }
 
     /// The text with `"` and `\` escaped, for a quoted header parameter.

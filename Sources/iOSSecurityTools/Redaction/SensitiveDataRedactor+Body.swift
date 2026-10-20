@@ -79,28 +79,60 @@ extension SensitiveDataRedactor {
     /// Fields are split at `&` and `=` scalar by scalar, as a server reads the bytes.
     private func redactedForm(_ body: Data, nesting: Nesting) -> String? {
         guard let text = String(data: body, encoding: .utf8), Self.isStrictForm(text) else { return nil }
-        var fields: [String] = []
-        for field in text.unicodeScalars.split(separator: "&", omittingEmptySubsequences: false) {
-            guard let redacted = redactedFormField(field, nesting: nesting) else { return nil }
-            fields.append(redacted)
+        var fields: [FormField] = []
+        for raw in text.unicodeScalars.split(separator: "&", omittingEmptySubsequences: false) {
+            guard let field = FormField(raw) else { return nil }
+            fields.append(field)
         }
-        return fields.joined(separator: "&")
+        let naming = kinds.contains(.secretFields) ? Self.namingFields(fields.map { ($0.name, $0.value) }) : nil
+        return fields.indices.map { index in
+            redacted(fields[index], hidesValue: naming?.hidesValue(at: index) == true, nesting: nesting)
+        }.joined(separator: "&")
+    }
+
+    /// The fields of a form or a URL query that name a secret in their value, as
+    /// `label=Password&value=…` does (see ``NamingFields``).
+    static func namingFields(_ fields: [(name: String, value: String?)]) -> NamingFields {
+        NamingFields(fields.map { field in
+            (Array(field.name.unicodeScalars), field.value.map { .string(Array($0.unicodeScalars)) } ?? .other)
+        }, compatibility: CompatibilityText())
+    }
+
+    /// A form field, as sent and decoded: `+` is a space, then percent-decoding as UTF-8.
+    private struct FormField {
+        let rawName: Substring
+        let rawValue: Substring?
+        let name: String
+        let value: String?
+
+        init?(_ field: Substring.UnicodeScalarView) {
+            guard let equals = field.firstIndex(of: "=") else {
+                rawName = Substring(field)
+                rawValue = nil
+                guard let name = SensitiveDataRedactor.formDecoded(rawName) else { return nil }
+                self.name = name
+                value = nil
+                return
+            }
+            rawName = Substring(field[..<equals])
+            let rawValue = Substring(field[field.index(after: equals)...])
+            guard let name = SensitiveDataRedactor.formDecoded(rawName), let value = SensitiveDataRedactor.formDecoded(rawValue) else { return nil }
+            self.rawValue = rawValue
+            self.name = name
+            self.value = value
+        }
     }
 
     /// A field is a name, `=` and a value. The name is free text too, since it can hold a field or
     /// a card number of its own (`password%3Dhunter2=x`, `{"password":"…"}` sent as a form); a
-    /// field without `=` is free text.
-    private func redactedFormField(_ field: Substring.UnicodeScalarView, nesting: Nesting) -> String? {
-        guard let equals = field.firstIndex(of: "=") else {
-            let raw = Substring(field)
-            guard let text = Self.formDecoded(raw) else { return nil }
-            return shown(text, as: redact(text, nesting: nesting), raw: raw)
+    /// field without `=` is free text. The value is hidden when the name hides it or another field
+    /// names a secret.
+    private func redacted(_ field: FormField, hidesValue: Bool, nesting: Nesting) -> String {
+        guard let rawValue = field.rawValue, let value = field.value else {
+            return shown(field.name, as: redact(field.name, nesting: nesting), raw: field.rawName)
         }
-        let rawName = Substring(field[..<equals])
-        let rawValue = Substring(field[field.index(after: equals)...])
-        guard let name = Self.formDecoded(rawName), let value = Self.formDecoded(rawValue) else { return nil }
-        let shownName = shown(name, as: redactedName(name, nesting: nesting), raw: rawName)
-        if kinds.contains(.secretFields), FieldName.hidesValue(name.unicodeScalars) { return shownName + "=" + Self.replacement }
+        let shownName = shown(field.name, as: redactedName(field.name, nesting: nesting), raw: field.rawName)
+        if kinds.contains(.secretFields), hidesValue || FieldName.hidesValue(field.name.unicodeScalars) { return shownName + "=" + Self.replacement }
         return shownName + "=" + shown(value, as: redact(value, nesting: nesting), raw: rawValue)
     }
 
