@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@11ec70dec2156a538ac6e4575521e28c286390b1 status=reviewed -->
+<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -59,7 +59,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  367 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  389 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -300,6 +300,8 @@ límite multipart tras un salto de línea suelto o un formulario con `;`.
 También se omite un cuerpo de más de 1 MiB, y el JSON se lee hasta 64 niveles de objetos y arrays y
 hasta cuatro documentos uno dentro de otro, contando el JSON dentro de cadenas, lo que limita la
 pila que puede ocupar una entrada hostil; una cadena que contiene más se oculta entera.
+Los documentos encontrados dentro de una entrada leen en total como máximo cuatro veces su
+longitud, lo que limita el tiempo; el texto más allá de ese presupuesto se oculta entero.
 Un campo cuyo nombre está en un sitio y su valor en otro, como en `{"name":"X-Api-Key","value":…}`,
 en una operación JSON Patch o SCIM sobre `/password` o en `[["Authorization","…"]]`, se oculta con
 todo su valor cuando el nombre es secreto o no es ASCII simple. Una URL con más de 64 segmentos de
@@ -309,14 +311,21 @@ se muestra la primera letra del nombre, en cualquier escritura (`ayşe.yılmaz@g
 Un nombre secreto escrito como valor, como en `name="password"`,
 `<string name="api_key">…</string>` o `<key>password</key>`, oculta lo que le sigue: el resto de
 su línea, en XML o HTML también los demás valores de atributo del elemento y sus líneas hasta la
-etiqueta de cierre, y en un objeto JSON los valores de los demás miembros.
+etiqueta de cierre, y en un objeto JSON los valores de los demás miembros. El valor de una
+property list en las líneas bajo `<key>password</key>` (también tras un `<string/>` vacío) y el
+JSON de varias líneas tras `name=` se ocultan hasta el final de la línea en que se cierran.
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
 `Şifre`, `ⓟⓘⓝ` o `🔑`, y también lo que sigue a `label="Пароль"` en una línea.
 En texto libre, un valor
 solo se conserva después de una clave permitida (`status`, `method`, `path`,
 `duration_ms`, `count` y las claves que usted pase), así que `user=bob` queda como
-`user=[redacted]`. La ocultación es una red de seguridad, no una garantía. La
+`user=[redacted]`. La ocultación es una red de seguridad, no una garantía: está hecha para
+secretos registrados por accidente. La entrada estructurada (JSON, formularios, cuerpos multipart
+con las cabeceras de sus partes, URL, XML y property lists) es segura por defecto, y lo que el redactor no entiende allí se
+oculta. El texto libre es un mejor esfuerzo: `key=value`, `key: value`, los nombres entre comillas
+y el JSON se ocultan siempre, pero no se garantiza encontrar un nombre escrito sin separador y
+disfrazado con dos o más letras parecidas (`pɑsswoʀd hunter2`). La
 [guía de registros](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describe la regla para texto libre, lo que cuesta y lo que no encuentra.
 

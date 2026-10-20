@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@11ec70dec2156a538ac6e4575521e28c286390b1 status=reviewed -->
+<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -57,7 +57,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   campos de outro jeito.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 367
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 389
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -298,6 +298,8 @@ multipart depois de uma quebra de linha solta ou um formulário com `;`.
 Um corpo maior que 1 MiB também é omitido, e o JSON é lido com no máximo 64 níveis de objetos e
 arrays e quatro documentos um dentro do outro, contando o JSON dentro de strings, o que limita a
 pilha que uma entrada hostil pode ocupar; uma string que contenha mais é ocultada por inteiro.
+Os documentos encontrados dentro de uma entrada leem no total no máximo quatro vezes o comprimento
+dela, o que limita o tempo; o texto além desse orçamento é ocultado por inteiro.
 Um campo cujo nome está em um lugar e o valor em outro, como em `{"name":"X-Api-Key","value":…}`,
 em uma operação JSON Patch ou SCIM sobre `/password` ou em `[["Authorization","…"]]`, tem o valor
 ocultado por inteiro quando o nome é secreto ou não é ASCII simples. Uma URL com mais de 64
@@ -307,14 +309,21 @@ e-mail mostra só a primeira letra do nome, em qualquer escrita (`ayşe.yılmaz@
 Um nome secreto escrito como valor, como em `name="password"`,
 `<string name="api_key">…</string>` ou `<key>password</key>`, oculta o que vem depois dele: o
 resto da linha, em XML ou HTML também os outros valores de atributo do elemento e suas linhas até
-a tag de fechamento, e em um objeto JSON os valores dos outros membros.
+a tag de fechamento, e em um objeto JSON os valores dos outros membros. O valor de uma property
+list nas linhas abaixo de `<key>password</key>` (também depois de um `<string/>` vazio) e o JSON
+em várias linhas depois de `name=` são ocultados até o fim da linha em que se fecham.
 Nomes que não são ASCII simples contam como secretos mesmo quando escritos como valores: o valor ao
 lado de um campo que guarda um nome (`name`, `label`, `type`, `id`, …), como `Şifre`, `ⓟⓘⓝ` ou `🔑`,
 é ocultado, assim como o que vem depois de `label="Пароль"` em uma linha.
 Em texto livre,
 um valor só é mantido depois de uma chave permitida (`status`, `method`, `path`, `duration_ms`,
 `count` e as chaves que você passar), então `user=bob` vira `user=[redacted]`. A ocultação é uma
-rede de segurança, não uma garantia. O
+rede de segurança, não uma garantia: ela foi feita para segredos registrados por acidente. A
+entrada estruturada (JSON, formulários, corpos multipart e os cabeçalhos das partes, URLs, XML e property lists) é
+segura por padrão, e o que o redator não entende ali é ocultado. O texto livre é um melhor
+esforço: `key=value`, `key: value`, nomes entre aspas e JSON são sempre ocultados, mas um nome
+escrito sem separador e disfarçado com duas ou mais letras parecidas (`pɑsswoʀd hunter2`) não tem
+garantia de ser encontrado. O
 [guia de logs](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 descreve a regra para texto livre, o que ela custa e o que ela não encontra.
 

@@ -51,7 +51,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   server could split into fields differently.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 367 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 389 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -290,6 +290,8 @@ fields differently, such as a multipart boundary after a bare line feed or a for
 A body over 1 MiB is omitted too, and JSON is read at most 64 objects and arrays deep and four
 documents one inside another, JSON in strings included, which bounds the stack that hostile input
 can use; a string that holds more is redacted whole.
+The documents found inside one input read at most four times its length in all, which bounds
+the time it takes; text past that budget is redacted whole.
 A field named in one place and valued in another, as in `{"name":"X-Api-Key","value":…}`, a JSON
 Patch or SCIM operation on `/password` or `[["Authorization","…"]]`, has its value redacted whole
 when the name is secret or not plain ASCII. A URL with more than 64 path segments or 128
@@ -298,13 +300,20 @@ letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes `a•••
 A secret name written as a value, as in `name="password"`, `<string name="api_key">…</string>`
 or `<key>password</key>`, hides what follows it: the rest of its line, in XML or HTML also the
 element's other attribute values and its lines up to the end tag, and in a JSON object the values
-of the other members.
+of the other members. A property list's value on the lines below `<key>password</key>` (also after
+an empty `<string/>`) and JSON over several lines after `name=` are hidden to the end of the line
+where they close.
 Non-ASCII names count as secret even when they are written as values: the value beside a field that
 holds a name (`name`, `label`, `type`, `id`, …) such as `Şifre`, `ⓟⓘⓝ` or `🔑` is redacted, and so
 is what follows `label="Пароль"` in a line.
 Free text keeps a value only after an allowed key (`status`,
 `method`, `path`, `duration_ms`, `count` and the keys you pass), so `user=bob` becomes
-`user=[redacted]`. Redaction is a safety net, not a guarantee. The
+`user=[redacted]`. Redaction is a safety net, not a guarantee: it is built for secrets logged by
+accident. Structured input (JSON, forms, multipart bodies and their part headers, URLs, XML and
+property lists) is default-safe, and what the redactor does not understand there is redacted. Free text is a best
+effort: `key=value`, `key: value`, quoted names and JSON are always redacted, but a name written
+without a separator and disguised with two or more look-alike letters (`pɑsswoʀd hunter2`) is not
+guaranteed to be found. The
 [logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describes the rule for free text, what it costs and what it does not find.
 

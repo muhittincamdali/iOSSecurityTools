@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@11ec70dec2156a538ac6e4575521e28c286390b1 status=reviewed -->
+<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -60,7 +60,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  367 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  389 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -302,7 +302,8 @@ ou un formulaire contenant `;`.
 Un corps de plus de 1 Mio est omis lui aussi, et le JSON est lu sur 64 niveaux d’objets et de
 tableaux au plus et sur quatre documents imbriqués au plus, JSON dans les chaînes compris, ce qui
 borne la pile qu’une entrée hostile peut occuper ; une chaîne qui en contient davantage est masquée
-en entier.
+en entier. Les documents trouvés dans une entrée lisent en tout au plus quatre fois sa longueur,
+ce qui borne le temps ; le texte au-delà de ce budget est masqué en entier.
 Un champ dont le nom est à un endroit et la valeur à un autre, comme dans
 `{"name":"X-Api-Key","value":…}`, dans une opération JSON Patch ou SCIM sur `/password` ou dans
 `[["Authorization","…"]]`, a sa valeur masquée en entier quand le nom est secret ou n’est pas en
@@ -312,14 +313,21 @@ dans n’importe quelle écriture (`ayşe.yılmaz@gmail.com` devient `a•••
 Un nom secret écrit comme valeur, comme dans `name="password"`,
 `<string name="api_key">…</string>` ou `<key>password</key>`, masque ce qui le suit : le reste
 de sa ligne, en XML ou HTML aussi les autres valeurs d’attribut de l’élément et ses lignes jusqu’à
-la balise de fin, et dans un objet JSON les valeurs des autres membres.
+la balise de fin, et dans un objet JSON les valeurs des autres membres. La valeur d’une property
+list sur les lignes sous `<key>password</key>` (aussi après un `<string/>` vide) et le JSON sur
+plusieurs lignes après `name=` sont masqués jusqu’à la fin de la ligne où ils se ferment.
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
 valeurs : la valeur à côté d’un champ qui porte un nom (`name`, `label`, `type`, `id`, …) comme
 `Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée, tout comme ce qui suit `label="Пароль"` dans une ligne.
 Dans le texte libre, une valeur n’est gardée qu’après une clé
 autorisée (`status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez),
 donc `user=bob` devient `user=[redacted]`. Le masquage est un filet de sécurité, pas une
-garantie. Le
+garantie : il est conçu pour les secrets journalisés par accident. L’entrée structurée (JSON,
+formulaires, corps multipart et en-têtes de leurs parties, URL, XML et property lists) est sûre par défaut, et ce qu’il
+n’y comprend pas est masqué. Le texte libre est un effort au mieux : `key=value`, `key: value`,
+les noms entre guillemets et le JSON sont toujours masqués, mais un nom écrit sans séparateur et
+déguisé avec deux lettres ressemblantes ou plus (`pɑsswoʀd hunter2`) n’est pas forcément trouvé.
+Le
 [guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 décrit la règle pour le texte libre, ce qu’elle coûte et ce qu’elle ne trouve pas.
 
