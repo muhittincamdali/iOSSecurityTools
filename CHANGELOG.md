@@ -298,6 +298,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alphabet, an escape, a long word, an unallowed key of a pair or a tag, an unknown part header
   name or a host that is not an address shows, and that text in the safe alphabet without a
   trigger and allowed pairs, tags, part headers and hosts stay.
+- The fourteenth review got values past free text right after a URL whose end named them, 168
+  inputs in every scheme (`http`, `HTTPS`, `ftp`, `wss`, `postgres`, `mongodb+srv`, `[::1]`, IPv4,
+  ports, user info, `myapp`) and on every path that reads free text, also after an allowed key and
+  in JSON strings, form values, multipart text parts and text/plain bodies: an empty or quoted query
+  value (`?api_key='…' 200`, `?token= …`, `[docs](…?token=) …`), path parameters (`;token= …`), a
+  fragment (`#access_token= …`, written without the fragment), a path that ends in `=` or `:`, and
+  a last segment, query name or host that is a secret name (`/password …`, `?secret …`,
+  `https://password …`). The scan wrote the URL and read on after it with nothing pending. A URL in
+  free text is no longer a place to read on from: its path parameters, query or fragment cut the
+  text right after their mark unless every parameter is on `allowedQueryParameters`, has a value
+  in the URL and names no secret as a value, and a URL that ends in `=` or `:`, or whose last
+  segment, or host when it has no path, names a secret, cannot be read or is not plain ASCII, cuts
+  the text after it. A URL that `URLComponents` cannot read cuts the text where it starts, one
+  whose host is not written after its scheme, unless the host holds only names with values
+  (`myapp://password=hunter2`), and one past the limits of segments or parameters after its host.
+  The same review found that every `:` between two digits was read as part of a time, so the value
+  of a key that ends in digits showed (`user1:2345678`, `acct2:44556677`, `user_id2:998877`, also
+  in a JSON string or a form value): such a `:` is part of a number now only after a number
+  (`12:30:45`, `2026-10-19T12:30:45Z`, `10.0.0.1:8080`). It also measured a megabyte of log lines
+  of short JSON (`{"count":1}`) at 19 MB, as `JSONSerialization` autoreleased each parsed tree and
+  the thread kept them until the redaction ended; each tree is released before the next JSON is
+  read now (9 MB), and the memory test measures until the thread that redacts has ended, which the
+  earlier test, ending when the redaction returned, did not see. The review's 758 and 402 probes
+  and 60 hand-run inputs are kept as tests, checked claim by claim (12 of them limitations or
+  values shown by design), with generated tests of every scheme, ending and character between a
+  URL and its value on every path, and tests that allowed URLs, times and addresses with ports
+  stay.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
