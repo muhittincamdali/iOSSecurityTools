@@ -81,7 +81,7 @@ extension SensitiveDataRedactor {
 
     /// Whether a host is written: empty, as in `file:///…`, or an address, in which the value
     /// detectors find nothing.
-    private func showsHost(_ host: String) -> Bool {
+    func showsHost(_ host: String) -> Bool {
         guard !host.isEmpty else { return true }
         let bytes = Array(host.utf8)
         guard Self.isHostName(bytes) || Self.isIPv4Address(bytes) || Self.isIPv6Literal(bytes) else { return false }
@@ -126,7 +126,7 @@ extension SensitiveDataRedactor {
     /// Whether the path has more than ``maximumPathSegments`` segments, or the path or the query
     /// more than ``maximumQueryParameters`` parameters. Each segment and parameter is read on its
     /// own, so the count bounds the work a URL can ask for; real URLs stay far below both.
-    private static func exceedsLimits(_ components: URLComponents) -> Bool {
+    static func exceedsLimits(_ components: URLComponents) -> Bool {
         let path = components.percentEncodedPath.utf8
         if path.count(where: { $0 == UInt8(ascii: "/") }) > maximumPathSegments { return true }
         if path.count(where: { $0 == UInt8(ascii: ";") }) > maximumQueryParameters { return true }
