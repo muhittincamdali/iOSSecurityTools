@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
+<!-- i18n-source: README.md@a339e510432ce8a6f977dbe065c9973e904c97e9 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -58,7 +58,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  404 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  416 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -309,29 +309,21 @@ Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wi
 reines ASCII ist. Eine URL mit mehr als 64 Pfadsegmenten oder 128 Parametern wird nur mit Schema
 und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in jeder Schrift nur den ersten Buchstaben
 ihres Namens (`ayşe.yılmaz@gmail.com` wird zu `a•••@gmail.com`).
-Ein geheimer Name, der als Wert geschrieben ist, etwa in `name="password"`,
-`<string name="api_key">…</string>` oder `<key>password</key>`, verbirgt, was ihm folgt: den Rest
-seiner Zeile, in XML oder HTML auch die übrigen Attributwerte des Elements und seine Zeilen bis
-zum End-Tag, und in einem JSON-Objekt die Werte der übrigen Mitglieder. Der Wert einer Property
-List in den Zeilen unter `<key>password</key>` (auch nach einem leeren `<string/>`) und JSON über
-mehrere Zeilen nach `name=` werden bis zum Ende der Zeile verborgen, in der sie schließen.
-Ein solcher Name zählt überall in seiner Zeile, auch ohne Anführungszeichen (`name=password`) und
-im Wert eines anderen Schlüssels, der schon verborgen ist: In einem Multipart-Body im Log verbirgt
-`Content-Disposition: form-data; name="pin"` die übrigen Header des Teils und seinen Wert bis zur
-nächsten Begrenzerzeile.
 Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert
 geschrieben sind: Der Wert neben einem Feld, das einen Namen trägt (`name`, `label`, `type`, `id`,
-…), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt, ebenso alles nach `label="Пароль"` in einer
-Zeile.
-Freier Text behält einen Wert nur nach einem erlaubten
-Schlüssel (`status`, `method`, `path`, `duration_ms`, `count` und die Schlüssel, die Sie
-übergeben), sodass aus `user=bob` `user=[redacted]` wird. Schwärzen ist ein Sicherheitsnetz,
-keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden. Strukturierte
-Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs, XML und Property Lists) sind standardmäßig
-sicher; was der Redactor dort nicht versteht, wird geschwärzt. Freier Text ist ein bestmöglicher
-Versuch: `key=value`, `key: value`, Namen in Anführungszeichen und JSON werden immer geschwärzt,
-aber ein Name ohne Trennzeichen, der mit zwei oder mehr ähnlich aussehenden Buchstaben getarnt
-ist (`pɑsswoʀd hunter2`), wird nicht garantiert gefunden. Der
+…), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt.
+In freiem Text verbirgt der erste geheime Name alles, was ihm in diesem Text folgt; das verbirgt
+absichtlich mehr als nötig. Ein Schlüssel, der nicht erlaubt ist (jeder außer `status`, `method`,
+`path`, `duration_ms`, `count` und den Schlüsseln, die Sie übergeben), ein als Wert geschriebener
+Name wie `name="password"`, ein Wort, das sich nicht lesen lässt, und ein offen gebliebenes
+Anführungszeichen schneiden den Text genauso ab, bis zu seinem Ende und nicht nur bis zum Ende der
+Zeile: Aus `login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body oder
+eine Property List im Log wird ab dem ersten Header oder Schlüssel verborgen. Schwärzen ist ein
+Sicherheitsnetz, keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden.
+Strukturierte Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs) sind
+standardmäßig sicher; was der Redactor dort nicht versteht, wird geschwärzt. In freiem Text wird
+ein Name ohne Trennzeichen, der mit zwei oder mehr ähnlich aussehenden Buchstaben getarnt ist
+(`pɑsswoʀd hunter2`), nicht garantiert gefunden, wenn nichts davor den Text abschneidet. Der
 [Logging-Leitfaden](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 beschreibt die Regel für freien Text, ihren Preis und was sie nicht findet.
 

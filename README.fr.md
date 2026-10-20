@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
+<!-- i18n-source: README.md@a339e510432ce8a6f977dbe065c9973e904c97e9 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -60,7 +60,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  404 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  416 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -310,28 +310,21 @@ Un champ dont le nom est à un endroit et la valeur à un autre, comme dans
 ASCII simple. Une URL de plus de 64 segments de chemin ou de 128 paramètres n’est enregistrée
 qu’avec son schéma et son hôte, et une adresse e-mail ne montre que la première lettre de son nom,
 dans n’importe quelle écriture (`ayşe.yılmaz@gmail.com` devient `a•••@gmail.com`).
-Un nom secret écrit comme valeur, comme dans `name="password"`,
-`<string name="api_key">…</string>` ou `<key>password</key>`, masque ce qui le suit : le reste
-de sa ligne, en XML ou HTML aussi les autres valeurs d’attribut de l’élément et ses lignes jusqu’à
-la balise de fin, et dans un objet JSON les valeurs des autres membres. La valeur d’une property
-list sur les lignes sous `<key>password</key>` (aussi après un `<string/>` vide) et le JSON sur
-plusieurs lignes après `name=` sont masqués jusqu’à la fin de la ligne où ils se ferment.
-Un tel nom compte où qu’il soit écrit sur sa ligne, aussi sans guillemets (`name=password`) et
-dans une valeur déjà masquée : dans un corps multipart écrit dans un journal,
-`Content-Disposition: form-data; name="pin"` masque les autres en-têtes de la partie et sa valeur
-jusqu’à la ligne de délimitation suivante.
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
 valeurs : la valeur à côté d’un champ qui porte un nom (`name`, `label`, `type`, `id`, …) comme
-`Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée, tout comme ce qui suit `label="Пароль"` dans une ligne.
-Dans le texte libre, une valeur n’est gardée qu’après une clé
-autorisée (`status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez),
-donc `user=bob` devient `user=[redacted]`. Le masquage est un filet de sécurité, pas une
-garantie : il est conçu pour les secrets journalisés par accident. L’entrée structurée (JSON,
-formulaires, corps multipart et en-têtes de leurs parties, URL, XML et property lists) est sûre par défaut, et ce qu’il
-n’y comprend pas est masqué. Le texte libre est un effort au mieux : `key=value`, `key: value`,
-les noms entre guillemets et le JSON sont toujours masqués, mais un nom écrit sans séparateur et
-déguisé avec deux lettres ressemblantes ou plus (`pɑsswoʀd hunter2`) n’est pas forcément trouvé.
-Le
+`Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée.
+Dans le texte libre, le premier nom secret masque tout ce qui le suit dans ce texte ; cela masque
+trop, volontairement. Une clé qui n’est pas autorisée (toute clé sauf `status`, `method`, `path`,
+`duration_ms`, `count` et les clés que vous fournissez), un nom écrit comme valeur comme
+`name="password"`, un mot illisible et un guillemet resté ouvert coupent le texte de la même façon,
+jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401` devient
+`login user=[redacted]`, et un corps multipart ou une property list écrits dans un journal sont
+masqués à partir de leur premier en-tête ou de leur première clé. Le masquage est un filet de
+sécurité, pas une garantie : il est conçu pour les secrets journalisés par accident. L’entrée
+structurée (JSON, formulaires, corps multipart et en-têtes de leurs parties, URL) est sûre par
+défaut, et ce qu’il n’y comprend pas est masqué. Dans le texte libre, un nom écrit sans séparateur
+et déguisé avec deux lettres ressemblantes ou plus (`pɑsswoʀd hunter2`) n’est pas forcément trouvé
+quand rien avant lui ne coupe le texte. Le
 [guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 décrit la règle pour le texte libre, ce qu’elle coûte et ce qu’elle ne trouve pas.
 

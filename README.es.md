@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
+<!-- i18n-source: README.md@a339e510432ce8a6f977dbe065c9973e904c97e9 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -59,7 +59,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  404 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  416 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -308,28 +308,21 @@ todo su valor cuando el nombre es secreto o no es ASCII simple. Una URL con más
 ruta o 128 parámetros se registra solo con su esquema y su host, y de una dirección de correo solo
 se muestra la primera letra del nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser
 `a•••@gmail.com`).
-Un nombre secreto escrito como valor, como en `name="password"`,
-`<string name="api_key">…</string>` o `<key>password</key>`, oculta lo que le sigue: el resto de
-su línea, en XML o HTML también los demás valores de atributo del elemento y sus líneas hasta la
-etiqueta de cierre, y en un objeto JSON los valores de los demás miembros. El valor de una
-property list en las líneas bajo `<key>password</key>` (también tras un `<string/>` vacío) y el
-JSON de varias líneas tras `name=` se ocultan hasta el final de la línea en que se cierran.
-Ese nombre cuenta dondequiera que esté en su línea, también sin comillas (`name=password`) y
-dentro de un valor que ya está oculto: en un cuerpo multipart escrito en un log,
-`Content-Disposition: form-data; name="pin"` oculta las demás cabeceras de la parte y su valor
-hasta la siguiente línea delimitadora.
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
-`Şifre`, `ⓟⓘⓝ` o `🔑`, y también lo que sigue a `label="Пароль"` en una línea.
-En texto libre, un valor
-solo se conserva después de una clave permitida (`status`, `method`, `path`,
-`duration_ms`, `count` y las claves que usted pase), así que `user=bob` queda como
-`user=[redacted]`. La ocultación es una red de seguridad, no una garantía: está hecha para
-secretos registrados por accidente. La entrada estructurada (JSON, formularios, cuerpos multipart
-con las cabeceras de sus partes, URL, XML y property lists) es segura por defecto, y lo que el redactor no entiende allí se
-oculta. El texto libre es un mejor esfuerzo: `key=value`, `key: value`, los nombres entre comillas
-y el JSON se ocultan siempre, pero no se garantiza encontrar un nombre escrito sin separador y
-disfrazado con dos o más letras parecidas (`pɑsswoʀd hunter2`). La
+`Şifre`, `ⓟⓘⓝ` o `🔑`.
+En texto libre, el primer nombre secreto oculta todo lo que le sigue en ese texto; esto oculta de
+más a propósito. Una clave que no está permitida (cualquiera salvo `status`, `method`, `path`,
+`duration_ms`, `count` y las claves que usted pase), un nombre escrito como valor como
+`name="password"`, una palabra que no se puede leer y unas comillas que quedan abiertas cortan el
+texto del mismo modo, hasta su final y no solo hasta el final de la línea: `login user=bob
+status=401` queda como `login user=[redacted]`, y un cuerpo multipart o una property list escritos
+en un log se ocultan desde su primera cabecera o clave. La ocultación es una red de seguridad, no
+una garantía: está hecha para secretos registrados por accidente. La entrada estructurada (JSON,
+formularios, cuerpos multipart con las cabeceras de sus partes, URL) es segura por defecto, y lo
+que el redactor no entiende allí se oculta. En texto libre no se garantiza encontrar un nombre
+escrito sin separador y disfrazado con dos o más letras parecidas (`pɑsswoʀd hunter2`) cuando nada
+antes de él corta el texto. La
 [guía de registros](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describe la regla para texto libre, lo que cuesta y lo que no encuentra.
 
