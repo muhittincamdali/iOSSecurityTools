@@ -19,6 +19,7 @@ extension RedactionTimeLimitTests {
         all += thirteenthReview
         all += FourteenthReviewShapes.text
         all += URLInTextShapes.text
+        all += QuotedKeyShapes.text
         return all
     }()
 }
