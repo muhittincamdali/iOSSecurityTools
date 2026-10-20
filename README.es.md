@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b9cfbbfa12b6e3cc1809d549b867891faf7c2644 status=reviewed -->
+<!-- i18n-source: README.md@805f7f93502ff39528591b4f81b896e4bfbe25f8 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  443 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  456 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -329,7 +329,15 @@ primera cadena de un array de dos elementos o como etiqueta de un elemento; y un
 con o sin separador, también escrito como valor como `name="password"`. El texto se corta hasta su
 final y no solo hasta el final de la línea: `login user=bob status=401` queda como
 `login user=[redacted]`, y un cuerpo multipart o una property list escritos en un log se ocultan
-desde su primera cabecera o clave. La ocultación es una red de seguridad, no una garantía: está
+desde su primera cabecera o clave.
+Una URL en texto libre conserva el texto que la sigue solo cuando no deja nada pendiente para ese
+texto: su query, su fragmento o sus parámetros `;` cortan el texto justo después de su marca, salvo
+que cada parámetro esté en `allowedQueryParameters` y tenga un valor, y una URL que termina en `=` o
+`:`, o cuyo último segmento o host es un nombre secreto, corta el texto después de ella
+(`see https://x.example/a?token= hunter2` se convierte en `see https://x.example/a?[redacted]`). Un
+`:` entre dígitos forma parte de un número solo después de un número (`12:30`, `10.0.0.1:8080`);
+después de una clave que termina en dígitos (`user1:2345`) es un separador.
+La ocultación es una red de seguridad, no una garantía: está
 hecha para secretos registrados por accidente. La entrada estructurada (JSON, formularios, cuerpos
 multipart con las cabeceras de sus partes, URL con sus hosts) es segura por defecto, y lo que el
 redactor no entiende allí se oculta. En texto libre no se garantiza encontrar un nombre escrito sin

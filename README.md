@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 443 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 456 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -315,6 +315,12 @@ of a two-element array or as the tag of an element; and a secret name, with or w
 separator, also one written as a value such as `name="password"`. The text is cut to its end and
 not only to the end of the line: `login user=bob status=401` becomes `login user=[redacted]`, and
 a multipart body or a property list written to a log is hidden from its first header or key.
+A URL in free text keeps the text after it only when nothing in it is left for that text: its query,
+fragment or `;` parameters cut the text right after their mark unless every parameter is on
+`allowedQueryParameters` and has a value, and a URL that ends in `=` or `:`, or whose last segment
+or host is a secret name, cuts the text after it (`see https://x.example/a?token= hunter2` becomes
+`see https://x.example/a?[redacted]`). A `:` between digits is part of a number only after a number
+(`12:30`, `10.0.0.1:8080`); after a key that ends in digits (`user1:2345`) it is a separator.
 Redaction is a safety net, not a guarantee: it is built for secrets logged by accident.
 Structured input (JSON, forms, multipart bodies and their part headers, URLs and their hosts) is
 default-safe, and what the redactor does not understand there is redacted. In free text, a name
