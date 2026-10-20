@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
+<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -57,7 +57,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   campos de outro jeito.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 311
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 331
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -298,6 +298,12 @@ multipart depois de uma quebra de linha solta ou um formulário com `;`.
 Um corpo maior que 1 MiB também é omitido, e o JSON é lido com no máximo 64 níveis de objetos e
 arrays e quatro documentos um dentro do outro, contando o JSON dentro de strings, o que limita a
 pilha que uma entrada hostil pode ocupar; uma string que contenha mais é ocultada por inteiro.
+Um campo cujo nome está em um lugar e o valor em outro, como em `{"name":"X-Api-Key","value":…}`,
+em uma operação JSON Patch ou SCIM sobre `/password` ou em `[["Authorization","…"]]`, tem o valor
+ocultado por inteiro quando o nome é secreto ou não é ASCII simples. Uma URL com mais de 64
+segmentos de caminho ou 128 parâmetros é registrada apenas com o esquema e o host, e um endereço de
+e-mail mostra só a primeira letra do nome, em qualquer escrita (`ayşe.yılmaz@gmail.com` vira
+`a•••@gmail.com`).
 Em texto livre,
 um valor só é mantido depois de uma chave permitida (`status`, `method`, `path`, `duration_ms`,
 `count` e as chaves que você passar), então `user=bob` vira `user=[redacted]`. A ocultação é uma

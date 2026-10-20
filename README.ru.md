@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
+<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -58,7 +58,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   пропускаются.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 311 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 331 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -298,6 +298,12 @@ multipart после одиночного перевода строки или �
 Тело больше 1 МиБ тоже пропускается, а JSON читается не глубже 64 уровней объектов и массивов и не
 больше четырёх вложенных друг в друга документов, считая JSON внутри строк, что ограничивает стек,
 который может занять враждебный ввод; строка, в которой их больше, скрывается целиком.
+Поле, у которого имя записано в одном месте, а значение в другом, как в
+`{"name":"X-Api-Key","value":…}`, в операции JSON Patch или SCIM над `/password` или в
+`[["Authorization","…"]]`, скрывается со всем значением, если имя секретное или не состоит из
+простого ASCII. URL, в котором больше 64 сегментов пути или 128 параметров, записывается только
+как схема и хост, а у адреса электронной почты видна только первая буква имени, в любой
+письменности (`ayşe.yılmaz@gmail.com` превращается в `a•••@gmail.com`).
 В свободном тексте значение
 сохраняется только после разрешённого ключа (`status`, `method`, `path`, `duration_ms`, `count`
 и ключи, которые вы передадите), поэтому `user=bob` превращается в `user=[redacted]`. Скрытие —

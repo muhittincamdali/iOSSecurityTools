@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
+<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -59,7 +59,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  311 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  331 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -300,6 +300,12 @@ límite multipart tras un salto de línea suelto o un formulario con `;`.
 También se omite un cuerpo de más de 1 MiB, y el JSON se lee hasta 64 niveles de objetos y arrays y
 hasta cuatro documentos uno dentro de otro, contando el JSON dentro de cadenas, lo que limita la
 pila que puede ocupar una entrada hostil; una cadena que contiene más se oculta entera.
+Un campo cuyo nombre está en un sitio y su valor en otro, como en `{"name":"X-Api-Key","value":…}`,
+en una operación JSON Patch o SCIM sobre `/password` o en `[["Authorization","…"]]`, se oculta con
+todo su valor cuando el nombre es secreto o no es ASCII simple. Una URL con más de 64 segmentos de
+ruta o 128 parámetros se registra solo con su esquema y su host, y de una dirección de correo solo
+se muestra la primera letra del nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser
+`a•••@gmail.com`).
 En texto libre, un valor
 solo se conserva después de una clave permitida (`status`, `method`, `path`,
 `duration_ms`, `count` y las claves que usted pase), así que `user=bob` queda como

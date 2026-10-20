@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@bf50c59e5c0be8c6367b9f9151896118801151ae status=reviewed -->
+<!-- i18n-source: README.md@093a8b41a72409e411f39a689c7d2bca784ca81d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -58,7 +58,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  311 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  331 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -301,6 +301,12 @@ Zeilenvorschub oder als Formular mit `;`.
 Ein Body über 1 MiB wird ebenfalls ausgelassen, und JSON wird höchstens 64 Objekte und Arrays tief
 und vier Dokumente ineinander gelesen, JSON in Strings mitgezählt, was den Stack begrenzt, den
 feindliche Eingaben belegen können; ein String, der mehr enthält, wird ganz geschwärzt.
+Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wie in
+`{"name":"X-Api-Key","value":…}`, in einer JSON-Patch- oder SCIM-Operation auf `/password` oder in
+`[["Authorization","…"]]`, wird mit seinem ganzen Wert geschwärzt, wenn der Name geheim oder kein
+reines ASCII ist. Eine URL mit mehr als 64 Pfadsegmenten oder 128 Parametern wird nur mit Schema
+und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in jeder Schrift nur den ersten Buchstaben
+ihres Namens (`ayşe.yılmaz@gmail.com` wird zu `a•••@gmail.com`).
 Freier Text behält einen Wert nur nach einem erlaubten
 Schlüssel (`status`, `method`, `path`, `duration_ms`, `count` und die Schlüssel, die Sie
 übergeben), sodass aus `user=bob` `user=[redacted]` wird. Schwärzen ist ein Sicherheitsnetz,
