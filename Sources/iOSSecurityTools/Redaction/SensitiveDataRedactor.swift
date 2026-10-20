@@ -71,6 +71,21 @@ import Foundation
 /// characters, fillers such as U+3164, `DEL` and Unicode spaces do not hide them. When two
 /// findings overlap, the whole stretch they cover becomes `[redacted]`. Scanning takes time linear
 /// in the length of the text and uses no regular expressions.
+///
+/// ## Limits
+///
+/// Input is read within fixed limits, which bound the stack that hostile input can use:
+///
+/// - A body larger than ``maximumBodySize`` (1 MiB) is omitted unread.
+/// - JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
+///   document a JSON string is in: JSON in a string inside one object may open 63 more.
+/// - At most four documents are read one inside another. A JSON text, a URL, a body and a
+///   multipart part each count: in a JSON body, JSON in a string is the second.
+///
+/// JSON that goes past a limit is not read. A body is then omitted, and a string or other text
+/// inside a document that holds such JSON, or a URL one level too many, is hidden whole. In a log
+/// line, JSON nested deeper than 64 levels hides the line from its first bracket, like JSON that
+/// does not parse.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -195,24 +210,21 @@ public struct SensitiveDataRedactor: Sendable {
     ///   text when nothing but punctuation followed the name, the line ends open (`(`, `:`, `<key>`,
     ///   `"""`) or it ends at a break other than LF and CRLF.
     /// - **Embedded JSON.** JSON in a line (`{"…`, `[{…`, `["…`, `[[…`) is parsed and redacted by the
-    ///   key rule for structured input. JSON that does not parse hides the rest of the line, and the
-    ///   lines below until its brackets close.
+    ///   key rule for structured input, within the limits listed under "Limits". JSON that does not
+    ///   parse hides the rest of the line, and the lines below until its brackets close.
     /// - **URLs** with a scheme and `//` are recorded as ``redact(url:)`` records them.
     /// - **Values** are scanned for card numbers, IBANs, email addresses and tokens everywhere.
     ///
     /// U+2028, U+2029, U+0085, vertical tab and form feed end a line and are written as line feeds,
     /// so the result breaks lines where the rule did; CR and CRLF end a line too and are kept.
     public func redact(_ text: String) -> String {
-        let scalars = Array(text.unicodeScalars)
-        let spans = textSpans(in: scalars, compatibility: CompatibilityText())
-        guard !spans.isEmpty else { return text }
-        return Self.replacing(spans, in: scalars)
+        redact(text, nesting: .text)
     }
 
     /// Returns the sensitive data found in a text, in order, without overlaps.
     public func matches(in text: String) -> [Match] {
         let scalars = Array(text.unicodeScalars)
-        let spans = textSpans(in: scalars, compatibility: CompatibilityText()).filter { !$0.kind.isEmpty }
+        let spans = textSpans(in: scalars, compatibility: CompatibilityText(), nesting: .text).filter { !$0.kind.isEmpty }
         var indices: [String.Index] = []
         indices.reserveCapacity(scalars.count + 1)
         var index = text.unicodeScalars.startIndex

@@ -7,9 +7,18 @@ import Foundation
 /// range of every value, which `JSONSerialization` does not report. So that redaction decisions
 /// are made on what a JSON parser reads, a document is accepted only when `JSONSerialization`
 /// also parses the text and finds the same structure, the same names and the same strings.
-/// Anything else, such as a trailing comma, a comment, a lone surrogate escape or nesting deeper
-/// than ``maximumDepth``, is not a document.
+/// Anything else, such as a trailing comma, a comment or a lone surrogate escape, is not a
+/// document, and neither is one that opens more objects and arrays one inside another than its
+/// ``Nesting`` leaves.
 struct JSONDocument {
+    /// Why a text is not a document.
+    enum ReadError: Error {
+        /// It is not JSON, or `JSONSerialization` reads it differently.
+        case invalid
+        /// It opens more objects and arrays one inside another than the nesting leaves.
+        case tooDeep
+    }
+
     struct Node {
         /// The whole value in the text, quotes and brackets included.
         let range: Range<Int>
@@ -37,35 +46,41 @@ struct JSONDocument {
         let decoded: [Unicode.Scalar]?
     }
 
-    static let maximumDepth = 256
-
     let scalars: [Unicode.Scalar]
     let root: Node
+    /// Where the document is: the strings in it are read with this nesting and the objects and
+    /// arrays around them.
+    let nesting: Nesting
 
-    /// Reads a JSON text; nil when it is not one or `JSONSerialization` reads it differently.
-    /// - Parameter allowsFragments: Whether the text may be a single string, number or literal
-    ///   instead of an object or array.
-    init?(_ scalars: [Unicode.Scalar], allowsFragments: Bool) {
-        var reader = Reader(scalars: scalars)
-        guard let root = reader.document(), allowsFragments || root.isContainer else { return nil }
+    /// Reads a JSON text.
+    /// - Parameters:
+    ///   - allowsFragments: Whether the text may be a single string, number or literal instead of
+    ///     an object or array.
+    ///   - nesting: The nesting of the document itself.
+    init(_ scalars: [Unicode.Scalar], allowsFragments: Bool, nesting: Nesting) throws(ReadError) {
+        var reader = Reader(scalars: scalars, depthLimit: nesting.depthLeft)
+        guard let root = reader.document() else { throw reader.failure }
+        guard allowsFragments || root.isContainer else { throw .invalid }
         let data = Data(String(String.UnicodeScalarView(scalars)).utf8)
         guard let parsed = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed),
               Self.agrees(root, with: parsed, in: scalars)
-        else { return nil }
+        else { throw .invalid }
         self.scalars = scalars
         self.root = root
+        self.nesting = nesting
     }
 
-    /// Reads the JSON object or array that starts at `start` in a longer text, such as a log line;
-    /// nil when there is none or `JSONSerialization` reads it differently. Ranges are offsets in
-    /// the whole text.
-    init?(_ scalars: [Unicode.Scalar], at start: Int) {
-        var reader = Reader(scalars: scalars, position: start)
-        guard let root = reader.value(), root.isContainer else { return nil }
+    /// Reads the JSON object or array that starts at `start` in a longer text, such as a log line.
+    /// Ranges are offsets in the whole text.
+    init(_ scalars: [Unicode.Scalar], at start: Int, nesting: Nesting) throws(ReadError) {
+        var reader = Reader(scalars: scalars, position: start, depthLimit: nesting.depthLeft)
+        guard let root = reader.value() else { throw reader.failure }
+        guard root.isContainer else { throw .invalid }
         let data = Data(String(String.UnicodeScalarView(scalars[root.range])).utf8)
-        guard let parsed = try? JSONSerialization.jsonObject(with: data), Self.agrees(root, with: parsed, in: scalars) else { return nil }
+        guard let parsed = try? JSONSerialization.jsonObject(with: data), Self.agrees(root, with: parsed, in: scalars) else { throw .invalid }
         self.scalars = scalars
         self.root = root
+        self.nesting = nesting
     }
 
     /// The text of a string, with its escapes decoded.
@@ -131,15 +146,22 @@ extension JSONDocument.Node {
 // MARK: - Reader
 
 extension JSONDocument {
-    /// A recursive descent reader for RFC 8259.
+    /// A recursive descent reader for RFC 8259 that opens at most `depthLimit` objects and arrays
+    /// one inside another, so its recursion is bounded by the nesting budget.
     private struct Reader {
         let scalars: [Unicode.Scalar]
         var position = 0
+        let depthLimit: Int
+        private var reachedDepthLimit = false
 
-        init(scalars: [Unicode.Scalar], position: Int = 0) {
+        init(scalars: [Unicode.Scalar], position: Int = 0, depthLimit: Int) {
             self.scalars = scalars
             self.position = position
+            self.depthLimit = depthLimit
         }
+
+        /// Why the last read returned nil.
+        var failure: ReadError { reachedDepthLimit ? .tooDeep : .invalid }
 
         mutating func document() -> Node? {
             skipWhitespace()
@@ -153,9 +175,15 @@ extension JSONDocument {
             value(depth: 0)
         }
 
+        /// A value inside `depth` objects and arrays.
         private mutating func value(depth: Int) -> Node? {
-            guard depth < JSONDocument.maximumDepth, position < scalars.count else { return nil }
+            guard position < scalars.count else { return nil }
             let start = position
+            let opensContainer = scalars[position] == "{" || scalars[position] == "["
+            if opensContainer, depth >= depthLimit {
+                reachedDepthLimit = true
+                return nil
+            }
             let value: Value?
             switch scalars[position] {
             case "{": value = object(depth: depth)

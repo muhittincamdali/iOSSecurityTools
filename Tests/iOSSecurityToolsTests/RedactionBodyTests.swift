@@ -46,7 +46,7 @@ struct RedactionBodyTests {
 
     @Test("omits JSON nested deeper than the parser reads")
     func deepJSON() {
-        let depth = JSONDocument.maximumDepth + 1
+        let depth = Nesting.maximumDepth + 1
         let body = String(repeating: "[", count: depth) + String(repeating: "]", count: depth)
         #expect(redact(body, "application/json") == "[body omitted: \(depth * 2) bytes, application/json]")
     }

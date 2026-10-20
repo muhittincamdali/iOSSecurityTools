@@ -9,28 +9,34 @@ extension JSONDocument {
     ///   element of an array after a string that names a secret or cannot be read
     ///   (`["password","…"]`).
     /// - Names and strings are free text: one in which anything is found is written again, escaped,
-    ///   with the free-text rule applied to its decoded text, which may hold JSON again.
+    ///   with the free-text rule applied to its decoded text, which may hold JSON again. They are
+    ///   read with the document's ``nesting`` and the objects and arrays around them, so JSON in
+    ///   them that goes past a limit of the budget hides the whole string.
     /// - A number that holds a card number or a long token becomes a string with its mask.
     func secretSpans(using redactor: SensitiveDataRedactor, compatibility: CompatibilityText) -> [SensitiveDataRedactor.Span] {
         var spans: [SensitiveDataRedactor.Span] = []
-        collect(root, into: &spans, redactor: redactor, compatibility: compatibility)
+        collect(root, nesting: nesting, into: &spans, redactor: redactor, compatibility: compatibility)
         return spans
     }
 
+    /// Collects the replacements of a value inside the objects and arrays that `nesting` counts.
+    /// The recursion follows the document, whose depth the reader bounded.
     private func collect(
-        _ node: Node, into spans: inout [SensitiveDataRedactor.Span], redactor: SensitiveDataRedactor, compatibility: CompatibilityText
+        _ node: Node, nesting: Nesting, into spans: inout [SensitiveDataRedactor.Span], redactor: SensitiveDataRedactor,
+        compatibility: CompatibilityText
     ) {
         let readsNames = redactor.kinds.contains(.secretFields)
+        let inside = nesting.enteringContainer()
         switch node.value {
         case .object(let members):
             let hidesPairValue = readsNames && hidesPairValue(in: members)
             for member in members {
-                spans += stringSpans(member.name, role: .name, redactor: redactor, compatibility: compatibility)
+                spans += stringSpans(member.name, role: .name, nesting: inside, redactor: redactor, compatibility: compatibility)
                 let name = text(of: member.name)
                 if readsNames, FieldName.hidesValue(name) || (hidesPairValue && Self.isPairPart(name, Self.pairValueNames)) {
                     spans.append(Self.hiding(member.value))
                 } else {
-                    collect(member.value, into: &spans, redactor: redactor, compatibility: compatibility)
+                    collect(member.value, nesting: inside, into: &spans, redactor: redactor, compatibility: compatibility)
                 }
             }
         case .array(let elements):
@@ -40,13 +46,13 @@ extension JSONDocument {
                     spans.append(Self.hiding(element))
                     continue
                 }
-                collect(element, into: &spans, redactor: redactor, compatibility: compatibility)
+                collect(element, nesting: inside, into: &spans, redactor: redactor, compatibility: compatibility)
                 if readsNames, case .string(let token) = element.value {
                     hidesRest = FreeTextScanner.mentionsSecret(text(of: token), compatibility: compatibility)
                 }
             }
         case .string(let token):
-            spans += stringSpans(token, role: .text, redactor: redactor, compatibility: compatibility)
+            spans += stringSpans(token, role: .text, nesting: nesting, redactor: redactor, compatibility: compatibility)
         case .number:
             spans += numberSpans(node, redactor: redactor, compatibility: compatibility)
         case .boolean, .null:
@@ -79,9 +85,11 @@ extension JSONDocument {
 
     /// A name or string whose decoded text the free-text rule changes is written again, escaped.
     private func stringSpans(
-        _ token: StringToken, role: FreeTextScanner.Role, redactor: SensitiveDataRedactor, compatibility: CompatibilityText
+        _ token: StringToken, role: FreeTextScanner.Role, nesting: Nesting, redactor: SensitiveDataRedactor, compatibility: CompatibilityText
     ) -> [SensitiveDataRedactor.Span] {
-        guard let (redacted, kind) = redactor.redactedText(text(of: token), compatibility: compatibility, role: role) else { return [] }
+        guard let (redacted, kind) = redactor.redactedText(text(of: token), compatibility: compatibility, role: role, nesting: nesting) else {
+            return []
+        }
         return [SensitiveDataRedactor.Span(start: token.content.lowerBound, end: token.content.upperBound, kind: kind, replacement: Self.escaped(redacted))]
     }
 

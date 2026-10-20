@@ -24,10 +24,21 @@ extension FreeTextScanner {
     private static let jsonWhitespace: Set<UInt8> = [0x20, 0x09, 0x0A, 0x0D]
 
     /// JSON in a line, parsed and redacted by the key rule for structured input. JSON that does
-    /// not parse cannot be read with certainty and is hidden.
+    /// not parse cannot be read with certainty and is hidden. In a text inside a document, JSON
+    /// one level too many or deeper than the depth left hides the whole text.
     mutating func embeddedJSON(lineEnd: Int) {
         let start = text.offsets[position]
-        guard let document = JSONDocument(source, at: start) else {
+        guard let inner = nesting.enteringDocument() else {
+            hideWholeText()
+            return
+        }
+        let document: JSONDocument
+        do {
+            document = try JSONDocument(source, at: start, nesting: inner)
+        } catch .tooDeep where nesting.isEmbedded {
+            hideWholeText()
+            return
+        } catch {
             hideUnparsedJSON(from: position, lineEnd: lineEnd)
             return
         }
@@ -95,11 +106,16 @@ extension FreeTextScanner {
         ASCII.isAlphanumeric(byte) || byte == UInt8(ascii: "+") || byte == UInt8(ascii: "-") || byte == UInt8(ascii: ".")
     }
 
-    /// A URL, recorded as ``SensitiveDataRedactor/redact(url:)`` records it.
+    /// A URL, recorded as ``SensitiveDataRedactor/redact(url:)`` records it. A URL one level too
+    /// many hides the whole text it is in.
     mutating func url(to end: Int) {
+        guard let inner = nesting.enteringDocument() else {
+            hideWholeText()
+            return
+        }
         let region = text.original(position..<end)
         let written = String(String.UnicodeScalarView(source[region]))
-        let redacted = redactor.redactedURL(written)
+        let redacted = redactor.redactedURL(written, nesting: inner)
         let span = SensitiveDataRedactor.Span(start: region.lowerBound, end: region.upperBound, kind: .secretFields, replacement: redacted)
         record(spans: redacted == written ? [] : [span], region: region)
         position = end

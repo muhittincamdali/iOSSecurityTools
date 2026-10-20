@@ -1,11 +1,13 @@
 extension SensitiveDataRedactor {
-    /// The findings in free text, in order and without overlaps.
-    func textSpans(in scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text) -> [Span] {
+    /// The findings in free text, in order and without overlaps. `nesting` says which documents
+    /// the text is in; a text inside one whose JSON or URL goes past a limit is one finding.
+    func textSpans(in scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text, nesting: Nesting) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty else { return [] }
         let text = NormalizedText(scalars, compatibility: compatibility)
         guard kinds.contains(.secretFields) else { return Self.merged(detectorSpans(in: text)) }
-        var scanner = FreeTextScanner(source: scalars, text: text, redactor: self, compatibility: compatibility, role: role)
+        var scanner = FreeTextScanner(source: scalars, text: text, redactor: self, compatibility: compatibility, role: role, nesting: nesting)
         scanner.run()
+        if scanner.hidesWholeText { return [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] }
         // JSON and URLs were redacted by their own rules; the detectors do not read them again.
         let regions = scanner.regions
         let detectorText = regions.isEmpty ? text : NormalizedText(scalars, compatibility: compatibility, masked: regions)
@@ -28,18 +30,26 @@ extension SensitiveDataRedactor {
 
     /// The text redacted as free text, and what was found in it; nil when nothing was.
     func redactedText(
-        _ scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text
+        _ scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text, nesting: Nesting
     ) -> (text: String, kind: Kinds)? {
-        let spans = textSpans(in: scalars, compatibility: compatibility, role: role)
+        let spans = textSpans(in: scalars, compatibility: compatibility, role: role, nesting: nesting)
         guard !spans.isEmpty else { return nil }
         let kind = spans.reduce(into: Kinds()) { $0.formUnion($1.kind) }
         return (Self.replacing(spans, in: scalars), kind)
     }
 
+    /// A text inside a document (a form value, a query value, a multipart header), redacted as
+    /// free text with the document's nesting.
+    func redact(_ text: String, nesting: Nesting) -> String {
+        let scalars = Array(text.unicodeScalars)
+        let spans = textSpans(in: scalars, compatibility: CompatibilityText(), nesting: nesting)
+        return spans.isEmpty ? text : Self.replacing(spans, in: scalars)
+    }
+
     /// A key that is written out (a form or multipart field name, a query parameter name) read as
     /// free text in the ``FreeTextScanner/Role/name`` role.
-    func redactedName(_ name: String) -> String {
-        redactedText(Array(name.unicodeScalars), compatibility: CompatibilityText(), role: .name)?.text ?? name
+    func redactedName(_ name: String, nesting: Nesting) -> String {
+        redactedText(Array(name.unicodeScalars), compatibility: CompatibilityText(), role: .name, nesting: nesting)?.text ?? name
     }
 
     /// U+2028, U+2029, U+0085, vertical tab and form feed, written as line feeds, since the

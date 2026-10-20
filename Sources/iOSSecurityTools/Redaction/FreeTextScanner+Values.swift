@@ -85,10 +85,11 @@ extension FreeTextScanner {
         hideGluedText(after: close, lineEnd: lineEnd, quote: (quote, false))
     }
 
-    /// A JSON object or array is hidden whole; one that does not parse is hidden to the end of
-    /// its line and on until its brackets close.
+    /// A JSON object or array is hidden whole; one that does not parse, or is deeper than the
+    /// depth left, is hidden to the end of its line and on until its brackets close. Only the
+    /// extent of the value is read, never what is in it.
     private mutating func hideJSONValue(from start: Int, lineEnd: Int) {
-        if let document = JSONDocument(source, at: text.offsets[start]) {
+        if let document = try? JSONDocument(source, at: text.offsets[start], nesting: nesting) {
             hide(document.root.range)
             let end = text.byteIndex(atOrAfter: document.root.range.upperBound)
             if end <= lineEnd { hideGluedText(after: end - 1, lineEnd: lineEnd) } else { position = end }

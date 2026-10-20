@@ -28,11 +28,11 @@ extension SensitiveDataRedactor {
     ///
     /// Anything else is omitted: a body that is not UTF-8, has another content type (XML, HTML,
     /// binary data), is larger than ``maximumBodySize`` or cannot be parsed completely — cut off,
-    /// malformed, nested deeper than 256 levels — and a body that a common server parser (PHP,
-    /// Werkzeug, Rack, Go, busboy) could split into fields differently, such as a multipart body
-    /// with `--boundary` after a bare LF or CR, or a form with a `;`. The result is then a note such
-    /// as `[body omitted: 1234 bytes, application/xml]`. Without a parse that every server agrees
-    /// with, a secret in it cannot be found reliably.
+    /// malformed, nested deeper than 64 levels (see "Limits" in ``SensitiveDataRedactor``) — and a
+    /// body that a common server parser (PHP, Werkzeug, Rack, Go, busboy) could split into fields
+    /// differently, such as a multipart body with `--boundary` after a bare LF or CR, or a form
+    /// with a `;`. The result is then a note such as `[body omitted: 1234 bytes, application/xml]`.
+    /// Without a parse that every server agrees with, a secret in it cannot be found reliably.
     ///
     /// - Parameters:
     ///   - body: The body as sent or received.
@@ -44,7 +44,9 @@ extension SensitiveDataRedactor {
         let mediaType = contentType.flatMap(MediaType.init)
         let described = contentType == nil ? "no content type" : mediaType?.essence ?? "unreadable content type"
         guard body.count <= Self.maximumBodySize else { return Self.omitted(body.count, described) }
-        let result = contentType == nil ? redactedJSON(body, allowsFragments: false) : mediaType.flatMap { redacted(body, as: $0) }
+        let result = contentType == nil
+            ? redactedJSON(body, allowsFragments: false, nesting: .document)
+            : mediaType.flatMap { redacted(body, as: $0, nesting: .document) }
         return result ?? Self.omitted(body.count, described)
     }
 
@@ -52,19 +54,21 @@ extension SensitiveDataRedactor {
         "[body omitted: \(count) \(count == 1 ? "byte" : "bytes"), \(type)]"
     }
 
-    func redacted(_ body: Data, as type: MediaType) -> String? {
-        if type.isMultipartFormData { return redactedMultipart(body, type) }
+    /// A body of a known type, or nil when it is omitted. `nesting` is the body's own: a body
+    /// passed in is ``Nesting/document``, a multipart part one level deeper.
+    func redacted(_ body: Data, as type: MediaType, nesting: Nesting) -> String? {
+        if type.isMultipartFormData { return redactedMultipart(body, type, nesting: nesting) }
         guard type.isUTF8 else { return nil }
-        if type.isJSON { return redactedJSON(body, allowsFragments: true) }
-        if type.isForm { return redactedForm(body) }
-        if type.isPlainText { return String(data: body, encoding: .utf8).map(redact) }
+        if type.isJSON { return redactedJSON(body, allowsFragments: true, nesting: nesting) }
+        if type.isForm { return redactedForm(body, nesting: nesting) }
+        if type.isPlainText { return String(data: body, encoding: .utf8).map { redact($0, nesting: nesting) } }
         return nil
     }
 
-    private func redactedJSON(_ body: Data, allowsFragments: Bool) -> String? {
+    private func redactedJSON(_ body: Data, allowsFragments: Bool, nesting: Nesting) -> String? {
         guard let text = String(data: body, encoding: .utf8) else { return nil }
         let scalars = Array(text.unicodeScalars)
-        guard let document = JSONDocument(scalars, allowsFragments: allowsFragments) else { return nil }
+        guard let document = try? JSONDocument(scalars, allowsFragments: allowsFragments, nesting: nesting) else { return nil }
         let spans = Self.merged(document.secretSpans(using: self, compatibility: CompatibilityText()))
         return spans.isEmpty ? text : Self.replacing(spans, in: scalars)
     }
@@ -73,11 +77,11 @@ extension SensitiveDataRedactor {
 
     /// Only a body that ``isStrictForm(_:)`` accepts is read, so no server splits it otherwise.
     /// Fields are split at `&` and `=` scalar by scalar, as a server reads the bytes.
-    private func redactedForm(_ body: Data) -> String? {
+    private func redactedForm(_ body: Data, nesting: Nesting) -> String? {
         guard let text = String(data: body, encoding: .utf8), Self.isStrictForm(text) else { return nil }
         var fields: [String] = []
         for field in text.unicodeScalars.split(separator: "&", omittingEmptySubsequences: false) {
-            guard let redacted = redactedFormField(field) else { return nil }
+            guard let redacted = redactedFormField(field, nesting: nesting) else { return nil }
             fields.append(redacted)
         }
         return fields.joined(separator: "&")
@@ -86,18 +90,18 @@ extension SensitiveDataRedactor {
     /// A field is a name, `=` and a value. The name is free text too, since it can hold a field or
     /// a card number of its own (`password%3Dhunter2=x`, `{"password":"…"}` sent as a form); a
     /// field without `=` is free text.
-    private func redactedFormField(_ field: Substring.UnicodeScalarView) -> String? {
+    private func redactedFormField(_ field: Substring.UnicodeScalarView, nesting: Nesting) -> String? {
         guard let equals = field.firstIndex(of: "=") else {
             let raw = Substring(field)
             guard let text = Self.formDecoded(raw) else { return nil }
-            return shown(text, as: redact(text), raw: raw)
+            return shown(text, as: redact(text, nesting: nesting), raw: raw)
         }
         let rawName = Substring(field[..<equals])
         let rawValue = Substring(field[field.index(after: equals)...])
         guard let name = Self.formDecoded(rawName), let value = Self.formDecoded(rawValue) else { return nil }
-        let shownName = shown(name, as: redactedName(name), raw: rawName)
+        let shownName = shown(name, as: redactedName(name, nesting: nesting), raw: rawName)
         if kinds.contains(.secretFields), FieldName.hidesValue(name.unicodeScalars) { return shownName + "=" + Self.replacement }
-        return shownName + "=" + shown(value, as: redact(value), raw: rawValue)
+        return shownName + "=" + shown(value, as: redact(value, nesting: nesting), raw: rawValue)
     }
 
     /// Decoded text after redaction: as sent when nothing was found, encoded again otherwise.

@@ -10,7 +10,7 @@ extension SensitiveDataRedactor {
 
     /// The body is read only with one plain `boundary` parameter: servers differ in which of
     /// several they take, and in whether they undo the quotes and `\` escapes of a quoted one.
-    func redactedMultipart(_ body: Data, _ type: MediaType) -> String? {
+    func redactedMultipart(_ body: Data, _ type: MediaType, nesting: Nesting) -> String? {
         let parameters = type.parameters.filter { $0.name == "boundary" || $0.name == "boundary*" }
         guard parameters.count == 1, let parameter = parameters.first, parameter.name == "boundary", !parameter.isQuoted,
               MultipartBody.isValidBoundary(parameter.value),
@@ -20,8 +20,8 @@ extension SensitiveDataRedactor {
         var output = ""
         for part in multipart.parts {
             output += "--\(boundary)\r\n"
-            output += renderedHeaders(of: part).map { $0 + "\r\n" }.joined()
-            output += "\r\n" + redactedContent(of: part) + "\r\n"
+            output += renderedHeaders(of: part, nesting: nesting).map { $0 + "\r\n" }.joined()
+            output += "\r\n" + redactedContent(of: part, nesting: nesting) + "\r\n"
         }
         return output + "--\(boundary)--"
     }
@@ -29,19 +29,20 @@ extension SensitiveDataRedactor {
     /// The disposition with only the field name, read as free text; the content type as
     /// `type/subtype`; other headers by name, their values hidden unless they are kept. A file
     /// name is never written.
-    private func renderedHeaders(of part: MultipartBody.Part) -> [String] {
-        var lines = ["Content-Disposition: form-data; name=\"\(Self.quotedStringContent(redactedName(part.name)))\""]
+    private func renderedHeaders(of part: MultipartBody.Part, nesting: Nesting) -> [String] {
+        var lines = ["Content-Disposition: form-data; name=\"\(Self.quotedStringContent(redactedName(part.name, nesting: nesting)))\""]
         if let contentType = part.contentType { lines.append("Content-Type: " + contentType.essence) }
         for header in part.headers {
             let name = header.name.lowercased()
             guard name != "content-disposition", name != "content-type" else { continue }
             let value = header.value.trimmingCharacters(in: .whitespaces)
-            lines.append(header.name + ": " + (Self.keptPartHeaders.contains(name) ? redact(value) : Self.replacement))
+            lines.append(header.name + ": " + (Self.keptPartHeaders.contains(name) ? redact(value, nesting: nesting) : Self.replacement))
         }
         return lines
     }
 
-    private func redactedContent(of part: MultipartBody.Part) -> String {
+    /// The content of a part, read as a body one level inside the multipart body.
+    private func redactedContent(of part: MultipartBody.Part, nesting: Nesting) -> String {
         if kinds.contains(.secretFields), FieldName.hidesValue(part.name.unicodeScalars) { return Self.replacement }
         let defaultType = part.filename == nil ? "text/plain" : "application/octet-stream"
         guard let type = part.contentType ?? MediaType(defaultType) else { return Self.omitted(part.content.count, defaultType) }
@@ -49,11 +50,11 @@ extension SensitiveDataRedactor {
         let encodings = part.headers.filter { $0.name.lowercased() == "content-transfer-encoding" }
             .map { $0.value.trimmingCharacters(in: .whitespaces).lowercased() }
         guard part.filename == nil, !type.essence.hasPrefix("multipart/"), encodings.allSatisfy(Self.identityTransferEncodings.contains),
-              encodings.count <= 1
+              encodings.count <= 1, let inner = nesting.enteringDocument()
         else {
             return Self.omitted(part.content.count, type.essence)
         }
-        return redacted(Data(part.content), as: type) ?? Self.omitted(part.content.count, type.essence)
+        return redacted(Data(part.content), as: type, nesting: inner) ?? Self.omitted(part.content.count, type.essence)
     }
 
     /// The text with `"` and `\` escaped, for a quoted header parameter.

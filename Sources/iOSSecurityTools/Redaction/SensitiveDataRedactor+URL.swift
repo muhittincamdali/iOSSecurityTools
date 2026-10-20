@@ -36,27 +36,30 @@ extension SensitiveDataRedactor {
     /// ```
     public func redact(url: URL) -> String {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return Self.unparsedURL }
-        return redacted(components)
+        return redacted(components, nesting: .document)
     }
 
-    /// A URL written in text, recorded as ``redact(url:)`` records it.
-    func redactedURL(_ text: String) -> String {
+    /// A URL written in text, recorded as ``redact(url:)`` records it. `nesting` is the URL's own:
+    /// its query values and path segments are read as text inside it.
+    func redactedURL(_ text: String, nesting: Nesting) -> String {
         guard let components = URLComponents(string: text) else { return Self.unparsedURL }
-        return redacted(components)
+        return redacted(components, nesting: nesting)
     }
 
-    private func redacted(_ components: URLComponents) -> String {
+    private func redacted(_ components: URLComponents, nesting: Nesting) -> String {
         guard let scheme = components.scheme, let host = components.percentEncodedHost else { return Self.unparsedURL }
         var result = scheme + "://" + host
         if let port = components.port { result += ":\(port)" }
         guard urlDetail == .full else { return result }
         let hidesByName = kinds.contains(.secretFields)
         let path = components.percentEncodedPath
-        result += hidesByName ? redacted(path: path) : scanned(path: path)
+        result += hidesByName ? redacted(path: path, nesting: nesting) : scanned(path: path, nesting: nesting)
         if let query = components.percentEncodedQuery, !Self.isStrictForm(query) { return result + "?" + Self.replacement }
         if let items = components.percentEncodedQueryItems {
             let parameters = items.map { item in
-                hidesByName ? redacted(parameter: item.name, value: item.value) : scanned(parameter: item.name, value: item.value)
+                hidesByName
+                    ? redacted(parameter: item.name, value: item.value, nesting: nesting)
+                    : scanned(parameter: item.name, value: item.value, nesting: nesting)
             }
             result += "?" + parameters.joined(separator: "&")
         }
@@ -67,30 +70,30 @@ extension SensitiveDataRedactor {
 
     /// The path when only the value detectors run: a segment in which they find something, or that
     /// does not decode, becomes `:id`.
-    private func scanned(path: String) -> String {
+    private func scanned(path: String, nesting: Nesting) -> String {
         path.split(separator: "/", omittingEmptySubsequences: false)
-            .map { holdsSecret(String($0)) ? Self.identifierPlaceholder : String($0) }
+            .map { holdsSecret(String($0), nesting: nesting) ? Self.identifierPlaceholder : String($0) }
             .joined(separator: "/")
     }
 
     /// A query parameter when only the value detectors run.
-    private func scanned(parameter rawName: String, value rawValue: String?) -> String {
-        let name = scanned(rawName)
-        return rawValue.map { name + "=" + scanned($0) } ?? name
+    private func scanned(parameter rawName: String, value rawValue: String?, nesting: Nesting) -> String {
+        let name = scanned(rawName, nesting: nesting)
+        return rawValue.map { name + "=" + scanned($0, nesting: nesting) } ?? name
     }
 
     /// A percent-encoded query name or value with what the value detectors find in it replaced;
     /// `[redacted]` when it does not decode.
-    private func scanned(_ raw: String) -> String {
+    private func scanned(_ raw: String, nesting: Nesting) -> String {
         guard let decoded = Self.formDecoded(raw) else { return Self.replacement }
-        let redacted = redact(decoded)
+        let redacted = redact(decoded, nesting: nesting)
         return redacted == decoded ? raw : Self.formEncoded(redacted)
     }
 
     /// The path segment by segment. A segment after one that names a secret or cannot be read
     /// (`/pin/4831`, `/password-reset/…`, `/token/…/info`) is a value, so it becomes `:id`
     /// whatever it looks like.
-    private func redacted(path: String) -> String {
+    private func redacted(path: String, nesting: Nesting) -> String {
         var segments: [String] = []
         var followsLabel = false
         for raw in path.split(separator: "/", omittingEmptySubsequences: false) {
@@ -99,7 +102,7 @@ extension SensitiveDataRedactor {
                 segments.append(segment)
                 continue
             }
-            segments.append(followsLabel ? Self.identifierPlaceholder : redacted(pathSegment: segment))
+            segments.append(followsLabel ? Self.identifierPlaceholder : redacted(pathSegment: segment, nesting: nesting))
             followsLabel = Self.isSecretLabel(segment)
         }
         return segments.joined(separator: "/")
@@ -115,34 +118,34 @@ extension SensitiveDataRedactor {
 
     /// A path segment, or `:id` when it looks like an identifier or a secret. Parameters after a
     /// `;`, as in `cart;jsessionid=…`, are read like query parameters.
-    private func redacted(pathSegment segment: String) -> String {
+    private func redacted(pathSegment segment: String, nesting: Nesting) -> String {
         let parts = segment.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)
         let base = String(parts[0])
-        var result = Self.isIdentifierLike(base) || holdsSecret(base) ? Self.identifierPlaceholder : base
+        var result = Self.isIdentifierLike(base) || holdsSecret(base, nesting: nesting) ? Self.identifierPlaceholder : base
         guard parts.count == 2 else { return result }
         let parameters = parts[1].split(separator: ";", omittingEmptySubsequences: false).map { parameter in
             let pair = parameter.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-            return redacted(parameter: String(pair[0]), value: pair.count == 2 ? String(pair[1]) : nil)
+            return redacted(parameter: String(pair[0]), value: pair.count == 2 ? String(pair[1]) : nil, nesting: nesting)
         }
         result += ";" + parameters.joined(separator: ";")
         return result
     }
 
     /// Whether the decoded segment holds something the free-text rule hides, or does not decode.
-    private func holdsSecret(_ segment: String) -> Bool {
+    private func holdsSecret(_ segment: String, nesting: Nesting) -> Bool {
         guard let decoded = segment.removingPercentEncoding else { return true }
-        return redact(decoded) != decoded
+        return redact(decoded, nesting: nesting) != decoded
     }
 
     /// `name=value` from a query or path parameter, both percent-encoded.
-    private func redacted(parameter rawName: String, value rawValue: String?) -> String {
+    private func redacted(parameter rawName: String, value rawValue: String?, nesting: Nesting) -> String {
         let name = Self.formDecoded(rawName)
-        let shownName = name.map { PlainName($0.unicodeScalars) != nil && redactedName($0) == $0 } == true ? rawName : Self.replacement
+        let shownName = name.map { PlainName($0.unicodeScalars) != nil && redactedName($0, nesting: nesting) == $0 } == true ? rawName : Self.replacement
         let allowed = name.flatMap { FieldName.allowableFold($0.unicodeScalars) }.map(allowedQueryParameters.contains) ?? false
         guard let rawValue else { return allowed ? shownName : Self.replacement }
         guard !rawValue.isEmpty else { return shownName + "=" }
         guard allowed, let value = Self.formDecoded(rawValue) else { return shownName + "=" + Self.replacement }
-        let redactedValue = redact(value)
+        let redactedValue = redact(value, nesting: nesting)
         return shownName + "=" + (redactedValue == value ? rawValue : Self.formEncoded(redactedValue))
     }
 

@@ -33,9 +33,14 @@ struct FreeTextScanner {
     let redactor: SensitiveDataRedactor
     let compatibility: CompatibilityText
     let role: Role
+    /// The documents the text is in and the JSON objects and arrays around it.
+    let nesting: Nesting
 
     private(set) var spans: [SensitiveDataRedactor.Span] = []
     private(set) var regions: [Range<Int>] = []
+    /// Whether JSON or a URL in the text went past a limit of ``nesting`` while the text is inside
+    /// a document, so the text is hidden whole.
+    private(set) var hidesWholeText = false
 
     var position = 0
     var carry = Carry.none
@@ -50,12 +55,16 @@ struct FreeTextScanner {
     /// separator at the start of this line may belong to that word.
     var lineFollowsBrokenWord = false
 
-    init(source: [Unicode.Scalar], text: NormalizedText, redactor: SensitiveDataRedactor, compatibility: CompatibilityText, role: Role = .text) {
+    init(
+        source: [Unicode.Scalar], text: NormalizedText, redactor: SensitiveDataRedactor, compatibility: CompatibilityText, role: Role = .text,
+        nesting: Nesting
+    ) {
         self.source = source
         self.text = text
         self.redactor = redactor
         self.compatibility = compatibility
         self.role = role
+        self.nesting = nesting
     }
 
     mutating func run() {
@@ -207,6 +216,14 @@ struct FreeTextScanner {
     mutating func hide(_ range: Range<Int>) {
         guard !range.isEmpty else { return }
         spans.append(SensitiveDataRedactor.Span(start: range.lowerBound, end: range.upperBound, kind: .secretFields, replacement: SensitiveDataRedactor.replacement))
+    }
+
+    /// Ends the scan with the whole text hidden: JSON or a URL in it went past a limit of the
+    /// nesting budget, so what the text holds cannot be read.
+    mutating func hideWholeText() {
+        hidesWholeText = true
+        carry = .none
+        position = text.count
     }
 
     mutating func record(_ span: SensitiveDataRedactor.Span) { spans.append(span) }
