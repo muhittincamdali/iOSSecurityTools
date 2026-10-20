@@ -17,11 +17,16 @@ extension FreeTextScanner {
     /// key or word with a separator of its own in it, look-alike or escaped, holds its value too:
     /// it is hidden from there on. In every case the value may go on to the lines below (see
     /// ``carryAfterHiding(from:valueStart:lineEnd:indent:)``).
+    ///
+    /// The trigger pass reads keys, and of the other words only those of markup
+    /// (`<key>password</key>`, `<password>`): it looks for names written as values, and a word that
+    /// names a secret only hides the rest of its line, which is hidden already.
     mutating func word(lineEnd: Int) {
         let start = position
         let end = wordEnd(from: start, to: lineEnd)
         position = end
-        if let embedded = embeddedSeparator(in: start..<end, lineEnd: lineEnd) {
+        let readsWord = pass == .hiding || isMarkupWord(start..<end)
+        if readsWord, let embedded = embeddedSeparator(in: start..<end, lineEnd: lineEnd) {
             pendingKey = nil
             // The whole word may be a disguised name (`pass‧word`) whose value is below it.
             hideAfterName(at: start, from: embedded, valueStart: end, lineEnd: lineEnd)
@@ -33,7 +38,7 @@ extension FreeTextScanner {
             return
         }
         pendingKey = nil
-        guard role == .text, !isEndTag(start..<end) else { return }
+        guard role == .text, readsWord, !isEndTag(start..<end) else { return }
         if isSeparatorWord(start..<end, lineEnd: lineEnd) {
             hideRestOfLine(from: next, valueStart: next, lineEnd: lineEnd)
             return
@@ -82,6 +87,12 @@ extension FreeTextScanner {
         while k < word.upperBound, ASCII.isAlphanumeric(text.bytes[k]) || "-_:.".utf8.contains(text.bytes[k]) { k += 1 }
         let endsName = k == word.upperBound || (text.bytes[k] == UInt8(ascii: ">") && k + 1 == word.upperBound)
         return k > word.lowerBound + 1 && endsName
+    }
+
+    /// Whether the word is part of markup: it starts a tag (`<password>`, `<key>password`) or ends
+    /// one (`password>`).
+    private func isMarkupWord(_ word: Range<Int>) -> Bool {
+        (word.lowerBound > 0 && text.bytes[word.lowerBound - 1] == UInt8(ascii: "<")) || text.bytes[word].contains(UInt8(ascii: ">"))
     }
 
     /// Punctuation, a math symbol or a modifier letter or symbol outside ASCII, such as `꞉`, `∶`,

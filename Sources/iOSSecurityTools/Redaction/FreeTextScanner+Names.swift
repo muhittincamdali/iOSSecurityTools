@@ -6,13 +6,34 @@ extension FreeTextScanner {
     /// ``MarkupReader``) the values of the other attributes of the start tag that holds the name go
     /// too, and the lines below that hold markup or are indented more, up to the end of the element
     /// that holds the name or of the element after it.
+    ///
+    /// The trigger pass follows up to ``maximumNamesFollowed`` names on a line this way, and joins
+    /// what each leaves open; the detection pass stops at the first.
     mutating func hideAfterName(at nameStart: Int, from start: Int, valueStart: Int, lineEnd: Int) {
+        switch pass {
+        case .hiding:
+            let markup = MarkupReader(text, line: lineStartOfText..<lineEnd, nameStart: nameStart)
+            followName(at: nameStart, from: start, valueStart: valueStart, lineEnd: lineEnd, markup: markup)
+        case .detection:
+            foundName = true
+            position = lineEnd
+        case .triggers:
+            namesFound += 1
+            guard namesFound <= Self.maximumNamesFollowed else {
+                lastNameNotFollowed = (nameStart, start, valueStart)
+                return
+            }
+            followName(at: nameStart, from: start, valueStart: valueStart, lineEnd: lineEnd, markup: markupReader(before: nameStart))
+        }
+    }
+
+    /// See ``hideAfterName(at:from:valueStart:lineEnd:)``; `markup` has read the line up to the name.
+    mutating func followName(at nameStart: Int, from start: Int, valueStart: Int, lineEnd: Int, markup: MarkupReader) {
         if start < lineEnd { hide(fromByte: start, toLineEnd: lineEnd) }
-        position = max(position, lineEnd)
+        if pass == .hiding { position = max(position, lineEnd) }
         let fallback = carryAfterHiding(from: start, valueStart: valueStart, lineEnd: lineEnd, indent: lineIndent)
-        let markup = MarkupReader(text, line: lineStartOfText..<lineEnd, nameStart: nameStart)
         guard var element = markup.followingElement() else {
-            carry = fallback
+            setCarry(fallback)
             return
         }
         for value in markup.attributeValues { hide(text.original(value)) }
@@ -26,18 +47,24 @@ extension FreeTextScanner {
         // element after `<string/>` that follows `<key>password</key>`. So may the text after an
         // element that holds nothing (`<string name="password"></string>`).
         guard let end = element.read(text, nameStart..<lineEnd) else {
-            carry = .markup(element, indent: lineIndent, fallback: fallback)
+            setCarry(.markup(element, indent: lineIndent, fallback: fallback))
             return
         }
         let valueMayFollow = followsSibling || !nextLineStartsWithMarkup(after: lineEnd)
         if closesItself(before: end) {
-            carry = valueMayFollow ? fallback : .none
+            setCarry(valueMayFollow ? fallback : .none)
         } else if element.heldNothing, valueMayFollow {
             let after = afterEndTag(at: end, lineEnd: lineEnd)
-            carry = carryAfterHiding(from: after, valueStart: after, lineEnd: lineEnd, indent: lineIndent)
+            setCarry(carryAfterHiding(from: after, valueStart: after, lineEnd: lineEnd, indent: lineIndent))
         } else {
-            carry = .none
+            setCarry(.none)
         }
+    }
+
+    /// What a name leaves open below its line: in the hiding pass it is what the line leaves open;
+    /// the trigger pass joins what all the names on the line leave open.
+    mutating func setCarry(_ new: Carry) {
+        carry = pass == .hiding ? new : carry.joined(with: new)
     }
 
     /// The byte after the end tag that starts at byte `end` (`</string>`), or `end` when no end

@@ -4,6 +4,11 @@
 /// The scan runs on the scanning copy (``NormalizedText``), left to right and line by line, and
 /// never moves backwards; the findings are spans of the original scalars. JSON and URLs found in
 /// the text are recorded as regions, which the value detectors do not read again.
+///
+/// Each line is read in two passes. The hiding pass hides values and stops reading a value it
+/// hides to the end of its line; the trigger pass then reads what the hiding pass hid without
+/// reading it, for the secret names written in it (see ``Pass/triggers``), and what those names
+/// leave open is joined with what the hiding pass left open before the next line is read.
 struct FreeTextScanner {
     /// What a line leaves open for the lines after it.
     enum Carry {
@@ -16,6 +21,10 @@ struct FreeTextScanner {
         /// A hidden value in quotes (`"`, `'` or a backtick) did not close on its line; it goes on
         /// to the line where it closes, which is hidden whole.
         case openQuote(quote: UInt8, escaped: Bool, indent: Int)
+        /// JSON after a key that holds a name did not close on its line, in text that only the
+        /// trigger pass read: the lines are hidden until its brackets close, and the rest of that
+        /// line with them.
+        case brackets(depth: Int, indent: Int)
         /// A secret name was written in an element that is still open: the lines below that hold
         /// markup or are indented more than `indent` are hidden up to the element's end (see
         /// ``MarkupReader``). Other lines go on as `fallback`, what the name would leave open
@@ -63,6 +72,17 @@ struct FreeTextScanner {
     /// written in an element that goes on below its line (see ``MarkupReader``).
     var lastEndTags: [[UInt8]: Int]?
 
+    var pass = Pass.hiding
+    /// In the hiding pass: the first byte of the line that was hidden without being read.
+    var unreadFrom: Int?
+    /// In the trigger pass: the secret names found on the line, the last one that was not
+    /// followed (see ``maximumNamesFollowed``), and the markup read up to the last name followed.
+    var namesFound = 0
+    var lastNameNotFollowed: (nameStart: Int, start: Int, valueStart: Int)?
+    var lineMarkup: (reader: MarkupReader, end: Int)?
+    /// In the detection pass: whether a secret name was found.
+    var foundName = false
+
     init(
         source: [Unicode.Scalar], text: NormalizedText, redactor: SensitiveDataRedactor, compatibility: CompatibilityText, role: Role = .text,
         nesting: Nesting
@@ -88,6 +108,7 @@ struct FreeTextScanner {
             } else {
                 scan(to: end)
             }
+            readHiddenText(lineEnd: end)
             // A line separator other than LF may sit inside a key: a separator that starts the
             // next line may belong to the word before it.
             let isBlank = firstNonSpace(from: lineStartOfText, to: end) >= end
@@ -107,7 +128,7 @@ struct FreeTextScanner {
 
     // MARK: Scanning a line
 
-    private mutating func scan(to lineEnd: Int) {
+    mutating func scan(to lineEnd: Int) {
         while position < lineEnd {
             let byte = text.bytes[position]
             if text.isSpace(position) {
@@ -118,13 +139,17 @@ struct FreeTextScanner {
                 quote(lineEnd: lineEnd)
             } else if startsJSON(position) {
                 pendingKey = nil
-                embeddedJSON(lineEnd: lineEnd)
+                if pass == .hiding {
+                    embeddedJSON(lineEnd: lineEnd)
+                } else {
+                    position = bracketsEnd(from: position, to: lineEnd).close ?? lineEnd
+                }
             } else if Self.boundaries.contains(byte), referenceLength(at: position) == nil {
                 pendingKey = nil
                 position += 1
             } else if let end = urlEnd(from: position, lineEnd: lineEnd) {
                 pendingKey = nil
-                url(to: end)
+                if pass == .hiding { url(to: end) } else { position = end }
             } else {
                 word(lineEnd: lineEnd)
             }
@@ -155,6 +180,10 @@ struct FreeTextScanner {
         guard let close = closingQuote(after: open, quote: UInt8(ascii: "\""), escaped: escaped, lineEnd: lineEnd) else {
             // A quote that does not close: where its text ends cannot be told.
             pendingKey = nil
+            guard pass == .hiding else {
+                position = open + 1
+                return
+            }
             hide(fromByte: open, toLineEnd: lineEnd)
             carry = .openQuote(quote: UInt8(ascii: "\""), escaped: escaped, indent: lineIndent)
             return
@@ -191,10 +220,44 @@ struct FreeTextScanner {
 
     // MARK: Spans
 
-    /// Hides from byte `start` to the end of its line, line terminator excluded.
+    /// Hides from byte `start` to the end of its line, line terminator excluded. The hiding pass
+    /// reads no further on the line; the trigger pass reads the hidden text later (see
+    /// ``readHiddenText(lineEnd:)``).
     mutating func hide(fromByte start: Int, toLineEnd lineEnd: Int) {
         hide(text.offset(at: start)..<text.offset(at: lineEnd))
+        guard pass == .hiding else { return }
+        markUnread(from: start)
         position = max(position, lineEnd)
+    }
+
+    /// Notes that the hiding pass hides the line from byte `start` on without reading it.
+    mutating func markUnread(from start: Int) {
+        unreadFrom = min(unreadFrom ?? start, start)
+    }
+
+    /// A copy of this scanner that reads the line from byte `start` in `pass`, with nothing found.
+    func reader(for pass: Pass, at start: Int) -> FreeTextScanner {
+        var reader = self
+        reader.pass = pass
+        reader.spans = []
+        reader.regions = []
+        reader.carry = .none
+        reader.position = start
+        reader.pendingKey = nil
+        reader.pairedQuotes = []
+        reader.unreadFrom = nil
+        reader.namesFound = 0
+        reader.lastNameNotFollowed = nil
+        reader.lineMarkup = nil
+        reader.foundName = false
+        return reader
+    }
+
+    /// Takes what a reader of the trigger pass found: what its names hide, and what they leave
+    /// open below the line, joined with what this pass leaves open.
+    mutating func absorb(_ reader: FreeTextScanner) {
+        spans += reader.spans
+        carry = carry.joined(with: reader.carry)
     }
 
     mutating func hide(_ range: Range<Int>) {

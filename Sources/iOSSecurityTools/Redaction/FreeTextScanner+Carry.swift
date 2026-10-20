@@ -1,8 +1,10 @@
 /// Values that go on past the end of their line: what a line leaves open for the lines below it.
 extension FreeTextScanner {
     /// Hides from byte `start` to the end of the line, and passes the value on to the lines below
-    /// (see ``carryAfterHiding(from:valueStart:lineEnd:indent:)``).
+    /// (see ``carryAfterHiding(from:valueStart:lineEnd:indent:)``). The trigger pass hides no
+    /// value.
     mutating func hideRestOfLine(from start: Int, valueStart: Int, lineEnd: Int) {
+        guard pass == .hiding else { return }
         if start < lineEnd { hide(fromByte: start, toLineEnd: lineEnd) }
         position = max(position, lineEnd)
         carry = carryAfterHiding(from: start, valueStart: valueStart, lineEnd: lineEnd, indent: lineIndent)
@@ -106,6 +108,8 @@ extension FreeTextScanner {
             return false
         case .markup(let element, let indent, let fallback):
             return continueElement(element, indent: indent, fallback: fallback, lineStart: lineStart, lineEnd: lineEnd)
+        case .brackets(let depth, let indent):
+            return continueBrackets(depth: depth, indent: indent, lineStart: lineStart, lineEnd: lineEnd)
         case .openQuote(let quote, let escaped, let indent):
             // The line where the value closes is hidden whole: what follows the closing quote
             // cannot be told from the rest of the value (`msg="a=` / `"b"…`).
