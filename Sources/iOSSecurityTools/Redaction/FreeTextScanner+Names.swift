@@ -17,11 +17,34 @@ extension FreeTextScanner {
         }
         for value in markup.attributeValues { hide(text.original(value)) }
         // `<key>password</key>`: the name is in the text after the tag name, and names the next element.
-        if markup.isAtTagName, namesSecret(in: elementText(after: nameStart, lineEnd: lineEnd), after: tagName(at: nameStart, lineEnd: lineEnd)) {
-            element.followSibling()
+        let followsSibling = markup.isAtTagName
+            && namesSecret(in: elementText(after: nameStart, lineEnd: lineEnd), after: tagName(at: nameStart, lineEnd: lineEnd))
+        if followsSibling { element.followSibling() }
+        // An element that ends on the line was hidden with the rest of it. One that closes itself
+        // holds no value, so the value may come after it: the text after `<string name="password" />`
+        // (markup there is the next element, as in lines of `<add key="…" value="…" />`), and the
+        // element after `<string/>` that follows `<key>password</key>`.
+        guard let end = element.read(text, nameStart..<lineEnd) else {
+            carry = .markup(element, indent: lineIndent, fallback: fallback)
+            return
         }
-        // An element that ends on the line was hidden with the rest of it.
-        carry = element.read(text, nameStart..<lineEnd) == nil ? .markup(element, indent: lineIndent, fallback: fallback) : .none
+        let valueFollows = closesItself(before: end) && (followsSibling || !nextLineStartsWithMarkup(after: lineEnd))
+        carry = valueFollows ? fallback : .none
+    }
+
+    /// Whether the bytes before `end` are the `/>` of a start tag that closes itself.
+    private func closesItself(before end: Int) -> Bool {
+        guard end >= 2, text.bytes[end - 1] == UInt8(ascii: ">") else { return false }
+        var k = end - 2
+        while k > 0, text.isSpace(k) { k -= 1 }
+        return text.bytes[k] == UInt8(ascii: "/")
+    }
+
+    /// Whether the next line with text after the line that ends at byte `lineEnd` starts with `<`.
+    private func nextLineStartsWithMarkup(after lineEnd: Int) -> Bool {
+        var k = lineEnd
+        while k < text.count, text.isSpace(k) || text.isLineTerminator(k) { k += 1 }
+        return k < text.count && text.bytes[k] == UInt8(ascii: "<")
     }
 
     /// The text of an element on its line: from after the `>` of the start tag that `tagName`
