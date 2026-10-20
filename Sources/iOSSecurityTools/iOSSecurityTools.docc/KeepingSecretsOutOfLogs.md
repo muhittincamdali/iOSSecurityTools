@@ -109,7 +109,8 @@ Some objects carry a field's name in one member and its value in another. When t
 `field`, `header`, `param`, `path`, `k` or `n` of an object is a name whose value the key rule
 hides — a secret name or one that is not plain ASCII — every `value`, `val`, `values`, `content`,
 `data`, `secret` and `v` of that object is hidden whole. Of a `path`, the part after its last `/`
-is the name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it. The second element of a
+is the name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it, and a secret part
+before it hides the value too, which goes inside that field (`/apiKeys/0`). The second element of a
 two-element array is hidden the same way (`[["Authorization","…"]]`, as fetch headers and
 `URLSearchParams` entries are written), and so are the elements after `"password"` in
 `["password","…"]`. Names that are plain and not secret keep their values:

@@ -16,6 +16,7 @@ struct RedactionPairTests {
 
     @Test("a JSON Patch operation on a secret path hides its value whole", arguments: [
         "/password", "/user/password", "/pin", "/credentials/apiKey", "password", "/users/0/client_secret", "/ŞİFRE", "/a~1b",
+        "/apiKeys/0", "/password/-", "/secrets/0/note", "", "/",
     ])
     func jsonPatch(path: String) {
         for value in [#""hunter2""#, "[\"hunter2\",1]", #"{"a":"hunter2"}"#] {
@@ -41,7 +42,7 @@ struct RedactionPairTests {
 
     @Test("an operation on a path that names no secret keeps its value")
     func readablePaths() {
-        let patch = #"[{"op":"replace","path":"/status","value":"active"},{"op":"add","path":"/items/3/count","value":2},{"op":"remove","path":"/password"}]"#
+        let patch = #"[{"op":"replace","path":"/status","value":"active"},{"op":"add","path":"/items/3/count","value":2},{"op":"add","path":"/tags/-","value":"new"},{"op":"remove","path":"/password"}]"#
         #expect(json(patch) == patch)
     }
 

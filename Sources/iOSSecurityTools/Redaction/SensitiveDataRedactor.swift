@@ -43,8 +43,9 @@ import Foundation
 /// Some objects carry a field's name in one member and its value in another: HTTP archives write
 /// `{"name":"X-Api-Key","value":…}`, JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write
 /// `{"op":"replace","path":"/password","value":…}`. When the `name`, `key`, `field`, `header`,
-/// `param` or `path` (its part after the last `/`) is a name whose value the key rule hides, the
-/// `value`, `values`, `content`, `data` or `secret` beside it is hidden whole. So is the second
+/// `param` or `path` (its part after the last `/`, or any part before it) is a name whose value
+/// the key rule hides, the `value`, `values`, `content`, `data` or `secret` beside it is hidden
+/// whole. So is the second
 /// element of a two-element array such as `["Authorization", "…"]`, as fetch headers and
 /// `URLSearchParams` entries are written.
 ///

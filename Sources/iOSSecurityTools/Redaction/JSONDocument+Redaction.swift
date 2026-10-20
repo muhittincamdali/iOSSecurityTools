@@ -10,7 +10,8 @@ extension JSONDocument {
     ///   `values`, `content`, `data`, `secret` and `v` is hidden whole, as HTTP archives write
     ///   headers (`{"name":"X-Api-Key","value":…}`). Of a `path`, the part after its last `/`
     ///   is the name, as JSON Patch (RFC 6902) and SCIM PatchOp (RFC 7644) write it:
-    ///   `{"op":"replace","path":"/user/password","value":…}`. A name that is an array or an
+    ///   `{"op":"replace","path":"/user/password","value":…}`; a secret part before it hides the
+    ///   value too (`/apiKeys/0`), as the value goes inside it. A name that is an array or an
     ///   object cannot be read, so it hides the value too. The second element of a two-element
     ///   array whose first is such a string is hidden whole (`[["Authorization","…"]]`, as fetch
     ///   headers and `URLSearchParams` entries are written), and so is every element of an array
@@ -82,7 +83,7 @@ extension JSONDocument {
             switch member.value.value {
             case .string(let token):
                 let named = text(of: token)
-                return FieldName.hidesValue(Self.isPairPart(name, ["path"]) ? Self.lastPathSegment(named) : named[...])
+                return Self.isPairPart(name, ["path"]) ? Self.pathHidesValue(named) : FieldName.hidesValue(named)
             case .object, .array: return true
             case .number, .boolean, .null: return false
             }
@@ -96,11 +97,15 @@ extension JSONDocument {
         return FieldName.hidesValue(text(of: token))
     }
 
-    /// The part of a JSON Pointer or SCIM path after its last `/`: `/user/password` names
-    /// `password`, and `password` itself.
-    private static func lastPathSegment(_ path: [Unicode.Scalar]) -> ArraySlice<Unicode.Scalar> {
-        guard let slash = path.lastIndex(of: "/") else { return path[...] }
-        return path[(slash + 1)...]
+    /// Whether a JSON Pointer or SCIM path leads to a value that is hidden: one of its parts
+    /// between `/` hides a value by the key rule. The last part names the field (`/user/password`,
+    /// SCIM `password`), and a part before it holds the field (`/apiKeys/0`, `/password/hint`), so
+    /// the value is inside a secret either way. Array indexes (`0`, and `-` for the end) name
+    /// nothing. An empty path, which stands for the whole document, hides the value.
+    private static func pathHidesValue(_ path: [Unicode.Scalar]) -> Bool {
+        var parts = path.split(separator: "/", omittingEmptySubsequences: false)
+        if path.first == "/" { parts.removeFirst() }
+        return parts.contains { part in !(part.count == 1 && part.first == "-") && FieldName.hidesValue(part) }
     }
 
     private static func isPairPart(_ name: [Unicode.Scalar], _ names: Set<String>) -> Bool {
