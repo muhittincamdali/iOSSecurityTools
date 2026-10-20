@@ -86,4 +86,13 @@ struct RedactionPairTests {
             #expect(json(kept) == kept)
         }
     }
+
+    @Test("the logging guide's examples of pairs, URL limits and addresses")
+    func guideExamples() throws {
+        let patch = #"[{"op":"replace","path":"/user/password","value":"hunter2"},{"op":"replace","path":"/status","value":"active"}]"#
+        #expect(json(patch, "application/json-patch+json") == #"[{"op":"replace","path":"/user/password","value":"[redacted]"},{"op":"replace","path":"/status","value":"active"}]"#)
+        let url = try #require(URL(string: "https://example.com" + String(repeating: "/a", count: 65)))
+        #expect(redactor.redact(url: url) == "https://example.com")
+        #expect(redactor.redact("ayşe.yılmaz@gmail.com 张伟@example.cn") == "a•••@gmail.com •••@example.cn")
+    }
 }
