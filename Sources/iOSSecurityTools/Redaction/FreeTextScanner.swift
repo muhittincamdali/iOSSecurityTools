@@ -189,36 +189,6 @@ struct FreeTextScanner {
         return Array(name)
     }
 
-    // MARK: Lines
-
-    func lineEnd(from i: Int) -> Int {
-        var end = i
-        while end < text.count, !text.isLineTerminator(end) { end += 1 }
-        return end
-    }
-
-    func afterTerminator(_ lineEnd: Int) -> Int {
-        guard lineEnd < text.count else { return lineEnd }
-        let isCRLF = text.bytes[lineEnd] == 0x0D && lineEnd + 1 < text.count && text.bytes[lineEnd + 1] == 0x0A
-        return lineEnd + (isCRLF ? 2 : 1)
-    }
-
-    private func lineStart(before i: Int) -> Int {
-        var start = i
-        while start > 0, !text.isLineTerminator(start - 1) { start -= 1 }
-        return start
-    }
-
-    func firstNonSpace(from i: Int, to lineEnd: Int) -> Int {
-        var k = i
-        while k < lineEnd, text.isSpace(k) { k += 1 }
-        return k
-    }
-
-    private func indentation(from lineStart: Int, to lineEnd: Int) -> Int {
-        firstNonSpace(from: lineStart, to: lineEnd) - lineStart
-    }
-
     // MARK: Spans
 
     /// Hides from byte `start` to the end of its line, line terminator excluded.
