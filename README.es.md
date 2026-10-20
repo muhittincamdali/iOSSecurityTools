@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
+<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -59,7 +59,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  389 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  404 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -314,6 +314,10 @@ su línea, en XML o HTML también los demás valores de atributo del elemento y 
 etiqueta de cierre, y en un objeto JSON los valores de los demás miembros. El valor de una
 property list en las líneas bajo `<key>password</key>` (también tras un `<string/>` vacío) y el
 JSON de varias líneas tras `name=` se ocultan hasta el final de la línea en que se cierran.
+Ese nombre cuenta dondequiera que esté en su línea, también sin comillas (`name=password`) y
+dentro de un valor que ya está oculto: en un cuerpo multipart escrito en un log,
+`Content-Disposition: form-data; name="pin"` oculta las demás cabeceras de la parte y su valor
+hasta la siguiente línea delimitadora.
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
 `Şifre`, `ⓟⓘⓝ` o `🔑`, y también lo que sigue a `label="Пароль"` en una línea.

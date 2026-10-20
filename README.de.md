@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
+<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -58,7 +58,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  389 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  404 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -315,6 +315,10 @@ seiner Zeile, in XML oder HTML auch die übrigen Attributwerte des Elements und 
 zum End-Tag, und in einem JSON-Objekt die Werte der übrigen Mitglieder. Der Wert einer Property
 List in den Zeilen unter `<key>password</key>` (auch nach einem leeren `<string/>`) und JSON über
 mehrere Zeilen nach `name=` werden bis zum Ende der Zeile verborgen, in der sie schließen.
+Ein solcher Name zählt überall in seiner Zeile, auch ohne Anführungszeichen (`name=password`) und
+im Wert eines anderen Schlüssels, der schon verborgen ist: In einem Multipart-Body im Log verbirgt
+`Content-Disposition: form-data; name="pin"` die übrigen Header des Teils und seinen Wert bis zur
+nächsten Begrenzerzeile.
 Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert
 geschrieben sind: Der Wert neben einem Feld, das einen Namen trägt (`name`, `label`, `type`, `id`,
 …), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt, ebenso alles nach `label="Пароль"` in einer

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
+<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -58,7 +58,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   пропускаются.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 389 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 404 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -312,6 +312,10 @@ multipart после одиночного перевода строки или �
 закрывающего тега, а в объекте JSON — значения остальных членов. Значение property list в
 строках под `<key>password</key>` (также после пустого `<string/>`) и JSON на нескольких строках
 после `name=` скрываются до конца строки, в которой они закрываются.
+Такое имя учитывается, где бы оно ни стояло в строке, также без кавычек (`name=password`) и
+внутри значения, которое уже скрыто: в теле multipart, записанном в лог,
+`Content-Disposition: form-data; name="pin"` скрывает остальные заголовки части и её значение до
+следующей строки-разделителя.
 Имена не из простого ASCII считаются секретными, даже когда они записаны как значения: значение
 рядом с полем, которое хранит имя (`name`, `label`, `type`, `id`, …), например `Şifre`, `ⓟⓘⓝ` или
 `🔑`, скрывается, как и всё, что идёт после `label="Пароль"` в строке.

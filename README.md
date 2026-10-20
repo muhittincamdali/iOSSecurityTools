@@ -51,7 +51,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   server could split into fields differently.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 389 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 404 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -303,6 +303,10 @@ element's other attribute values and its lines up to the end tag, and in a JSON 
 of the other members. A property list's value on the lines below `<key>password</key>` (also after
 an empty `<string/>`) and JSON over several lines after `name=` are hidden to the end of the line
 where they close.
+Such a name counts wherever it is written on its line, also without quotes (`name=password`) and
+inside a value that is hidden already: in a multipart body written to a log,
+`Content-Disposition: form-data; name="pin"` hides the part's other headers and its value up to
+the next delimiter line.
 Non-ASCII names count as secret even when they are written as values: the value beside a field that
 holds a name (`name`, `label`, `type`, `id`, …) such as `Şifre`, `ⓟⓘⓝ` or `🔑` is redacted, and so
 is what follows `label="Пароль"` in a line.

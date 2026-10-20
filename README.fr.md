@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
+<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -60,7 +60,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  389 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  404 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -316,6 +316,10 @@ de sa ligne, en XML ou HTML aussi les autres valeurs d’attribut de l’éléme
 la balise de fin, et dans un objet JSON les valeurs des autres membres. La valeur d’une property
 list sur les lignes sous `<key>password</key>` (aussi après un `<string/>` vide) et le JSON sur
 plusieurs lignes après `name=` sont masqués jusqu’à la fin de la ligne où ils se ferment.
+Un tel nom compte où qu’il soit écrit sur sa ligne, aussi sans guillemets (`name=password`) et
+dans une valeur déjà masquée : dans un corps multipart écrit dans un journal,
+`Content-Disposition: form-data; name="pin"` masque les autres en-têtes de la partie et sa valeur
+jusqu’à la ligne de délimitation suivante.
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
 valeurs : la valeur à côté d’un champ qui porte un nom (`name`, `label`, `type`, `id`, …) comme
 `Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée, tout comme ce qui suit `label="Пароль"` dans une ligne.

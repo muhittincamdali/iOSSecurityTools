@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@d304602622bac7936079270db494851bd3e51410 status=reviewed -->
+<!-- i18n-source: README.md@0730aa905c1ce38a90f75032e77ecf3033ce0256 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -57,7 +57,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   campos de outro jeito.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 389
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 404
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -312,6 +312,10 @@ resto da linha, em XML ou HTML também os outros valores de atributo do elemento
 a tag de fechamento, e em um objeto JSON os valores dos outros membros. O valor de uma property
 list nas linhas abaixo de `<key>password</key>` (também depois de um `<string/>` vazio) e o JSON
 em várias linhas depois de `name=` são ocultados até o fim da linha em que se fecham.
+Esse nome conta onde quer que esteja escrito na linha, também sem aspas (`name=password`) e
+dentro de um valor que já está oculto: em um corpo multipart escrito em um log,
+`Content-Disposition: form-data; name="pin"` oculta os outros cabeçalhos da parte e o seu valor
+até a próxima linha delimitadora.
 Nomes que não são ASCII simples contam como secretos mesmo quando escritos como valores: o valor ao
 lado de um campo que guarda um nome (`name`, `label`, `type`, `id`, …), como `Şifre`, `ⓟⓘⓝ` ou `🔑`,
 é ocultado, assim como o que vem depois de `label="Пароль"` em uma linha.
