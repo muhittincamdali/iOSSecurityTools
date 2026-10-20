@@ -104,7 +104,39 @@ struct RedactionTimeLimitTests {
         }, redact: redactor.redact),
     ]
 
-    @Test("redacting a megabyte of an ordinary shape takes a 512 KiB thread less than a second", arguments: shapes)
+    /// Secret names written as values, which make the scanner read the markup around them, the
+    /// lines below them and every word of a quoted value.
+    static let namesAsValues: [TimedInput] = [
+        TimedInput(testDescription: "lines of XML elements named by secret names", make: {
+            repeated("<string name=\"api_key\">x</string>", separator: "\n", prefix: "", suffix: "")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "a property list of secret keys and values of two lines", make: {
+            repeated("<key>password</key>\n<string>a\nb</string>", separator: "\n", prefix: "<dict>\n", suffix: "\n</dict>")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "log lines with a quoted secret name", make: {
+            repeated("field name=\"password\" x status=200", separator: "\n", prefix: "", suffix: "")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "one start tag of a megabyte of attributes before a secret name", make: {
+            repeated("a=\"1\"", separator: " ", prefix: "<input ", suffix: " name=\"password\">x")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "lines with a tag named by a secret name that never ends", make: {
+            repeated("login <password> required", separator: "\n", prefix: "", suffix: "")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "an element named by a secret name over a megabyte of lines", make: {
+            repeated("line", separator: "\n", prefix: "<string name=\"password\">\n", suffix: "\n</string>")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "lines of elements with different names", make: {
+            "<a>" + (0..<(size / 27)).map { "<k\($0)>password</k\($0)>" }.joined(separator: "\n") + "</a>"
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "a quoted value of a megabyte that names a secret", make: {
+            repeated("word", separator: " ", prefix: "msg=\"password ", suffix: "\" x")
+        }, redact: redactor.redact),
+        TimedInput(testDescription: "a JSON array of objects that name secrets", make: {
+            repeated(#"{"label":"Password","value":"x","op":"add"}"#)
+        }, redact: body("application/json")),
+    ]
+
+    @Test("redacting a megabyte of an ordinary shape takes a 512 KiB thread less than a second", arguments: shapes + namesAsValues)
     func shape(input: TimedInput) {
         let text = input.make()
         #expect(text.utf8.count >= Self.size * 9 / 10 && text.utf8.count <= SensitiveDataRedactor.maximumBodySize)
