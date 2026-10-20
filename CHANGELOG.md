@@ -27,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SensitiveDataRedactor.maximumPathSegments` (64) and `.maximumQueryParameters` (128): a URL
   with more path segments, or more query or path parameters, is recorded with its scheme, host
   and port only, which bounds the work one URL can ask for.
-- `allowedTextKeys` and `defaultAllowedTextKeys`: the keys whose values free text keeps.
+- `allowedTextKeys` and `defaultAllowedTextKeys` (`status`, `method`, `path`, `duration_ms`,
+  `count`): the keys after which free text is read on.
 - `SensitiveDataRedactor.Kinds.ibans` and `.longTokens`, both in `.all`: IBANs that pass the
   mod-97 check, shown as `•••• 3000`, and runs of 32 or more hexadecimal digits or base64 letters
   and digits, shown as `[redacted]`.
@@ -78,42 +79,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of many segments, and a megabyte of Turkish sentences or of `ı` quoted in JSON up to four
   times. The default redactor and its folded keys are made once and shared, a short plain word
   is not scanned, a URL path segment is read in a single pass, and a word is compared with each
-  secret word in a single pass.
+  secret word in a single pass. JSON in free text is parsed up to 64 Ki scalars, and longer JSON
+  cuts the text at its first bracket; a test run in a process of its own checks that a megabyte of
+  free text takes less than 16 MB more memory.
 - A reading budget bounds the time one redaction takes: the documents found inside an input
   (JSON in a line or a string, a URL in text, a multipart part) and the texts read inside them
   read at most four times the input's length in all. The input itself is read freely; a text past
   the budget is hidden whole and a multipart part is omitted. A long text quoted in JSON three
   times in a body, or twice in a log line, has its innermost string hidden, and a chain of URLs
   each in the query of the one before is read two levels deep.
-- Free text keeps a value only after an allowed key: in `key=value`, `key: value` and
-  `"key":"value"` every other value is hidden, so `user=bob` becomes `user=[redacted]`. A quoted
-  value is hidden up to its closing quote, also on a later line; an unquoted one to the end of its
-  line, with the lines below that it may go on to. A word that holds a secret name hides the rest
-  of its line, also when it is escaped, split by punctuation or a space, or spelled with one letter
-  that has no ASCII form; a word that mixes scripts or holds an invisible character hides itself
-  and the rest of its line. Free text is a best effort, as the threat model in the README and the
-  logging guide now says: written with a separator a value is always hidden, but a name written
-  without one and disguised with two or more letters that have no ASCII form (`pɑsswoʀd hunter2`)
-  is not guaranteed to be found, and no table of look-alikes is kept to chase it.
-- A secret name written as a value names what follows it. In free text, a text/plain body and
-  text inside a JSON string, a quoted value that holds a secret name or a word that cannot be read
-  (`name="password"`, `key='token'`, `id: "pin"`, `label="API Key"`) hides the rest of its line
-  after the closing quote. In XML and HTML the other attribute values of its start tag are hidden
-  too, and the lines below up to the element's end tag and the rest of the line where it ends; a
-  secret name in an element's text (`<key>password</key>`) names the element after it, as a
-  property list writes a key and its value, on one line or on lines of their own. An element that
-  closes itself or holds nothing (`<string/>`, `<string></string>`) holds no value, so the text
-  after it or the next line with text is hidden too. JSON after `name=`, `key=`, `label=` and the
-  like hides what follows it to the end of the line where it closes, also when it spans lines.
-  In a JSON object, a member whose value is such a name hides the values of the other
-  members, apart from the members that hold names and a JSON Patch or SCIM `op`. A name that is
-  not secret (`name="status"`, `{"label":"Status",…}`) keeps what follows it. A name without
-  quotes after such a key (`name=password`) names what follows it too, and so does a name inside a
-  value that is hidden already: each line is read a second time for the names in what the first
-  reading hid without reading it and in its quoted values. A secret name in a header of a
-  multipart part written into text (`Content-Disposition: form-data; name="pin"`) hides the part's
-  other headers and its value, up to the delimiter line written before the header, or, when none
-  was, up to a blank line or a line that starts with `--`.
+- Free text is cut once: in free text, the first secret name hides everything after it in that
+  text; this over-hides on purpose. The triggers are a key that is not on `allowedTextKeys`
+  (`x=hunter2`, `Error: …`, a separator without a key, a key on the line before its separator), a
+  secret name with or without a separator, also escaped, split by punctuation or a space, or
+  spelled with one letter that has no ASCII form, a name written as a value (`name="password"`,
+  `<string name="api_key">`, `<key>Şifre</key>`, `Content-Disposition: form-data; name="pin"`), a
+  separator written escaped or as a look-alike (`%3D`, `&#61;`, `꞉`), a word that mixes scripts or
+  holds an invisible character, a quote or bracket left open, and JSON with a member that is not
+  allowed or that does not parse. Everything after the first one is hidden, to the end of the text
+  and not only of its line; a log message, a text/plain body, a JSON string, a form value, an
+  allowed query value and a multipart text part each count as one text. A text without a trigger
+  is written as it is, apart from the value detectors. Nothing is carried from line to line and no
+  line is read twice: the scan keeps a fixed number of positions and stops at the trigger. Free
+  text is a best effort, as the threat model in the README and the logging guide now says: a name
+  written without a separator and disguised with two or more letters that have no ASCII form
+  (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing before it cuts the text, and no
+  table of look-alikes is kept to chase it.
+- A secret name written as a value names what follows it. In free text it is a trigger; in a JSON
+  object, a member whose value is such a name hides the values of the other members, apart from
+  the members that hold names and a JSON Patch or SCIM `op`. A name that is not secret
+  (`{"label":"Status",…}`) keeps what follows it.
 - The JSON Web Token detector also finds a header and payload whose last dot was cut off
   (`eyJ….eyJ…`), as a URL at the end of a sentence loses it to the full stop.
 - Default-ignorable code points (such as U+115F and U+3164) and control characters are left out
@@ -128,7 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is written as `?[redacted]`.
 - An invisible character right before a key or a word of free text belongs to it:
   `\u{200D}status=…` is no longer read as the allowed key `status`, and `\u{202E}drowssap`, which
-  cannot be read, hides the rest of its line.
+  cannot be read, cuts the text there.
 - CI uses the shared workflows of muhittincamdali/.github v1.1.0.
 
 ### Removed
@@ -238,14 +233,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hides, named nothing: `Content-Disposition: form-data; name="pin"` followed by a blank line and
   the part's value showed the value, in a log line, in a text/plain body
   (`upload failed body=--B…`) and in a JSON string, and so did `name=password` without quotes and
-  `note: a name="pin"` with the value on the next line. The names in what the first reading hides
-  are now read in a second pass over each line, and a part header that names a secret hides the
-  part's other headers and its value. The value of an allowed key on the line after
-  `name=password` or `label: Şifre` is hidden with it, which fixes two of the eleventh review's
-  documented limitations. The review's probes are kept as tests, with property tests that write
-  disguised names inside hidden values on every path that reads free text, and time tests for
-  lines of names inside hidden values; the byte classes of the scanner are looked up without
-  hashing, which keeps those lines under the time limit.
+  `note: a name="pin"` with the value on the next line. The key before the name is now the first
+  trigger, which hides it and everything after it.
+- A second reading of each line, which an earlier design of this release used for the names inside
+  hidden values, kept the attribute values of a start tag once for every name in it: a start tag
+  of a megabyte of attributes followed by 17 secret names took 583 MB, and 4 MB of it 2.3 GB. It
+  also let a quote, a multipart part or a JSON value that it carried end the one the first reading
+  carried, so `x: <string name="pin"> msg='start` with the secret two lines below showed it, and
+  so did an open quote in a part header, a name in markup that closes on its line, an end tag
+  without `>` (`</pin 1234`) and an escaped separator inside a hidden value
+  (`msg: name%3Dpassword`). The one cut replaces both readings and every carry. The probes of every
+  review of the redesign, 2,906 of them, and 66 repros of the twelfth review are kept as one test
+  resource, 35 of them documented limitations, with a property test that no value after any
+  trigger shows on any path that reads free text, a test that lines of allowed keys stay, and the
+  memory test. Storing no offsets for text in which each scalar is one byte, masking the scanning
+  copy without copying its offsets and joining the findings in one array bring a megabyte of
+  addresses or URLs under 16 MB too.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
