@@ -87,54 +87,68 @@ extension FreeTextScanner {
     }
 }
 
-/// Words of the scanned text read loosely for the secret words in them (see
-/// ``PlainName/init(looseBytes:wildcards:)``): punctuation between letters is read as a
-/// separator, and a letter without an ASCII form as any letter, so `pass~word`, `t*okens`,
-/// `Authorizɑtion` and, read with the next word, `pass word` hold a secret word.
+/// Words of the scanned text compared with the secret names by their ASCII skeleton: the one
+/// rule that every path reading a word of text uses (free text, names written as values, array
+/// elements, URL path segments, form, query and multipart values).
+///
+/// The scanning copy has already read each character as the ASCII it stands for under
+/// compatibility normalization and left out marks and format characters (`pässword`, `ｐａｓｓ`
+/// are `password`, `pass`). Every letter that is still without an ASCII form (`ꞏ`, `ı`, `ɑ`,
+/// `ø`) is then left out, and what remains is compared, lowercased, with the secret names, a
+/// plural `s` included (see ``PlainName/firstSecret(where:)``): `piꞏn`, `tokeın`, `tokenꞏs` and
+/// `keyıs` read as `pin`, `token`, `tokens` and `keys`, however many letters are left out. A name
+/// also counts with one of its letters missing where letters were left out, so a letter put in
+/// place of one of its letters is found too (`pɑssword`, `user_pın`), and a word of another
+/// language that reads as a name this way is read as that name (Turkish `yapın` as `pin`),
+/// which hides more on purpose. Two or more letters put in place of letters of one name
+/// (`pɑsswoʀd`) are not found: no list of look-alikes is kept. Punctuation between letters is
+/// read as a separator (`pass~word`), and a word read with the next one (`pass word`) holds a
+/// secret name across the space.
 struct LooseReading {
     private let name: PlainName
-    /// The bytes read, with the byte of the scanned text each came from and those read as any
-    /// letter. Where a letter came from is looked up only when a secret word is found.
+    /// The bytes of the skeleton, with the byte of the scanned text each came from. Where a
+    /// letter came from is looked up only when a secret word is found.
     private let bytes: [UInt8]
     private let origins: [Int]
-    /// Whether each byte is read as any letter.
-    private let wildcards: [Bool]
 
     /// Reads the bytes of `ranges` of `text`, in order, as one word with a separator between the
     /// ranges. `source` is the text `text` was made from.
     init?(_ text: NormalizedText, _ ranges: [Range<Int>], source: [Unicode.Scalar]) {
         var bytes: [UInt8] = []
         var origins: [Int] = []
-        var wildcards: [Bool] = []
+        var leftOutBefore: [Bool] = []
+        var isLeavingOut = false
         let count = ranges.reduce(ranges.count) { $0 + $1.count }
         bytes.reserveCapacity(count)
         origins.reserveCapacity(count)
-        wildcards.reserveCapacity(count)
+        leftOutBefore.reserveCapacity(count)
+        func append(_ byte: UInt8, from k: Int) {
+            bytes.append(byte)
+            origins.append(k)
+            leftOutBefore.append(isLeavingOut)
+            if ASCII.isAlphanumeric(byte) { isLeavingOut = false }
+        }
         for range in ranges {
-            if !bytes.isEmpty {
-                bytes.append(UInt8(ascii: " "))
-                origins.append(range.lowerBound)
-                wildcards.append(false)
-            }
+            if !bytes.isEmpty { append(UInt8(ascii: " "), from: range.lowerBound) }
             for k in range {
-                bytes.append(text.bytes[k])
-                origins.append(k)
-                wildcards.append(text.bytes[k] == CompatibilityText.unreadable && ScalarClass.isLetter(source[text.offsets[k]]))
+                let byte = text.bytes[k]
+                if byte == CompatibilityText.unreadable, ScalarClass.isLetter(source[text.offsets[k]]) {
+                    isLeavingOut = true
+                } else {
+                    append(byte, from: k)
+                }
             }
         }
-        guard let name = PlainName(looseBytes: bytes, wildcards: wildcards) else { return nil }
+        guard let name = PlainName(skeleton: bytes, leftOutBefore: leftOutBefore, leftOutAtEnd: isLeavingOut) else { return nil }
         self.name = name
         self.bytes = bytes
         self.origins = origins
-        self.wildcards = wildcards
     }
-
-    private func isLetter(at k: Int) -> Bool { ASCII.isAlphanumeric(bytes[k]) || wildcards[k] }
 
     /// The number of letters that come from bytes before `byte`.
     func letterCount(before byte: Int) -> Int {
         var letters = 0
-        for k in bytes.indices where isLetter(at: k) {
+        for k in bytes.indices where ASCII.isAlphanumeric(bytes[k]) {
             if origins[k] >= byte { break }
             letters += 1
         }
@@ -145,7 +159,7 @@ struct LooseReading {
     func secretEnd(where accepts: (Range<Int>) -> Bool) -> Int? {
         guard let secret = name.firstSecret(where: accepts) else { return nil }
         var letters = 0
-        for k in bytes.indices where isLetter(at: k) {
+        for k in bytes.indices where ASCII.isAlphanumeric(bytes[k]) {
             if letters == secret.upperBound - 1 { return origins[k] + 1 }
             letters += 1
         }
