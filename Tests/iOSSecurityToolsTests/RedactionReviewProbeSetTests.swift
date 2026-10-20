@@ -6,7 +6,7 @@ import Testing
 /// tenth and twelfth, and the correctness repros of the twelfth review's second lens — run
 /// against the free-text rule of one cut. Each probe the documentation says is hidden is hidden,
 /// apart from the limitations that "What it does not find" names. The probes of the thirteenth
-/// and fourteenth reviews are in the same resource and checked claim by claim in suites of their
+/// to fifteenth reviews are in the same resource and checked claim by claim in suites of their
 /// own.
 @Suite("SensitiveDataRedactor review probe sets")
 struct RedactionReviewProbeSetTests {
@@ -34,10 +34,10 @@ struct RedactionReviewProbeSetTests {
         let counts = Dictionary(grouping: ReviewProbes.all, by: \.review).mapValues(\.count)
         #expect(counts == [
             "a-3": 453, "a-5": 452, "a-7": 560, "a-9": 353, "a-10": 475, "a-12": 613, "a-13": 579, "c-12": 66, "c-13": 245,
-            "a-14": 758, "a-14b": 402, "a-14q": 60,
+            "a-14": 758, "a-14b": 402, "a-14q": 60, "a-15": 300, "a-15q": 15, "c-15": 315,
         ])
         #expect(Self.documentedLimitations.count == 33)
-        #expect(Self.large.count == 66)
+        #expect(Self.large.count == 74)
     }
 
     /// The probes of up to a few megabytes, each a test case of its own so that they run side by side.

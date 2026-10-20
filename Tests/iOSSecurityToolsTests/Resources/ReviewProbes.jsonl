@@ -5014,3 +5014,633 @@
 {"category": "q-urlend2", "claim": "C", "id": 58, "input": "see https://x.example/a?status=200 Hq77zzv", "kind": "text", "review": "a-14q", "secret": "Hq77zzv"}
 {"category": "q-urlend2", "claim": "C", "id": 59, "input": "see https://x.example/a?count= Hq77zzv", "kind": "text", "review": "a-14q", "secret": "Hq77zzv"}
 {"category": "q-urlend2", "claim": "C", "id": 60, "input": "--B\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nsee https://x.example/a?token= Hq77zzv\r\n--B--", "kind": "body", "review": "a-14q", "secret": "Hq77zzv", "type": "multipart/form-data; boundary=B"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 1, "input": "see https://x.example/password# Qx001Np7v", "kind": "text", "review": "a-15", "secret": "Qx001Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 2, "input": "see https://x.example/password?# Qx002Np7v", "kind": "text", "review": "a-15", "secret": "Qx002Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 3, "input": "see https://x.example/password;/ Qx003Np7v", "kind": "text", "review": "a-15", "secret": "Qx003Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 4, "input": "see https://x.example/token;# Qx004Np7v", "kind": "text", "review": "a-15", "secret": "Qx004Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 5, "input": "see https://x.example/a/api_key# Qx005Np7v", "kind": "text", "review": "a-15", "secret": "Qx005Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 6, "input": "see https://password# Qx006Np7v", "kind": "text", "review": "a-15", "secret": "Qx006Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 7, "input": "see https://x.example/password#! Qx007Np7v", "kind": "text", "review": "a-15", "secret": "Qx007Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 8, "input": "see https://x.example/password#) Qx008Np7v", "kind": "text", "review": "a-15", "secret": "Qx008Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 9, "input": "see https://x.example/password;#, Qx009Np7v", "kind": "text", "review": "a-15", "secret": "Qx009Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 10, "input": "see HTTPS://X.EXAMPLE/PASSWORD# Qx010Np7v", "kind": "text", "review": "a-15", "secret": "Qx010Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 11, "input": "see https://x.example:8443/password# Qx011Np7v", "kind": "text", "review": "a-15", "secret": "Qx011Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 12, "input": "see https://u@x.example/password# Qx012Np7v", "kind": "text", "review": "a-15", "secret": "Qx012Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 13, "input": "see https://[::1]/password# Qx013Np7v", "kind": "text", "review": "a-15", "secret": "Qx013Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 14, "input": "see ftp://x.example/secret# Qx014Np7v", "kind": "text", "review": "a-15", "secret": "Qx014Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 15, "input": "see a+b://x.example/pin# Qx015Np7v", "kind": "text", "review": "a-15", "secret": "Qx015Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 16, "input": "see https://x.example//password# Qx016Np7v", "kind": "text", "review": "a-15", "secret": "Qx016Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 17, "input": "see https://x.example/password/# Qx017Np7v", "kind": "text", "review": "a-15", "secret": "Qx017Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 18, "input": "see https://x.example/password;;/ Qx018Np7v", "kind": "text", "review": "a-15", "secret": "Qx018Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 19, "input": "see https://x.example/v1/users/passwd# Qx019Np7v", "kind": "text", "review": "a-15", "secret": "Qx019Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 20, "input": "see https://x.example/session# Qx020Np7v", "kind": "text", "review": "a-15", "secret": "Qx020Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 21, "input": "see https://x.example/x-api-key# Qx021Np7v", "kind": "text", "review": "a-15", "secret": "Qx021Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 22, "input": "see https://x.example/password#\tQx022Np7v", "kind": "text", "review": "a-15", "secret": "Qx022Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 23, "input": "see https://x.example/password#\nQx023Np7v", "kind": "text", "review": "a-15", "secret": "Qx023Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 24, "input": "see https://x.example/password#\r\nQx024Np7v", "kind": "text", "review": "a-15", "secret": "Qx024Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 25, "input": "see \"https://x.example/password#\" Qx025Np7v", "kind": "text", "review": "a-15", "secret": "Qx025Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 26, "input": "see <https://x.example/password#> Qx026Np7v", "kind": "text", "review": "a-15", "secret": "Qx026Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 27, "input": "see [doc](https://x.example/password#) Qx027Np7v", "kind": "text", "review": "a-15", "secret": "Qx027Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 28, "input": "see `https://x.example/password#` Qx028Np7v", "kind": "text", "review": "a-15", "secret": "Qx028Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 29, "input": "GET https://x.example/password# Qx029Np7v", "kind": "text", "review": "a-15", "secret": "Qx029Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 30, "input": "https://x.example/password# Qx030Np7v", "kind": "text", "review": "a-15", "secret": "Qx030Np7v"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 31, "input": "{\"msg\":\"see https://x.example/password# Qx031Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx031Np7v", "type": "application/json"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 32, "input": "note=see+https%3A%2F%2Fx.example%2Fpassword%23+Qx032Np7v", "kind": "body", "review": "a-15", "secret": "Qx032Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 33, "input": "see https://x.example/password# Qx033Np7v", "kind": "body", "review": "a-15", "secret": "Qx033Np7v", "type": "text/plain"}
+{"category": "n15-url-empty-section", "claim": "C", "id": 34, "input": "--B0und\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nsee https://x.example/password# Qx034Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx034Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 35, "input": "see https://x.example/password?page=2 Qx035Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx035Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 36, "input": "see https://x.example/password;page=2 Qx036Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx036Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 37, "input": "see https://x.example/password#page=2 Qx037Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx037Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 38, "input": "see https://x.example/api/token?page=2&page=3 Qx038Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx038Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 39, "input": "see https://password?page=2 Qx039Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx039Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 40, "input": "see https://x.example/secret/?page=2 Qx040Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx040Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 41, "input": "see https://x.example/password?#page=2 Qx041Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx041Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 42, "input": "see https://x.example/a;page=1/password Qx042Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx042Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 43, "input": "see https://x.example/pin?page=2#page=3 Qx043Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx043Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 44, "input": "see https://x.example/Password?PAGE=2 Qx044Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx044Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 45, "input": "see https://x.example/cookie;page=2?page=3 Qx045Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx045Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 46, "input": "see https://x.example/a?page=2 password Qx046Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx046Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 47, "input": "see https://x.example/a?page=2: Qx047Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx047Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 48, "input": "see https://x.example/a?page=password Qx048Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx048Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 49, "input": "see https://x.example/a?page=2#page=password Qx049Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx049Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 50, "input": "see https://x.example/a?page=pass%77ord Qx050Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx050Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 51, "input": "see https://x.example/a?page=2= Qx051Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx051Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 52, "input": "see https://x.example/a?page=2&= Qx052Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx052Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 53, "input": "see https://x.example/a?page=2&page Qx053Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx053Np7v"}
+{"category": "n15-url-allowed-section", "claim": "X", "id": 54, "input": "see https://x.example/a?page=%20 Qx054Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx054Np7v"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 55, "input": "{\"msg\":\"see https://x.example/password?page=2 Qx055Np7v\"}", "kind": "body", "queryKeys": ["page"], "review": "a-15", "secret": "Qx055Np7v", "type": "application/json"}
+{"category": "n15-url-allowed-section", "claim": "C", "id": 56, "input": "see https://x.example/password?page=2 Qx056Np7v", "kind": "body", "queryKeys": ["page"], "review": "a-15", "secret": "Qx056Np7v", "type": "text/plain"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 57, "input": "see https://x.example/a%3D Qx057Np7v", "kind": "text", "review": "a-15", "secret": "Qx057Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 58, "input": "see https://x.example/a%3d Qx058Np7v", "kind": "text", "review": "a-15", "secret": "Qx058Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 59, "input": "see https://x.example/a%3A Qx059Np7v", "kind": "text", "review": "a-15", "secret": "Qx059Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 60, "input": "see https://x.example/a/password%2F Qx060Np7v", "kind": "text", "review": "a-15", "secret": "Qx060Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 61, "input": "see https://x.example/pass%77ord Qx061Np7v", "kind": "text", "review": "a-15", "secret": "Qx061Np7v"}
+{"category": "n15-url-end-escape", "claim": "X", "id": 62, "input": "see https://x.example/pass%2577ord Qx062Np7v", "kind": "text", "review": "a-15", "secret": "Qx062Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 63, "input": "see https://x.example/a&#61; Qx063Np7v", "kind": "text", "review": "a-15", "secret": "Qx063Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 64, "input": "see https://x.example/a\\u003D Qx064Np7v", "kind": "text", "review": "a-15", "secret": "Qx064Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 65, "input": "see https://x.example/a/%70%61%73%73%77%6F%72%64 Qx065Np7v", "kind": "text", "review": "a-15", "secret": "Qx065Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 66, "input": "see https://x.example/a/password%00 Qx066Np7v", "kind": "text", "review": "a-15", "secret": "Qx066Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 67, "input": "see https://x.example/a/password%20 Qx067Np7v", "kind": "text", "review": "a-15", "secret": "Qx067Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 68, "input": "see https://x.example/a/pass%E2%80%8Bword Qx068Np7v", "kind": "text", "review": "a-15", "secret": "Qx068Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 69, "input": "see https://x.example/a/%D0%BF%D0%B0%D1%80%D0%BE%D0%BB%D1%8C Qx069Np7v", "kind": "text", "review": "a-15", "secret": "Qx069Np7v"}
+{"category": "n15-url-end-escape", "claim": "C", "id": 70, "input": "see https://x.example/a/x%3Dpassword Qx070Np7v", "kind": "text", "review": "a-15", "secret": "Qx070Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 71, "input": "see https://x.example/a password Qx071Np7v", "kind": "text", "review": "a-15", "secret": "Qx071Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 72, "input": "see https://x.example/a password Qx072Np7v", "kind": "text", "review": "a-15", "secret": "Qx072Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 73, "input": "see https://x.example/a password Qx073Np7v", "kind": "text", "review": "a-15", "secret": "Qx073Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 74, "input": "see https://x.example/apasswordQx074Np7v", "kind": "text", "review": "a-15", "secret": "Qx074Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 75, "input": "see https://x.example/a\u000bpassword\u000bQx075Np7v", "kind": "text", "review": "a-15", "secret": "Qx075Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 76, "input": "see https://x.example/a\fpassword\fQx076Np7v", "kind": "text", "review": "a-15", "secret": "Qx076Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 77, "input": "see https://x.example/a　password　Qx077Np7v", "kind": "text", "review": "a-15", "secret": "Qx077Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 78, "input": "see https://x.example/a​password​Qx078Np7v", "kind": "text", "review": "a-15", "secret": "Qx078Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 79, "input": "see https://x.example/a password Qx079Np7v", "kind": "text", "review": "a-15", "secret": "Qx079Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 80, "input": "see https://x.example/a﻿password﻿Qx080Np7v", "kind": "text", "review": "a-15", "secret": "Qx080Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 81, "input": "see https://x.example/a/pass­word Qx081Np7v", "kind": "text", "review": "a-15", "secret": "Qx081Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 82, "input": "see https://x.example/a/pass‍word Qx082Np7v", "kind": "text", "review": "a-15", "secret": "Qx082Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 83, "input": "see https://x.example/a/pass‌word Qx083Np7v", "kind": "text", "review": "a-15", "secret": "Qx083Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 84, "input": "see https://x.example/a/ṕassword Qx084Np7v", "kind": "text", "review": "a-15", "secret": "Qx084Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 85, "input": "see https://x.example/a/pаssword Qx085Np7v", "kind": "text", "review": "a-15", "secret": "Qx085Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 86, "input": "see https://x.example/a/ｐａｓｓｗｏｒｄ Qx086Np7v", "kind": "text", "review": "a-15", "secret": "Qx086Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 87, "input": "see https://x.example/a/𝐩𝐚𝐬𝐬𝐰𝐨𝐫𝐝 Qx087Np7v", "kind": "text", "review": "a-15", "secret": "Qx087Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 88, "input": "see https://x.example/a/ⓟⓐⓢⓢⓦⓞⓡⓓ Qx088Np7v", "kind": "text", "review": "a-15", "secret": "Qx088Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 89, "input": "see https://x.example/a/ΡΙΝ Qx089Np7v", "kind": "text", "review": "a-15", "secret": "Qx089Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 90, "input": "see https://x.example/a/pass word Qx090Np7v", "kind": "text", "review": "a-15", "secret": "Qx090Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 91, "input": "see https://x.example/a/key Qx091Np7v", "kind": "text", "review": "a-15", "secret": "Qx091Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 92, "input": "see https://x.example/a/pwd Qx092Np7v", "kind": "text", "review": "a-15", "secret": "Qx092Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 93, "input": "see https://x.example/a/x-api-key Qx093Np7v", "kind": "text", "review": "a-15", "secret": "Qx093Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 94, "input": "see https://x.example/a/apiKey.json Qx094Np7v", "kind": "text", "review": "a-15", "secret": "Qx094Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 95, "input": "see https://x.example/a/password. Qx095Np7v", "kind": "text", "review": "a-15", "secret": "Qx095Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 96, "input": "see https://x.example/a/PASSWORD Qx096Np7v", "kind": "text", "review": "a-15", "secret": "Qx096Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 97, "input": "see https://x.example/a/tokеn Qx097Np7v", "kind": "text", "review": "a-15", "secret": "Qx097Np7v"}
+{"category": "n15-url-inner-chars", "claim": "C", "id": 98, "input": "see https://x.example/a/secret️ Qx098Np7v", "kind": "text", "review": "a-15", "secret": "Qx098Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 99, "input": "connect myapp://password=Qx099Np7v&x=1 ok", "kind": "text", "review": "a-15", "secret": "Qx099Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 100, "input": "connect myapp://x=1&password=Qx100Np7v ok", "kind": "text", "review": "a-15", "secret": "Qx100Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 101, "input": "connect myapp://a=b;pin=Qx101Np7v ok", "kind": "text", "review": "a-15", "secret": "Qx101Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 102, "input": "connect myapp://password= Qx102Np7v", "kind": "text", "review": "a-15", "secret": "Qx102Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 103, "input": "connect myapp://password=. Qx103Np7v", "kind": "text", "review": "a-15", "secret": "Qx103Np7v"}
+{"category": "n15-url-host-names", "claim": "X", "id": 104, "input": "connect myapp://password=%20 Qx104Np7v", "kind": "text", "review": "a-15", "secret": "Qx104Np7v"}
+{"category": "n15-url-host-names", "claim": "X", "id": 105, "input": "connect myapp://password=%00 Qx105Np7v", "kind": "text", "review": "a-15", "secret": "Qx105Np7v"}
+{"category": "n15-url-host-names", "claim": "X", "id": 106, "input": "connect myapp://token=- Qx106Np7v", "kind": "text", "review": "a-15", "secret": "Qx106Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 107, "input": "connect myapp://password:Qx107Np7v", "kind": "text", "review": "a-15", "secret": "Qx107Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 108, "input": "connect myapp://password: Qx108Np7v", "kind": "text", "review": "a-15", "secret": "Qx108Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 109, "input": "connect myapp://pin Qx109Np7v", "kind": "text", "review": "a-15", "secret": "Qx109Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 110, "input": "connect myapp://user=bob&password Qx110Np7v", "kind": "text", "review": "a-15", "secret": "Qx110Np7v"}
+{"category": "n15-url-host-names", "claim": "C", "id": 111, "input": "connect myapp://user=bob;secret: Qx111Np7v", "kind": "text", "review": "a-15", "secret": "Qx111Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 112, "input": "see https://bob:Qx112Np7v@x.example/a", "kind": "text", "review": "a-15", "secret": "Qx112Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 113, "input": "see https://bob:Qx113Np7v#@x.example/a", "kind": "text", "review": "a-15", "secret": "Qx113Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 114, "input": "see https://bob:Qx114Np7v%40@x.example/a", "kind": "text", "review": "a-15", "secret": "Qx114Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 115, "input": "see https://bob:Qx115Np7v@@x.example/a", "kind": "text", "review": "a-15", "secret": "Qx115Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 116, "input": "see https://:Qx116Np7v@x.example", "kind": "text", "review": "a-15", "secret": "Qx116Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 117, "input": "see https://bob:Qx117Np7v@x.example:99999/a", "kind": "text", "review": "a-15", "secret": "Qx117Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 118, "input": "see https://x.example?Qx118Np7v", "kind": "text", "review": "a-15", "secret": "Qx118Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 119, "input": "see https://x.example#Qx119Np7v", "kind": "text", "review": "a-15", "secret": "Qx119Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 120, "input": "see https://x.example;Qx120Np7v", "kind": "text", "review": "a-15", "secret": "Qx120Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 121, "input": "see https://x.example\\Qx121Np7v", "kind": "text", "review": "a-15", "secret": "Qx121Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 122, "input": "see https://x.example/a/../password# Qx122Np7v", "kind": "text", "review": "a-15", "secret": "Qx122Np7v"}
+{"category": "n15-url-userinfo", "claim": "C", "id": 123, "input": "see https://x.example/a?Qx123Np7v", "kind": "text", "queryKeys": ["page"], "review": "a-15", "secret": "Qx123Np7v"}
+{"category": "n15-colon-digits", "claim": "C", "id": 124, "input": "user1:2345678901 ok", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 125, "input": "user_1:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 126, "input": "user-1:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 127, "input": "user.1:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 128, "input": "user1 :2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 129, "input": "user1::2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 130, "input": "user1=:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 131, "input": "[12:30] user1:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 132, "input": "12:30 user1:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 133, "input": "user１:２３４５６７８９０１", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 134, "input": "x١:٢٣٤٥٦٧٨٩٠١", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 135, "input": "0x1F:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 136, "input": "a1b2:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 137, "input": "retry 12:30 then user9:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "X", "id": 138, "input": "user²:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "X", "id": 139, "input": "v1.2.3:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "X", "id": 140, "input": "1e9:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "X", "id": 141, "input": "uid 1000:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "X", "id": 142, "input": "2026-10-19T12:30:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "X", "id": 143, "input": "port 8080:2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-colon-digits", "claim": "C", "id": 144, "input": "retry 12:30:Qx144Np7v", "kind": "text", "review": "a-15", "secret": "Qx144Np7v"}
+{"category": "n15-colon-digits", "claim": "C", "id": 145, "input": "id 1:Qx145Np7v", "kind": "text", "review": "a-15", "secret": "Qx145Np7v"}
+{"category": "n15-colon-digits", "claim": "C", "id": 146, "input": "at 10.0.0.1:8080:Qx146Np7v", "kind": "text", "review": "a-15", "secret": "Qx146Np7v"}
+{"category": "n15-colon-digits", "claim": "X", "id": 147, "input": "at 10.0.0.1:8080/Qx147Np7v", "kind": "text", "review": "a-15", "secret": "Qx147Np7v"}
+{"category": "n15-colon-digits", "claim": "C", "id": 148, "input": "user1:​2345678901", "kind": "text", "review": "a-15", "secret": "2345678901"}
+{"category": "n15-confusable", "claim": "C", "id": 149, "input": "login pаsswоrd Qx149Np7v", "kind": "text", "review": "a-15", "secret": "Qx149Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 150, "input": "login ρassword Qx150Np7v", "kind": "text", "review": "a-15", "secret": "Qx150Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 151, "input": "login 𝗉assword Qx151Np7v", "kind": "text", "review": "a-15", "secret": "Qx151Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 152, "input": "login ⓟassword Qx152Np7v", "kind": "text", "review": "a-15", "secret": "Qx152Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 153, "input": "login ｐassword Qx153Np7v", "kind": "text", "review": "a-15", "secret": "Qx153Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 154, "input": "login pass‌word Qx154Np7v", "kind": "text", "review": "a-15", "secret": "Qx154Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 155, "input": "login pass­word Qx155Np7v", "kind": "text", "review": "a-15", "secret": "Qx155Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 156, "input": "login pass‍word Qx156Np7v", "kind": "text", "review": "a-15", "secret": "Qx156Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 157, "input": "login pas̵sword Qx157Np7v", "kind": "text", "review": "a-15", "secret": "Qx157Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 158, "input": "login ṗ̣assword Qx158Np7v", "kind": "text", "review": "a-15", "secret": "Qx158Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 159, "input": "login pass͏word Qx159Np7v", "kind": "text", "review": "a-15", "secret": "Qx159Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 160, "input": "login pass᠎word Qx160Np7v", "kind": "text", "review": "a-15", "secret": "Qx160Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 161, "input": "login pass️word Qx161Np7v", "kind": "text", "review": "a-15", "secret": "Qx161Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 162, "input": "login pass󠀠word Qx162Np7v", "kind": "text", "review": "a-15", "secret": "Qx162Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 163, "input": "login PASSWORD⁠ Qx163Np7v", "kind": "text", "review": "a-15", "secret": "Qx163Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 164, "input": "login pass𝅳word Qx164Np7v", "kind": "text", "review": "a-15", "secret": "Qx164Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 165, "input": "login ᴘassword Qx165Np7v", "kind": "text", "review": "a-15", "secret": "Qx165Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 166, "input": "login passworԁ Qx166Np7v", "kind": "text", "review": "a-15", "secret": "Qx166Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 167, "input": "login tοken Qx167Np7v", "kind": "text", "review": "a-15", "secret": "Qx167Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 168, "input": "login ѕecret Qx168Np7v", "kind": "text", "review": "a-15", "secret": "Qx168Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 169, "input": "login 𝓅𝒾𝓃 Qx169Np7v", "kind": "text", "review": "a-15", "secret": "Qx169Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 170, "input": "login 🅿assword Qx170Np7v", "kind": "text", "review": "a-15", "secret": "Qx170Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 171, "input": "login p⃝assword Qx171Np7v", "kind": "text", "review": "a-15", "secret": "Qx171Np7v"}
+{"category": "n15-confusable", "claim": "C", "id": 172, "input": "login aрi_key Qx172Np7v", "kind": "text", "review": "a-15", "secret": "Qx172Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 173, "input": "login pass\\u0077ord Qx173Np7v", "kind": "text", "review": "a-15", "secret": "Qx173Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 174, "input": "login pass%77ord Qx174Np7v", "kind": "text", "review": "a-15", "secret": "Qx174Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 175, "input": "login pass&#119;ord Qx175Np7v", "kind": "text", "review": "a-15", "secret": "Qx175Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 176, "input": "login pass&#x77;ord Qx176Np7v", "kind": "text", "review": "a-15", "secret": "Qx176Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 177, "input": "login user\\u003dQx177Np7v", "kind": "text", "review": "a-15", "secret": "Qx177Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 178, "input": "login user\\x3aQx178Np7v", "kind": "text", "review": "a-15", "secret": "Qx178Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 179, "input": "login user%253DQx179Np7v", "kind": "text", "review": "a-15", "secret": "Qx179Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 180, "input": "login user&#58;Qx180Np7v", "kind": "text", "review": "a-15", "secret": "Qx180Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 181, "input": "login user&NewLine;Qx181Np7v", "kind": "text", "review": "a-15", "secret": "Qx181Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 182, "input": "login user\\=Qx182Np7v", "kind": "text", "review": "a-15", "secret": "Qx182Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 183, "input": "login user\\u{3D}Qx183Np7v", "kind": "text", "review": "a-15", "secret": "Qx183Np7v"}
+{"category": "n15-escape", "claim": "C", "id": 184, "input": "login user\\075Qx184Np7v", "kind": "text", "review": "a-15", "secret": "Qx184Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 185, "input": "login [user]=Qx185Np7v", "kind": "text", "review": "a-15", "secret": "Qx185Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 186, "input": "login (password) Qx186Np7v", "kind": "text", "review": "a-15", "secret": "Qx186Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 187, "input": "login «password» Qx187Np7v", "kind": "text", "review": "a-15", "secret": "Qx187Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 188, "input": "login \"password\" Qx188Np7v", "kind": "text", "review": "a-15", "secret": "Qx188Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 189, "input": "login 'pass' Qx189Np7v", "kind": "text", "review": "a-15", "secret": "Qx189Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 190, "input": "login {password} Qx190Np7v", "kind": "text", "review": "a-15", "secret": "Qx190Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 191, "input": "login <password> Qx191Np7v", "kind": "text", "review": "a-15", "secret": "Qx191Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 192, "input": "login |password| Qx192Np7v", "kind": "text", "review": "a-15", "secret": "Qx192Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 193, "input": "login password Qx193Np7v", "kind": "text", "review": "a-15", "secret": "Qx193Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 194, "input": "login *password* Qx194Np7v", "kind": "text", "review": "a-15", "secret": "Qx194Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 195, "input": "login [password]Qx195Np7v", "kind": "text", "review": "a-15", "secret": "Qx195Np7v"}
+{"category": "n15-brackets", "claim": "C", "id": 196, "input": "login (user=Qx196Np7v)", "kind": "text", "review": "a-15", "secret": "Qx196Np7v"}
+{"category": "n15-repeat", "claim": "C", "id": 197, "input": "status=200 status=200 user=Qx197Np7v", "kind": "text", "review": "a-15", "secret": "Qx197Np7v"}
+{"category": "n15-repeat", "claim": "C", "id": 198, "input": "count=1 count==2 x=Qx198Np7v", "kind": "text", "review": "a-15", "secret": "Qx198Np7v"}
+{"category": "n15-repeat", "claim": "K", "id": 199, "input": "status=200 method=GET status: Qx199Np7v", "kind": "text", "review": "a-15", "secret": "Qx199Np7v"}
+{"category": "n15-repeat", "claim": "C", "id": 200, "input": "path=/a path=/password Qx200Np7v", "kind": "text", "review": "a-15", "secret": "Qx200Np7v"}
+{"category": "n15-repeat", "claim": "C", "id": 201, "input": "user=a user=Qx201Np7v", "kind": "text", "review": "a-15", "secret": "Qx201Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 202, "input": "ok x=Qx202Np7v", "kind": "text", "review": "a-15", "secret": "Qx202Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 203, "input": "ok x=Qx203Np7v", "kind": "text", "review": "a-15", "secret": "Qx203Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 204, "input": "okx=Qx204Np7v", "kind": "text", "review": "a-15", "secret": "Qx204Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 205, "input": "ok\u000bx=Qx205Np7v", "kind": "text", "review": "a-15", "secret": "Qx205Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 206, "input": "ok\fx=Qx206Np7v", "kind": "text", "review": "a-15", "secret": "Qx206Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 207, "input": "ok\rx=Qx207Np7v", "kind": "text", "review": "a-15", "secret": "Qx207Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 208, "input": "ok\r\nx=Qx208Np7v", "kind": "text", "review": "a-15", "secret": "Qx208Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 209, "input": "ok\nx=Qx209Np7v", "kind": "text", "review": "a-15", "secret": "Qx209Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 210, "input": "x\r\n=Qx210Np7v", "kind": "text", "review": "a-15", "secret": "Qx210Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 211, "input": "user =Qx211Np7v", "kind": "text", "review": "a-15", "secret": "Qx211Np7v"}
+{"category": "n15-lines", "claim": "C", "id": 212, "input": "{\"msg\":\"ok\\u2028password Qx212Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx212Np7v", "type": "application/json"}
+{"category": "n15-lines", "claim": "C", "id": 213, "input": "{\"msg\":\"ok\\u000bx=Qx213Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx213Np7v", "type": "application/json"}
+{"category": "n15-logs", "claim": "C", "id": 214, "input": "2026-10-20T12:30:45Z INFO auth ok user_id=42 session=Qx214Np7v", "kind": "text", "review": "a-15", "secret": "Qx214Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 215, "input": "[INFO] 12:30:45 GET /login?user=bob&password=Qx215Np7v 200", "kind": "text", "review": "a-15", "secret": "Qx215Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 216, "input": "Authorization: Bearer Qx216Np7v", "kind": "text", "review": "a-15", "secret": "Qx216Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 217, "input": "curl -H 'X-Api-Key: Qx217Np7v' https://x.example", "kind": "text", "review": "a-15", "secret": "Qx217Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 218, "input": "export AWS_SECRET_ACCESS_KEY=Qx218Np7v", "kind": "text", "review": "a-15", "secret": "Qx218Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 219, "input": "DATABASE_URL=postgres://u\u003aQx219Np7v@db:5432/app", "kind": "text", "review": "a-15", "secret": "Qx219Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 220, "input": "redis://:Qx220Np7v@cache:6379/0", "kind": "text", "review": "a-15", "secret": "Qx220Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 221, "input": "Set-Cookie: sid=Qx221Np7v; Path=/; HttpOnly", "kind": "text", "review": "a-15", "secret": "Qx221Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 222, "input": "kubectl create secret generic x --from-literal=password=Qx222Np7v", "kind": "text", "review": "a-15", "secret": "Qx222Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 223, "input": "git remote add o https://bob:Qx223Np7v@github.com/x/y", "kind": "text", "review": "a-15", "secret": "Qx223Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 224, "input": "see https://x.example/reset?token=Qx224Np7v", "kind": "text", "review": "a-15", "secret": "Qx224Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 225, "input": "ws://x.example/socket#token=Qx225Np7v", "kind": "text", "review": "a-15", "secret": "Qx225Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 226, "input": "https://x.example/a;jsessionid=Qx226Np7v", "kind": "text", "review": "a-15", "secret": "Qx226Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 227, "input": "https://x.example/callback#access_token=Qx227Np7v&state=1", "kind": "text", "review": "a-15", "secret": "Qx227Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 228, "input": "msg=ok\tpassword\tQx228Np7v", "kind": "text", "review": "a-15", "secret": "Qx228Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 229, "input": "user bob logged in with password Qx229Np7v", "kind": "text", "review": "a-15", "secret": "Qx229Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 230, "input": "GET /a status=200 duration_ms=12 x-token Qx230Np7v", "kind": "text", "review": "a-15", "secret": "Qx230Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 231, "input": "status=200 path=/v1/password/Qx231Np7v", "kind": "text", "review": "a-15", "secret": "Qx231Np7v"}
+{"category": "n15-logs", "claim": "C", "id": 232, "input": "status=200 path=/v1/a?pin=Qx232Np7v", "kind": "text", "review": "a-15", "secret": "Qx232Np7v"}
+{"category": "n15-logs", "claim": "D", "id": 233, "input": "mysql -u root -pQx233Np7v", "kind": "text", "review": "a-15", "secret": "Qx233Np7v"}
+{"category": "n15-structured", "claim": "C", "id": 234, "input": "{\"password\":\"a\",\"password\":\"Qx234Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx234Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 235, "input": "password=a&password=Qx235Np7v", "kind": "body", "review": "a-15", "secret": "Qx235Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-structured", "claim": "C", "id": 236, "input": "a=1&a=1&PASSWORD=Qx236Np7v", "kind": "body", "review": "a-15", "secret": "Qx236Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-structured", "claim": "C", "id": 237, "input": "{\"user\":{\"user\":{\"user\":{\"password\":\"Qx237Np7v\"}}}}", "kind": "body", "review": "a-15", "secret": "Qx237Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 238, "input": "[[[[[\"password\",\"Qx238Np7v\"]]]]]", "kind": "body", "review": "a-15", "secret": "Qx238Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 239, "input": "{\"name\":\"password\",\"value\":\"Qx239Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx239Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 240, "input": "{\"key\":\"api_key\",\"value\":\"Qx240Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx240Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 241, "input": "{\"label\":\"PIN\",\"text\":\"Qx241Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx241Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 242, "input": "{\"msg\":\"{\\\"password\\\":\\\"Qx242Np7v\\\"}\"}", "kind": "body", "review": "a-15", "secret": "Qx242Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 243, "input": "{\"msg\":\"{\\\\\\\"user\\\\\\\":\\\\\\\"Qx243Np7v\\\\\\\"}\"}", "kind": "body", "review": "a-15", "secret": "Qx243Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 244, "input": "{\"a\":[{\"b\":[{\"c\":\"x=Qx244Np7v\"}]}]}", "kind": "body", "review": "a-15", "secret": "Qx244Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 245, "input": "{\"pаssword\":\"Qx245Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx245Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 246, "input": "{\"pass\\u0077ord\":\"Qx246Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx246Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 247, "input": "{\"pass\\u200bword\":\"Qx247Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx247Np7v", "type": "application/json"}
+{"category": "n15-structured", "claim": "C", "id": 248, "input": "{\"PASS_WORD\":[\"Qx248Np7v\"]}", "kind": "body", "review": "a-15", "secret": "Qx248Np7v", "type": "application/json"}
+{"category": "n15-free-json", "claim": "C", "id": 249, "input": "payload={\"password\":\"Qx249Np7v\"}", "kind": "text", "review": "a-15", "secret": "Qx249Np7v"}
+{"category": "n15-free-json", "claim": "C", "id": 250, "input": "payload {\"a\":{\"b\":\"Qx250Np7v\"}}", "kind": "text", "review": "a-15", "secret": "Qx250Np7v"}
+{"category": "n15-free-json", "claim": "C", "id": 251, "input": "{\"status\":200,\"x\":\"Qx251Np7v\"}", "kind": "text", "review": "a-15", "secret": "Qx251Np7v"}
+{"category": "n15-free-json", "claim": "C", "id": 252, "input": "[[\"status\",\"200\"],[\"x\",\"Qx252Np7v\"]]", "kind": "text", "review": "a-15", "secret": "Qx252Np7v"}
+{"category": "n15-free-json", "claim": "C", "id": 253, "input": "{\"status\":200}{\"x\":\"Qx253Np7v\"}", "kind": "text", "review": "a-15", "secret": "Qx253Np7v"}
+{"category": "n15-free-json", "claim": "C", "id": 254, "input": "{\"status\":200,\"note\":\"ok \\\"password\\\" Qx254Np7v\"}", "kind": "text", "review": "a-15", "secret": "Qx254Np7v"}
+{"category": "n15-free-json", "claim": "C", "id": 255, "input": "{\"status\":200} password Qx255Np7v", "kind": "text", "review": "a-15", "secret": "Qx255Np7v"}
+{"category": "n15-free-json", "claim": "C", "id": 256, "input": "{\"count\":1}\n{\"count\":2}\n{\"x\":\"Qx256Np7v\"}", "kind": "text", "review": "a-15", "secret": "Qx256Np7v"}
+{"category": "n15-form-json", "claim": "C", "id": 257, "input": "json={\"password\":\"Qx257Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx257Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-form-json", "claim": "C", "id": 258, "input": "data=%7B%22password%22%3A%22Qx258Np7v%22%7D", "kind": "body", "review": "a-15", "secret": "Qx258Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-form-json", "claim": "C", "id": 259, "input": "{\"form\":\"a=1&password=Qx259Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx259Np7v", "type": "application/json"}
+{"category": "n15-form-json", "claim": "C", "id": 260, "input": "{\"form\":\"a=1&x=Qx260Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx260Np7v", "type": "application/json"}
+{"category": "n15-form-json", "claim": "C", "id": 261, "input": "password=Qx261Np7v", "kind": "body", "review": "a-15", "secret": "Qx261Np7v", "type": "application/json"}
+{"category": "n15-form-json", "claim": "C", "id": 262, "input": "{\"password\":\"Qx262Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx262Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-form-json", "claim": "C", "id": 263, "input": "a=1&b={\"c\":[\"pin\",\"Qx263Np7v\"]}", "kind": "body", "review": "a-15", "secret": "Qx263Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-multipart", "claim": "C", "id": 264, "input": "--B0und\r\nContent-Disposition: form-data; name=\"note\"; filename=\"password Qx264Np7v\"\r\n\r\nok\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx264Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 265, "input": "--B0und\r\nContent-Disposition: form-data; name*=UTF-8''pass%77ord\r\n\r\nQx265Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx265Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 266, "input": "--B0und\r\nContent-Disposition: form-data; name=\"pass\\\"word\"\r\n\r\nQx266Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx266Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 267, "input": "--B0und\r\nContent-Disposition: form-data;\r\n name=\"password\"\r\n\r\nQx267Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx267Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 268, "input": "--B0und\r\nContent-Disposition: form-data; name=\"password\"\r\n\r\nQx268Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx268Np7v", "type": "multipart/form-data; boundary=\"B0und\""}
+{"category": "n15-multipart", "claim": "C", "id": 269, "input": "--B0und\r\nContent-Disposition: form-data; name=\"password\"\r\n\r\nQx269Np7v", "kind": "body", "review": "a-15", "secret": "Qx269Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 270, "input": "--B0und\nContent-Disposition: form-data; name=\"password\"\n\nQx270Np7v\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx270Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 271, "input": "--B0und\r\nContent-Disposition: form-data; name=\"password\"\r\nContent-Type: application/json\r\n\r\n{\"a\":\"Qx271Np7v\"}\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx271Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 272, "input": "--B0und\r\nContent-Disposition: form-data; name=\"password\"\r\n\r\nQx272Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx272Np7v", "type": "multipart/form-data; boundary=XYZ"}
+{"category": "n15-multipart", "claim": "C", "id": 273, "input": "--B0und\r\ncontent-disposition:form-data;name=password\r\n\r\nQx273Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx273Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 274, "input": "--B0und\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nx=Qx274Np7v\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx274Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-multipart", "claim": "C", "id": 275, "input": "--B0und\r\nContent-Disposition: form-data; name=\"note\"\r\nX-Note: a password Qx275Np7v\r\n\r\nok\r\n--B0und--", "kind": "body", "review": "a-15", "secret": "Qx275Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-broken", "claim": "C", "id": 276, "input": "{\"password\":\"Qx276Np7v\"", "kind": "body", "review": "a-15", "secret": "Qx276Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "id": 277, "input": "{\"user\":\"Qx277Np7v", "kind": "body", "review": "a-15", "secret": "Qx277Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "id": 278, "input": "{\"password\":\"Qx278Np7v\"}}", "kind": "body", "review": "a-15", "secret": "Qx278Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "id": 279, "input": "﻿{\"password\":\"Qx279Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx279Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "data": "AHsicGFzc3dvcmQiOiJReDI4ME5wN3YifQ==", "id": 280, "input": "{\"password\":\"Qx280Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx280Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "data": "/3sicGFzc3dvcmQiOiJReDI4MU5wN3YifQ==", "id": 281, "input": "{\"password\":\"Qx281Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx281Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "data": "eyJwYXNzd29yZCI6IlF4MjgyTnA3diJ9ww==", "id": 282, "input": "{\"password\":\"Qx282Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx282Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "data": "//57ACIAcABhAHMAcwB3AG8AcgBkACIAOgAiAFEAeAAyADgAMwBOAHAANwB2ACIAfQA=", "id": 283, "input": "{\"password\":\"Qx283Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx283Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "data": "//57ACIAcABhAHMAcwB3AG8AcgBkACIAOgAiAFEAeAAyADgANABOAHAANwB2ACIAfQA=", "id": 284, "input": "{\"password\":\"Qx284Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx284Np7v", "type": "application/json; charset=utf-8"}
+{"category": "n15-broken", "claim": "C", "id": 285, "input": "{'password':'Qx285Np7v'}", "kind": "body", "review": "a-15", "secret": "Qx285Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "id": 286, "input": "{password:\"Qx286Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx286Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "id": 287, "input": "{\"password\":Qx287Np7v}", "kind": "body", "review": "a-15", "secret": "Qx287Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "id": 288, "input": "{\"a\":NaN,\"password\":\"Qx288Np7v\"}", "kind": "body", "review": "a-15", "secret": "Qx288Np7v", "type": "application/json"}
+{"category": "n15-broken", "claim": "C", "id": 289, "input": "%zzpassword=Qx289Np7v", "kind": "body", "review": "a-15", "secret": "Qx289Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-broken", "claim": "C", "id": 290, "input": "password=%Qx290Np7v", "kind": "body", "review": "a-15", "secret": "Qx290Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-broken", "claim": "C", "data": "/3Bhc3N3b3JkPVF4MjkxTnA3dg==", "id": 291, "input": "password=Qx291Np7v", "kind": "body", "review": "a-15", "secret": "Qx291Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-broken", "claim": "C", "data": "/v9wYXNzd29yZCBReDI5Mk5wN3Y=", "id": 292, "input": "password Qx292Np7v", "kind": "body", "review": "a-15", "secret": "Qx292Np7v", "type": "text/plain"}
+{"category": "n15-big", "claim": "C", "id": 293, "kind": "body", "repeat": {"count": 300000, "prefix": "{\"pad\":\"", "suffix": "\",\"password\":\"Qx293Np7v\"}", "unit": "a"}, "review": "a-15", "secret": "Qx293Np7v", "type": "application/json"}
+{"category": "n15-big", "claim": "C", "id": 294, "kind": "body", "repeat": {"count": 300000, "prefix": "", "suffix": " password Qx294Np7v", "unit": "a"}, "review": "a-15", "secret": "Qx294Np7v", "type": "text/plain"}
+{"category": "n15-big", "claim": "C", "id": 295, "kind": "body", "repeat": {"count": 300000, "prefix": "pad=", "suffix": "&password=Qx295Np7v", "unit": "a"}, "review": "a-15", "secret": "Qx295Np7v", "type": "application/x-www-form-urlencoded"}
+{"category": "n15-big", "claim": "C", "id": 296, "kind": "text", "repeat": {"count": 100000, "prefix": "log", "suffix": " x=Qx296Np7v", "unit": " ok"}, "review": "a-15", "secret": "Qx296Np7v"}
+{"category": "n15-big", "claim": "C", "id": 297, "kind": "text", "repeat": {"count": 70000, "prefix": "log {\"pad\":\"", "suffix": "\",\"x\":\"Qx297Np7v\"}", "unit": "b"}, "review": "a-15", "secret": "Qx297Np7v"}
+{"category": "n15-big", "claim": "C", "id": 298, "kind": "body", "repeat": {"count": 300000, "prefix": "--B0und\r\nContent-Disposition: form-data; name=\"pad\"\r\n\r\n", "suffix": "\r\n--B0und\r\nContent-Disposition: form-data; name=\"password\"\r\n\r\nQx298Np7v\r\n--B0und--", "unit": "a"}, "review": "a-15", "secret": "Qx298Np7v", "type": "multipart/form-data; boundary=B0und"}
+{"category": "n15-big", "claim": "C", "id": 299, "kind": "text", "repeat": {"count": 30000, "prefix": "", "suffix": "x=Qx299Np7v", "unit": "{\"count\":1}\n"}, "review": "a-15", "secret": "Qx299Np7v"}
+{"category": "n15-big", "claim": "C", "id": 300, "kind": "body", "repeat": {"count": 50000, "prefix": "{\"a\":\"", "suffix": "\",\"pin\":\"Qx300Np7v\"}", "unit": "\\u0041"}, "review": "a-15", "secret": "Qx300Np7v", "type": "application/json"}
+{"category": "q15", "claim": "C", "id": 1, "input": "see https://x.example/a%3D%20 hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 2, "input": "see https://x.example/a?#%3D hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 3, "input": "see https://x.example/password#. hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 4, "input": "see https://x.example/a=# hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 5, "input": "see https://x.example/a:# hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 6, "input": "see https://x.example/a:;/ hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 7, "input": "see https://x.example/token=;/ hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 8, "input": "see https://x.example/a/b= hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 9, "input": "see https://x.example/a\\x3D hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 10, "input": "see https://x.example/a&#61 hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 11, "input": "see https://x.example/a%253D hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 12, "input": "see https://x.example/password#a hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 13, "input": "see https://x.example/a/password#:~:text=x hunter2", "kind": "text", "review": "a-15q", "secret": "hunter2"}
+{"category": "q15", "claim": "C", "id": 14, "input": "{\"password#\":\"x\",\"note\":\"see https://x.example/pin# hunter2\"}", "kind": "body", "review": "a-15q", "secret": "hunter2", "type": "application/json"}
+{"category": "q15", "claim": "C", "id": 15, "input": "https://x.example/password#/hunter2", "kind": "url", "review": "a-15q", "secret": "hunter2"}
+{"category": "c15-url-ends", "claim": "C", "id": 1, "input": "see https://x.example/a→b/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 2, "input": "see https://x.example/a→b/Qz9Wk7rX?page=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 3, "input": "see https://x.example/→/Qz9Wk7rX tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 4, "input": "see https://x.example/a·password=Qz9Wk7rX?page=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 5, "input": "see https://x.example/a＝Qz9Wk7rX?page=2", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 6, "input": "see https://x.example/😀user:Qz9Wk7rX?page=2 ok", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 7, "input": "see https://x.example/a/user:Qz9Wk7rX?page=2 ok", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 8, "input": "see https://x.example/a/user=Qz9Wk7rX?page=2 ok", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 9, "input": "see https://x.example/a/user=Qz9Wk7rX ok", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 10, "input": "see https://x.example/user=Qz9Wk7rX/b ok", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 11, "input": "see https://x.example/a/note:Qz9Wk7rX/b?page=2 ok", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 12, "input": "see https://x.example/a​/Qz9Wk7rX?page=2", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 13, "input": "see [https://x.example/a?page=2]password Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 14, "input": "see [https://x.example/a?page=2](Qz9Wk7rX)", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 15, "input": "see (https://x.example/a?page=2)token Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 16, "input": "see https://x.example/a?page=2)token=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 17, "input": "see https://x.example/a?page=2]user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 18, "input": "see https://x.example/a?page=2}user:Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 19, "input": "see https://x.example/a?page=2.Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 20, "input": "see https://x.example/a?page=2,user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 21, "input": "see https://x.example/a?page=2;user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 22, "input": "see https://x.example/a;page=2?page=1;user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 23, "input": "see https://x.example/a?page=2#user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 24, "input": "see https://x.example/a?page=2#Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 25, "input": "see https://x.example/a#page=2&Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 26, "input": "see https://x.example/a?page=Qz9Wk7rX%26token%3D", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 27, "input": "see https://x.example/a?page=2%26user%3DQz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 28, "input": "see https://x.example/a%3Fuser%3DQz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 29, "input": "see https://x.example/a%3Fpage%3D2 user Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 30, "input": "see https://x.example/a%2F..%2Fuser=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 31, "input": "see https://[::1]/a?page=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 32, "input": "see https://[fe80::1%25en0]/user:Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 33, "input": "see https://[::ffff:Qz9Wk7rX]/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 34, "input": "see https://[v1.Qz9Wk7rX]/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 35, "input": "see https://Qz9Wk7rX@x.example/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 36, "input": "see https://u:Qz9Wk7rX@x.example/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 37, "input": "see https://u%40m:Qz9Wk7rX@x.example/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 38, "input": "see https://u:Qz9Wk7rX@[::1]:80/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 39, "input": "see https://x.example@Qz9Wk7rX.example/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 40, "input": "see https://Qz9Wk7rX_x.example/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 41, "input": "see https://x!Qz9Wk7rX.example/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 42, "input": "see https://x.example:Qz9Wk7rX/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 43, "input": "see https://x.example:80Qz9Wk7rX/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 44, "input": "see https://x․example/Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 45, "input": "see \"https://x.example/a?page=2\"user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 46, "input": "see 'https://x.example/a?page=2'Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 47, "input": "see `https://x.example/a?page=2`user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 48, "input": "see <https://x.example/a?page=2>user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 49, "input": "see https://x.example/a?page=2　user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 50, "input": "see https://x.example/a?page=2 user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 51, "input": "see https://x.example/a?page=2 user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 52, "input": "see https://x.example/a?page=2\\user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 53, "input": "see https://x.example/a?page=2|user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 54, "input": "see https://x.example/a?page=2&&q=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 55, "input": "see https://x.example/a?page=2&=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 56, "input": "see https://x.example/a?page=&q=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 57, "input": "see https://x.example/a?page=2&page=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 58, "input": "see https://x.example/a?Page=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 59, "input": "see https://x.example/a?p%61ge=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 60, "input": "see https://x.example/a?page=%Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 61, "input": "see https://x.example/a?page=a%2Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 62, "input": "see https://x.example/a?page=éQz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 63, "input": "see https://x.example/a?page=x+password+Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 64, "input": "see https://x.example/a?q=password%20Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 65, "input": "see https://x.example/a?q=user%3AQz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 66, "input": "see https://x.example/a?q=%7B%22user%22%3A%22Qz9Wk7rX%22%7D", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 67, "input": "see https://x.example/a?q={\"user\":\"Qz9Wk7rX\"}", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 68, "input": "see https://x.example/a?q=1 password Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 69, "input": "see https://x.example/password/Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 70, "input": "see https://x.example/a/password/Qz9Wk7rX/", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 71, "input": "see https://x.example/v1/users/Qz9Wk7rX/token", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 72, "input": "see http://x.example:8080/Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "K", "id": 73, "input": "see https://x.example/Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 74, "input": "GET https://x.example/a?page=2 user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 75, "input": "see file:///etc/Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 76, "input": "see myapp://user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "K", "id": 77, "input": "see myapp://Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 78, "input": "see myapp://cb?user=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 79, "input": "see mailto://Qz9Wk7rX@x.example", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 80, "input": "see https:/\\x.example/Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 81, "input": "see https://x.example\\@Qz9Wk7rX.example/a", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 82, "input": "see hTTps://x.example/a?page=2&token=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 83, "input": "see https://x.example/a?page=2&amp;token=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 84, "input": "see https://x.example/a?page=2&#x3b;token=Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 85, "input": "see https://x.example/a→b/Qz9Wk7rX?q=1 tail", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 86, "input": "see https://x.example/a→b/Qz9Wk7rX?page=1 tail", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 87, "input": "see https://x.example/→/Qz9Wk7rX tail", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 88, "input": "see https://x.example/a·password=Qz9Wk7rX?page=1 tail", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 89, "input": "see https://x.example/a＝Qz9Wk7rX?page=2", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 90, "input": "see https://x.example/😀user:Qz9Wk7rX?page=2 ok", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 91, "input": "see https://x.example/a/user:Qz9Wk7rX?page=2 ok", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 92, "input": "see https://x.example/a/user=Qz9Wk7rX?page=2 ok", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 93, "input": "see https://x.example/a/user=Qz9Wk7rX ok", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 94, "input": "see https://x.example/user=Qz9Wk7rX/b ok", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 95, "input": "see https://x.example/a/note:Qz9Wk7rX/b?page=2 ok", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 96, "input": "see https://x.example/a​/Qz9Wk7rX?page=2", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 97, "input": "see [https://x.example/a?page=2]password Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 98, "input": "see [https://x.example/a?page=2](Qz9Wk7rX)", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 99, "input": "see (https://x.example/a?page=2)token Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 100, "input": "see https://x.example/a?page=2)token=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 101, "input": "see https://x.example/a?page=2]user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 102, "input": "see https://x.example/a?page=2}user:Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 103, "input": "see https://x.example/a?page=2.Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 104, "input": "see https://x.example/a?page=2,user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 105, "input": "see https://x.example/a?page=2;user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 106, "input": "see https://x.example/a;page=2?page=1;user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 107, "input": "see https://x.example/a?page=2#user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 108, "input": "see https://x.example/a?page=2#Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 109, "input": "see https://x.example/a#page=2&Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 110, "input": "see https://x.example/a?page=Qz9Wk7rX%26token%3D", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 111, "input": "see https://x.example/a?page=2%26user%3DQz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 112, "input": "see https://x.example/a%3Fuser%3DQz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 113, "input": "see https://x.example/a%3Fpage%3D2 user Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 114, "input": "see https://x.example/a%2F..%2Fuser=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 115, "input": "see https://[::1]/a?page=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 116, "input": "see https://[fe80::1%25en0]/user:Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 117, "input": "see https://[::ffff:Qz9Wk7rX]/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 118, "input": "see https://[v1.Qz9Wk7rX]/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 119, "input": "see https://Qz9Wk7rX@x.example/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 120, "input": "see https://u:Qz9Wk7rX@x.example/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 121, "input": "see https://u%40m:Qz9Wk7rX@x.example/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 122, "input": "see https://u:Qz9Wk7rX@[::1]:80/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 123, "input": "see https://x.example@Qz9Wk7rX.example/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 124, "input": "see https://Qz9Wk7rX_x.example/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 125, "input": "see https://x!Qz9Wk7rX.example/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 126, "input": "see https://x.example:Qz9Wk7rX/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 127, "input": "see https://x.example:80Qz9Wk7rX/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 128, "input": "see https://x․example/Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 129, "input": "see \"https://x.example/a?page=2\"user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 130, "input": "see 'https://x.example/a?page=2'Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 131, "input": "see `https://x.example/a?page=2`user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 132, "input": "see <https://x.example/a?page=2>user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 133, "input": "see https://x.example/a?page=2　user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 134, "input": "see https://x.example/a?page=2 user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 135, "input": "see https://x.example/a?page=2 user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 136, "input": "see https://x.example/a?page=2\\user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 137, "input": "see https://x.example/a?page=2|user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 138, "input": "see https://x.example/a?page=2&&q=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 139, "input": "see https://x.example/a?page=2&=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 140, "input": "see https://x.example/a?page=&q=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 141, "input": "see https://x.example/a?page=2&page=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 142, "input": "see https://x.example/a?Page=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 143, "input": "see https://x.example/a?p%61ge=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 144, "input": "see https://x.example/a?page=%Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 145, "input": "see https://x.example/a?page=a%2Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 146, "input": "see https://x.example/a?page=éQz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 147, "input": "see https://x.example/a?page=x+password+Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 148, "input": "see https://x.example/a?q=password%20Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 149, "input": "see https://x.example/a?q=user%3AQz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 150, "input": "see https://x.example/a?q=%7B%22user%22%3A%22Qz9Wk7rX%22%7D", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 151, "input": "see https://x.example/a?q={\"user\":\"Qz9Wk7rX\"}", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 152, "input": "see https://x.example/a?q=1 password Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 153, "input": "see https://x.example/password/Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 154, "input": "see https://x.example/a/password/Qz9Wk7rX/", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 155, "input": "see https://x.example/v1/users/Qz9Wk7rX/token", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 156, "input": "see http://x.example:8080/Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "K", "id": 157, "input": "see https://x.example/Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 158, "input": "GET https://x.example/a?page=2 user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 159, "input": "see file:///etc/Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 160, "input": "see myapp://user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "K", "id": 161, "input": "see myapp://Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 162, "input": "see myapp://cb?user=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 163, "input": "see mailto://Qz9Wk7rX@x.example", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 164, "input": "see https:/\\x.example/Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 165, "input": "see https://x.example\\@Qz9Wk7rX.example/a", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 166, "input": "see hTTps://x.example/a?page=2&token=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 167, "input": "see https://x.example/a?page=2&amp;token=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-url-ends", "claim": "C", "id": 168, "input": "see https://x.example/a?page=2&#x3b;token=Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 169, "input": "see https://x.example/token/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 170, "input": "see https://x.example/token→/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 171, "input": "see https://x.example/to→ken/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 172, "input": "see https://x.example/pass→word/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 173, "input": "see https://x.example/pass꞉word/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 174, "input": "see https://x.example/password·/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 175, "input": "see https://x.example/a→/password/Qz9Wk7rX?q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 176, "input": "see https://x.example/a→/b/c/Qz9Wk7rX/password", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 177, "input": "see https://x.example/a→/b/Qz9Wk7rX/token", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 178, "input": "see https://x.example/a→/Qz9Wk7rX/x:", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 179, "input": "see https://x.example/a→b/Qz9Wk7rX?page=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 180, "input": "see https://x.example/a→b/Qz9Wk7rX;q=1 tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 181, "input": "see https://x.example/a→b/Qz9Wk7rX#q tail", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 182, "input": "see https://x.example/🔑/Qz9Wk7rX?q=1", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 183, "input": "see https://x.example/a /Qz9Wk7rX?q=1", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 184, "input": "see https://x.example/a　/Qz9Wk7rX?q=1", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 185, "input": "see https://x.example/a／Qz9Wk7rX?q=1", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 186, "input": "see https://x.example/a∕Qz9Wk7rX?q=1", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 187, "input": "see https://x.example/a⁄Qz9Wk7rX/b?q=1", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 188, "input": "{\"status\":\"ok\"} → Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 189, "input": "{\"count→x\":1} tail Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 190, "input": "{\"status\":1,\"note → Qz9Wk7rX\":\"x\"}", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 191, "input": "{\"status\":\"a→b\",\"user\":\"Qz9Wk7rX\"}", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 192, "input": "{\"status\":[\"a\",\"→\"],\"count\":\"Qz9Wk7rX\"}", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 193, "input": "\"user→\": Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 194, "input": "type=\"pass→word\" Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 195, "input": "type=\"ok→\" Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 196, "input": "type=ok→ Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 197, "input": "<type>ok→</type> Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 198, "input": "<type>pass→word</type> Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 199, "input": "status=200 → Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 200, "input": "status=200 x→Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 201, "input": "path=/a/b→/Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 202, "input": "path=https://x.example/a→/Qz9Wk7rX?q=1", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 203, "input": "see https://x.example/token/Qz9Wk7rX?q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 204, "input": "see https://x.example/token→/Qz9Wk7rX?q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 205, "input": "see https://x.example/to→ken/Qz9Wk7rX?q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 206, "input": "see https://x.example/pass→word/Qz9Wk7rX?q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 207, "input": "see https://x.example/pass꞉word/Qz9Wk7rX?q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 208, "input": "see https://x.example/password·/Qz9Wk7rX?q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 209, "input": "see https://x.example/a→/password/Qz9Wk7rX?q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 210, "input": "see https://x.example/a→/b/c/Qz9Wk7rX/password", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 211, "input": "see https://x.example/a→/b/Qz9Wk7rX/token", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 212, "input": "see https://x.example/a→/Qz9Wk7rX/x:", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 213, "input": "see https://x.example/a→b/Qz9Wk7rX?page=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 214, "input": "see https://x.example/a→b/Qz9Wk7rX;q=1 tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 215, "input": "see https://x.example/a→b/Qz9Wk7rX#q tail", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 216, "input": "see https://x.example/🔑/Qz9Wk7rX?q=1", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 217, "input": "see https://x.example/a /Qz9Wk7rX?q=1", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 218, "input": "see https://x.example/a　/Qz9Wk7rX?q=1", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 219, "input": "see https://x.example/a／Qz9Wk7rX?q=1", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 220, "input": "see https://x.example/a∕Qz9Wk7rX?q=1", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 221, "input": "see https://x.example/a⁄Qz9Wk7rX/b?q=1", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 222, "input": "{\"status\":\"ok\"} → Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 223, "input": "{\"count→x\":1} tail Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 224, "input": "{\"status\":1,\"note → Qz9Wk7rX\":\"x\"}", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 225, "input": "{\"status\":\"a→b\",\"user\":\"Qz9Wk7rX\"}", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 226, "input": "{\"status\":[\"a\",\"→\"],\"count\":\"Qz9Wk7rX\"}", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 227, "input": "\"user→\": Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 228, "input": "type=\"pass→word\" Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 229, "input": "type=\"ok→\" Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 230, "input": "type=ok→ Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 231, "input": "<type>ok→</type> Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 232, "input": "<type>pass→word</type> Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 233, "input": "status=200 → Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 234, "input": "status=200 x→Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 235, "input": "path=/a/b→/Qz9Wk7rX", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet", "claim": "C", "id": 236, "input": "path=https://x.example/a→/Qz9Wk7rX?q=1", "keys": ["type"], "kind": "text", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet-places", "claim": "C", "id": 237, "input": "see see https://x.example/token→/Qz9Wk7rX?q=1 tail", "keys": ["note", "url"], "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet-places", "claim": "C", "id": 238, "input": "status=200 path=see https://x.example/token→/Qz9Wk7rX?q=1 tail", "keys": ["note", "url"], "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-past-alphabet-places", "claim": "C", "id": 239, "input": "see https://x.example/token→/Qz9Wk7rX?q=1 tail", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "text/plain"}
+{"category": "c15-past-alphabet-places", "claim": "C", "id": 240, "input": "{\"msg\":\"see https:\\/\\/x.example\\/token→\\/Qz9Wk7rX?q=1 tail\"}", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-past-alphabet-places", "claim": "C", "id": 241, "input": "[{\"msg\":\"see https:\\/\\/x.example\\/token→\\/Qz9Wk7rX?q=1 tail\"}]", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-past-alphabet-places", "claim": "C", "id": 242, "input": "note=see+https%3A%2F%2Fx.example%2Ftoken%E2%86%92%2FQz9Wk7rX%3Fq%3D1+tail", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/x-www-form-urlencoded"}
+{"category": "c15-past-alphabet-places", "claim": "C", "id": 243, "input": "--B\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nsee https://x.example/token→/Qz9Wk7rX?q=1 tail\r\n--B--", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "multipart/form-data; boundary=B"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 244, "input": "see https://x.example/user= Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 245, "input": "see https://x.example/user%3D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 246, "input": "see https://x.example/user%3d Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 247, "input": "see https://x.example/user%3A Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 248, "input": "see https://x.example/a/note%3A Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 249, "input": "see https://x.example/a/note%253A Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 250, "input": "see https://x.example/a/user%3A%20 Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 251, "input": "see https://x.example/a/user%3A\nQz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 252, "input": "see https://x.example/a?page=2%26user%3D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 253, "input": "see https://x.example/a?page=x%26user%3D%20 Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 254, "input": "see https://x.example/a?q=user%3A Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 255, "input": "see https://x.example/a?q=user%3D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 256, "input": "see https://x.example/a?q=user: Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 257, "input": "see https://x.example/a?q=user= Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 258, "input": "see https://x.example/a?page=2#user%3D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 259, "input": "see https://x.example/a;page=user%3D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 260, "input": "see https://x.example/a?page=%3D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 261, "input": "see https://x.example/a?page=2&q=%3A Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 262, "input": "see https://x.example/a?page=user%253D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 263, "input": "see https://user%3D@x.example/a Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 264, "input": "see https://x.example/a?q=label%3Duser%26value%3D Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 265, "input": "see https://x.example/a?q=%22user%22%3A Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 266, "input": "see https://x.example/a?q=%7B%22user%22%3A Qz9Wk7rX", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 267, "input": "see https://x.example/a/user%3A%22 Qz9Wk7rX\"", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 268, "input": "see https://x.example/a/Qz9Wk7rX%3D", "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 269, "input": "see https://x.example/user= Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 270, "input": "see https://x.example/user%3D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 271, "input": "see https://x.example/user%3d Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 272, "input": "see https://x.example/user%3A Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 273, "input": "see https://x.example/a/note%3A Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 274, "input": "see https://x.example/a/note%253A Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 275, "input": "see https://x.example/a/user%3A%20 Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 276, "input": "see https://x.example/a/user%3A\nQz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 277, "input": "see https://x.example/a?page=2%26user%3D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 278, "input": "see https://x.example/a?page=x%26user%3D%20 Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 279, "input": "see https://x.example/a?q=user%3A Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 280, "input": "see https://x.example/a?q=user%3D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 281, "input": "see https://x.example/a?q=user: Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 282, "input": "see https://x.example/a?q=user= Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 283, "input": "see https://x.example/a?page=2#user%3D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 284, "input": "see https://x.example/a;page=user%3D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 285, "input": "see https://x.example/a?page=%3D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 286, "input": "see https://x.example/a?page=2&q=%3A Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 287, "input": "see https://x.example/a?page=user%253D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 288, "input": "see https://user%3D@x.example/a Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 289, "input": "see https://x.example/a?q=label%3Duser%26value%3D Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 290, "input": "see https://x.example/a?q=%22user%22%3A Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 291, "input": "see https://x.example/a?q=%7B%22user%22%3A Qz9Wk7rX", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 292, "input": "see https://x.example/a/user%3A%22 Qz9Wk7rX\"", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends", "claim": "C", "id": 293, "input": "see https://x.example/a/Qz9Wk7rX%3D", "kind": "text", "queryKeys": ["page", "q"], "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 294, "input": "see https://x.example/user%3A Qz9Wk7rX 200", "keys": ["note", "url"], "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 295, "input": "status=200 path=https://x.example/user%3A Qz9Wk7rX 200", "keys": ["note", "url"], "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 296, "input": "https://x.example/user%3A Qz9Wk7rX 200", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "text/plain"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 297, "input": "{\"msg\":\"https:\\/\\/x.example\\/user%3A Qz9Wk7rX 200\"}", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 298, "input": "[{\"msg\":\"https:\\/\\/x.example\\/user%3A Qz9Wk7rX 200\"}]", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 299, "input": "note=https%3A%2F%2Fx.example%2Fuser%253A+Qz9Wk7rX+200", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/x-www-form-urlencoded"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 300, "input": "--B\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nhttps://x.example/user%3A Qz9Wk7rX 200\r\n--B--", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "multipart/form-data; boundary=B"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 301, "input": "see https://x.example/a?q=user%3D Qz9Wk7rX 200", "keys": ["note", "url"], "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 302, "input": "status=200 path=https://x.example/a?q=user%3D Qz9Wk7rX 200", "keys": ["note", "url"], "kind": "text", "review": "c-15", "secret": "Qz9Wk7rX"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 303, "input": "https://x.example/a?q=user%3D Qz9Wk7rX 200", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "text/plain"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 304, "input": "{\"msg\":\"https:\\/\\/x.example\\/a?q=user%3D Qz9Wk7rX 200\"}", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 305, "input": "[{\"msg\":\"https:\\/\\/x.example\\/a?q=user%3D Qz9Wk7rX 200\"}]", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 306, "input": "note=https%3A%2F%2Fx.example%2Fa%3Fq%3Duser%253D+Qz9Wk7rX+200", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/x-www-form-urlencoded"}
+{"category": "c15-encoded-ends-places", "claim": "C", "id": 307, "input": "--B\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nhttps://x.example/a?q=user%3D Qz9Wk7rX 200\r\n--B--", "keys": ["note", "url"], "kind": "body", "review": "c-15", "secret": "Qz9Wk7rX", "type": "multipart/form-data; boundary=B"}
+{"category": "c15-usability-body", "claim": "C", "id": 308, "input": "{\"user\":\"alice\",\"password\":\"Qz9Wk7rX\",\"items\":[1,2,3],\"nested\":{\"token\":\"Qz9Wk7rX\",\"name\":\"Ayşe\"}}", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-usability-body", "claim": "C", "id": 309, "input": "[{\"id\":1,\"name\":\"a b\"},{\"id\":2,\"card\":\"4242 4242 4242 4242\"}]", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-usability-body", "claim": "C", "id": 310, "input": "{\"msg\":\"user logged in\",\"note\":\"password=Qz9Wk7rX\"}", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-usability-body", "claim": "C", "id": 311, "input": "{\"a\":1.5e3,\"b\":null,\"c\":true,\"d\":\"\\u00e7\\n\",\"e\":[]}", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/json"}
+{"category": "c15-usability-body", "claim": "C", "id": 312, "input": "user=alice&password=Qz9Wk7rX&page=2&note=hello+world", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/x-www-form-urlencoded"}
+{"category": "c15-usability-body", "claim": "C", "id": 313, "input": "q=caf%C3%A9&lang=tr", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "application/x-www-form-urlencoded"}
+{"category": "c15-usability-body", "claim": "C", "id": 314, "input": "--B\r\nContent-Disposition: form-data; name=\"user\"\r\n\r\nalice\r\n--B\r\nContent-Disposition: form-data; name=\"password\"\r\n\r\nQz9Wk7rX\r\n--B--\r\n", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "multipart/form-data; boundary=B"}
+{"category": "c15-usability-body", "claim": "C", "id": 315, "input": "status=200 count=3", "keys": ["user_id", "region"], "kind": "body", "queryKeys": ["page"], "review": "c-15", "secret": "Qz9Wk7rX", "type": "text/plain"}
