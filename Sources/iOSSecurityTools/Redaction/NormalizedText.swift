@@ -11,8 +11,7 @@ import Foundation
 struct NormalizedText {
     let bytes: [UInt8]
     /// The offset in the original scalars of the scalar a byte came from.
-    let offsets: [Int]
-    let isUppercase: [Bool]
+    let offsets: ScalarOffsets
     /// The original scalars.
     let source: [Unicode.Scalar]
     /// The number of original scalars.
@@ -22,39 +21,70 @@ struct NormalizedText {
     /// separator, and unlike it, it never stands for a letter.
     static let masked: UInt8 = 0xFE
 
-    /// - Parameter masked: Ranges of original scalars to read as ``masked``, so that no finding
-    ///   starts, ends or runs inside them.
-    init(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText, masked: [Range<Int>] = []) {
+    init(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) {
         var bytes: [UInt8] = []
-        var offsets: [Int] = []
         bytes.reserveCapacity(scalars.count)
-        offsets.reserveCapacity(scalars.count)
-        var mask = masked.sorted { $0.lowerBound < $1.lowerBound }.makeIterator()
-        var nextMask = mask.next()
-        for (offset, scalar) in scalars.enumerated() {
-            while let range = nextMask, range.upperBound <= offset { nextMask = mask.next() }
-            if let range = nextMask, range.contains(offset) {
-                bytes.append(Self.masked)
-                offsets.append(offset)
-                continue
+        // While every scalar becomes one byte, as in printable ASCII, each byte comes from the
+        // scalar at its own index and no offsets are stored.
+        var index = 0
+        while index < scalars.count {
+            let scalar = scalars[index]
+            let byte: UInt8
+            if scalar.isASCII {
+                byte = UInt8(scalar.value)
+                guard !ASCII.isHidingControl(byte) else { break }
+            } else {
+                guard !ScalarClass.isInvisible(scalar) else { break }
+                let reading = compatibility.ascii(scalar)
+                guard reading.count == 1 else { break }
+                byte = reading[0]
             }
+            bytes.append(byte)
+            index += 1
+        }
+        guard index < scalars.count else {
+            self.init(bytes: bytes, offsets: ScalarOffsets(storage: nil), source: scalars)
+            return
+        }
+        var offsets: [UInt32] = []
+        offsets.reserveCapacity(scalars.count)
+        offsets.append(contentsOf: (0..<UInt32(clamping: index)))
+        for offset in index..<scalars.count {
+            let scalar = scalars[offset]
             if scalar.isASCII {
                 // Control characters other than tab and line terminators hide like format ones.
                 guard !ASCII.isHidingControl(UInt8(scalar.value)) else { continue }
                 bytes.append(UInt8(scalar.value))
-                offsets.append(offset)
+                offsets.append(UInt32(clamping: offset))
                 continue
             }
             guard !ScalarClass.isInvisible(scalar) else { continue }
             for byte in compatibility.ascii(scalar) {
                 bytes.append(byte)
-                offsets.append(offset)
+                offsets.append(UInt32(clamping: offset))
             }
         }
+        self.init(bytes: bytes, offsets: ScalarOffsets(storage: offsets), source: scalars)
+    }
+
+    private init(bytes: [UInt8], offsets: ScalarOffsets, source: [Unicode.Scalar]) {
         self.bytes = bytes
         self.offsets = offsets
-        self.isUppercase = bytes.map(ASCII.isUppercase)
-        self.source = scalars
+        self.source = source
+    }
+
+    /// This copy with the bytes that come from scalars in `regions` read as ``masked``, so that no
+    /// finding starts, ends or runs inside them. The offsets and the scalars are shared, so the
+    /// masked copy takes only its bytes.
+    func masking(_ regions: [Range<Int>]) -> NormalizedText {
+        var masked = bytes
+        var pending = regions.sorted { $0.lowerBound < $1.lowerBound }[...]
+        for k in masked.indices {
+            let offset = offsets[k]
+            while let region = pending.first, region.upperBound <= offset { pending = pending.dropFirst() }
+            if let region = pending.first, region.contains(offset) { masked[k] = Self.masked }
+        }
+        return NormalizedText(bytes: masked, offsets: offsets, source: source)
     }
 
     var count: Int { bytes.count }
@@ -111,6 +141,8 @@ struct NormalizedText {
 
     func isDigit(_ i: Int) -> Bool { ASCII.isDigit(bytes[i]) }
 
+    func isUppercase(_ i: Int) -> Bool { ASCII.isUppercase(bytes[i]) }
+
     func isLetter(_ i: Int) -> Bool { ASCII.isLetter(bytes[i]) }
 
     func isAlphanumeric(_ i: Int) -> Bool { isDigit(i) || isLetter(i) }
@@ -145,7 +177,7 @@ struct NormalizedText {
     func isWordStart(_ i: Int) -> Bool {
         guard i > 0 else { return true }
         if !gluesToWord(i - 1) { return true }
-        return isUppercase[i] && isLetter(i - 1) && !isUppercase[i - 1]
+        return isUppercase(i) && isLetter(i - 1) && !isUppercase(i - 1)
     }
 
     /// Whether byte `i` is a letter or digit written in ASCII, which makes the digits or the token
@@ -162,6 +194,20 @@ struct NormalizedText {
             return false
         }
         return true
+    }
+}
+
+/// The offset in the original scalars of each byte of a scanning copy, stored in 32 bits: the
+/// copy of a megabyte of text holds a million of them. Free text of more scalars than 32 bits
+/// count is hidden whole before a copy is made (see ``SensitiveDataRedactor/maximumTextLength``).
+/// When each byte comes from the scalar at its own index, as in printable ASCII, nothing is
+/// stored.
+struct ScalarOffsets {
+    fileprivate let storage: [UInt32]?
+
+    subscript(i: Int) -> Int {
+        guard let storage else { return i }
+        return Int(storage[i])
     }
 }
 

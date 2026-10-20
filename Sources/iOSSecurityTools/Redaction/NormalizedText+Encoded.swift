@@ -20,10 +20,10 @@ extension NormalizedText {
         return spans
     }
 
-    private func isIBANCharacter(_ i: Int) -> Bool { isDigit(i) || isUppercase[i] }
+    private func isIBANCharacter(_ i: Int) -> Bool { isDigit(i) || isUppercase(i) }
 
     private func startsIBAN(at i: Int) -> Bool {
-        (i == 0 || !gluesToWord(i - 1)) && isUppercase[i] && isUppercase[i + 1] && isDigit(i + 2) && isDigit(i + 3)
+        (i == 0 || !gluesToWord(i - 1)) && isUppercase(i) && isUppercase(i + 1) && isDigit(i + 2) && isDigit(i + 3)
     }
 
     /// The end of the longest IBAN that starts at `start` and ends where its group ends.

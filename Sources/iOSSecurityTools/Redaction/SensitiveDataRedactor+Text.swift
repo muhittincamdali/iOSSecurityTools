@@ -3,6 +3,7 @@ extension SensitiveDataRedactor {
     /// the text is in; a text inside one whose JSON or URL goes past a limit is one finding.
     func textSpans(in scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text, nesting: Nesting) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty, !Self.isQuietWord(scalars) else { return [] }
+        guard scalars.count <= Self.maximumTextLength else { return [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] }
         return textSpans(in: scalars, text: NormalizedText(scalars, compatibility: compatibility), compatibility: compatibility, role: role, nesting: nesting)
     }
 
@@ -10,25 +11,39 @@ extension SensitiveDataRedactor {
     /// With `detectsInRegions` the value detectors also read the JSON and URLs in the text, which
     /// a path segment needs: a URL in one keeps its host, and a token in the host must still make
     /// the segment `:id`. A text inside a document found in the input that the reading budget no
-    /// longer covers (see ``ReadingBudget``) is one finding.
+    /// longer covers (see ``ReadingBudget``) is one finding, and so is a text longer than
+    /// ``maximumTextLength``, whose offsets the scanning copy cannot hold.
     func textSpans(
         in scalars: [Unicode.Scalar], text: NormalizedText, compatibility: CompatibilityText, role: FreeTextScanner.Role = .text,
         nesting: Nesting, detectsInRegions: Bool = false
     ) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty else { return [] }
-        guard kinds.contains(.secretFields) else { return Self.merged(detectorSpans(in: text)) }
         let whole = [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)]
+        guard scalars.count <= Self.maximumTextLength else { return whole }
+        guard kinds.contains(.secretFields) else { return Self.merged(detectorSpans(in: text)) }
         guard nesting.reads(scalars.count) else { return whole }
         var scanner = FreeTextScanner(source: scalars, text: text, redactor: self, compatibility: compatibility, role: role, nesting: nesting)
         scanner.run()
         if scanner.hidesWholeText { return whole }
         // JSON and URLs were redacted by their own rules; the detectors do not read them again.
         let regions = scanner.regions
-        let folds = Self.lineSeparatorFolds(in: scalars, outside: regions)
-        guard !regions.isEmpty, !detectsInRegions else { return Self.merged(scanner.spans + detectorSpans(in: text) + folds) }
-        let outside = detectorSpans(in: NormalizedText(scalars, compatibility: compatibility, masked: regions))
-        return Self.merged(scanner.spans + outside + Self.crossing(detectorSpans(in: text), regions) + folds)
+        // The findings are collected in the array of the value detectors, which is the largest:
+        // a megabyte of addresses finds forty thousand of them.
+        var found: [Span]
+        if regions.isEmpty || detectsInRegions {
+            found = detectorSpans(in: text)
+        } else {
+            found = detectorSpans(in: text.masking(regions))
+            found += Self.crossing(detectorSpans(in: text), regions)
+        }
+        found += scanner.spans
+        found += Self.lineSeparatorFolds(in: scalars, outside: regions)
+        return Self.merged(found)
     }
+
+    /// The longest text that is read: one whose scalar offsets fit in 32 bits (see
+    /// ``ScalarOffsets``). A longer one is hidden whole.
+    static let maximumTextLength = Int(UInt32.max)
 
     /// The findings that run over the edge of a JSON or URL region, hidden whole. A URL ends
     /// before the punctuation that ends a sentence, so `…?q=eyJ….eyJ….` keeps the dot of an
@@ -74,13 +89,17 @@ extension SensitiveDataRedactor {
     /// The findings of the value detectors this redactor's kinds turn on.
     func detectorSpans(in text: NormalizedText) -> [Span] {
         var found: [Span] = []
-        if kinds.contains(.secretFields) { found += text.userInfoPasswordSpans() }
-        if kinds.contains(.bearerTokens) { found += text.bearerSpans() }
-        if kinds.contains(.jsonWebTokens) { found += text.jsonWebTokenSpans() }
-        if kinds.contains(.emailAddresses) { found += text.emailSpans() }
-        if kinds.contains(.cardNumbers) { found += text.cardSpans() }
-        if kinds.contains(.ibans) { found += text.ibanSpans() }
-        if kinds.contains(.longTokens) { found += text.longTokenSpans() }
+        // The first detector that finds anything hands over its array instead of a copy.
+        func add(_ spans: [Span]) {
+            if found.isEmpty { found = spans } else { found += spans }
+        }
+        if kinds.contains(.secretFields) { add(text.userInfoPasswordSpans()) }
+        if kinds.contains(.bearerTokens) { add(text.bearerSpans()) }
+        if kinds.contains(.jsonWebTokens) { add(text.jsonWebTokenSpans()) }
+        if kinds.contains(.emailAddresses) { add(text.emailSpans()) }
+        if kinds.contains(.cardNumbers) { add(text.cardSpans()) }
+        if kinds.contains(.ibans) { add(text.ibanSpans()) }
+        if kinds.contains(.longTokens) { add(text.longTokenSpans()) }
         return found
     }
 
