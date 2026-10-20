@@ -127,6 +127,12 @@ struct RedactionScalingTests {
         RepeatedText(prefix: "[", unit: "{\"password\":1},", suffix: "{}]"),
         RepeatedText(prefix: "[\"", unit: "\\\"", suffix: "\"]"),
         RepeatedText(prefix: "{\"a\":\"", unit: "password=\\\"", suffix: "\"}"),
+        // Names inside values that are hidden already, which the trigger pass reads.
+        RepeatedText(prefix: "x: ", unit: "name=\"pin\" "),
+        RepeatedText(unit: "a: "),
+        RepeatedText(prefix: "x: <a b=\"1\" ", unit: "password "),
+        RepeatedText(unit: "note: name=[\n"),
+        RepeatedText(unit: "Content-Disposition: form-data; name=\"pin\"\n\nx\n"),
     ]
 
     // 2.0.0 appended each piece of the output to a String.UnicodeScalarView, which copied the
