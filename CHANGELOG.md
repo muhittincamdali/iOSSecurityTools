@@ -26,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of ASCII letters, digits and `-` in labels, an IPv4 address or an IPv6 address in brackets, and
   the value detectors find nothing in it; any other host (`myapp://password=hunter2`,
   `https://h.example;password=hunter2/db`, a card number or 32 hex digits as a label) is written
-  as `scheme://[redacted]`, in a URL, in a line and in a JSON string alike. With `.secretFields` a query value is
-  kept only for the names on `allowedQueryParameters`, which is empty by default, and a path
+  as `scheme://[redacted]`. With `.secretFields` a query value is kept only for the names on
+  `allowedQueryParameters`, which is empty by default and which free text does not use, and a path
   segment that looks like an identifier or a secret, and the segment after one that names a
   secret (`/pin/4831`), become `:id` (`identifierPlaceholder`); without it only the value
   detectors run on the path and the query. A query that servers could split into fields
@@ -97,8 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (JSON in a line or a string, a URL in text, a multipart part) and the texts read inside them
   read at most four times the input's length in all. The input itself is read freely; a text past
   the budget is hidden whole and a multipart part is omitted. A long text quoted in JSON three
-  times in a body, or twice in a log line, has its innermost string hidden, and a chain of URLs
-  each in the query of the one before is read two levels deep.
+  times in a body, or twice in a log line, has its innermost string hidden.
 - Free text is cut once: in free text, the first secret name hides everything after it in that
   text; this over-hides on purpose. Over-hiding is by design. Five rules set the triggers, and
   none keeps a list of variants:
@@ -132,6 +131,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without a separator in letters of the safe alphabet and disguised with two or more letters that
   have no ASCII form (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing before it
   cuts the text, and no table of look-alikes is kept to chase it.
+- A URL in free text is shown only when it is clean — `scheme://host` and an optional path of
+  ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or `\`),
+  whose host and segments name no secret, followed by white space, a line break or punctuation
+  that ends a sentence — and any other URL cuts the text where it starts; `allowedQueryParameters`
+  applies only to `redact(url:)`. A clean URL is written as `redact(url:)` writes it, with `:id`
+  for an identifier in its path (`GET https://api.example.com/users/12345678 200` keeps
+  `GET https://api.example.com/users/:id 200`), and one longer than 256 characters cuts the text
+  like any long word. A quoted key in free text (`"…": value`) is read as a JSON name is: a URL
+  that is not clean, a key or an escape in it cuts the text where it starts.
 - A secret name written as a value names what follows it. In free text it is a trigger; in a JSON
   object, a member whose value is such a name hides the values of the other members, apart from
   the members that hold names and a JSON Patch or SCIM `op`. A name that is not secret
@@ -305,15 +313,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   value (`?api_key='…' 200`, `?token= …`, `[docs](…?token=) …`), path parameters (`;token= …`), a
   fragment (`#access_token= …`, written without the fragment), a path that ends in `=` or `:`, and
   a last segment, query name or host that is a secret name (`/password …`, `?secret …`,
-  `https://password …`). The scan wrote the URL and read on after it with nothing pending. A URL in
-  free text is no longer a place to read on from: its path parameters, query or fragment cut the
-  text right after their mark unless every parameter is on `allowedQueryParameters`, has a value
-  in the URL and names no secret as a value, and a URL that ends in `=` or `:`, or whose last
-  segment, or host when it has no path, names a secret, cannot be read or is not plain ASCII, cuts
-  the text after it. A URL that `URLComponents` cannot read cuts the text where it starts, one
-  whose host is not written after its scheme, unless the host holds only names with values
-  (`myapp://password=hunter2`), and one past the limits of segments or parameters after its host.
-  The same review found that every `:` between two digits was read as part of a time, so the value
+  `https://password …`). The scan wrote the URL and read on after it with nothing pending; a URL
+  in free text is no longer a place to read on from unless it is clean (see the next entry). The
+  same review found that every `:` between two digits was read as part of a time, so the value
   of a key that ends in digits showed (`user1:2345678`, `acct2:44556677`, `user_id2:998877`, also
   in a JSON string or a form value): such a `:` is part of a number now only after a number
   (`12:30:45`, `2026-10-19T12:30:45Z`, `10.0.0.1:8080`). It also measured a megabyte of log lines
@@ -325,6 +327,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   values shown by design), with generated tests of every scheme, ending and character between a
   URL and its value on every path, and tests that allowed URLs, times and addresses with ports
   stay.
+- The fifteenth review got values past the reading of URLs in free text that the fourteenth's
+  fix had made, in every place free text is read: a last segment or host that names a secret
+  before an empty or allowed section (`/password# hunter2`, `/password;/ …`, `https://password#`,
+  `/password?page=2 …` with `page` allowed), an encoded or escaped `=` or `:` at the end
+  (`/user%3A hunter2`, `/a%3d`, `/a%253D`, `/a\x3D`), a `=` or `:` before an empty section
+  (`/a=# hunter2`, `/token=;/ …`), an encoded separator in an allowed query value
+  (`?q=user%3A …`), and a character outside the safe alphabet inside the URL
+  (`https://x.example/a→b/…?q=1`), which the URL ran past so that the text was cut after it. The
+  reading of the query, fragment and path parameters of a URL in text is removed, not patched: a
+  URL in free text is shown only when it is clean, and any other URL cuts the text where it
+  starts; a URL never runs past the first character outside the safe alphabet, which always cuts
+  the text at the earliest point. The same review found that a letter or number of the safe
+  alphabet whose compatibility form holds punctuation or a space (`⑴` is `(1)`, `🄁` is `0,`)
+  split a key in the scanning copy, so `🄁user=…` was read as the allowed key `user`; such a
+  character is read as one character outside ASCII now. A URL in a quoted key
+  (`"https://x.example/a?token=…": 1`) and a key in one (`"user=bob": 1`) were written as they
+  were. The review's 300 probes, 15 hand-run inputs and 315 inputs of its second lens are kept as
+  tests, checked claim by claim (2 of them values shown by design, after a `:` between digits),
+  with generated tests that no value after or in a URL that is not clean shows in any place, that
+  no such character beside a trigger lets a value through, and that clean URLs keep themselves
+  and the text after them.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
