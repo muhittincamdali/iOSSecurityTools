@@ -99,23 +99,29 @@ struct LooseReading {
     /// letter. Where a letter came from is looked up only when a secret word is found.
     private let bytes: [UInt8]
     private let origins: [Int]
-    private let wildcards: Set<Int>
+    /// Whether each byte is read as any letter.
+    private let wildcards: [Bool]
 
     /// Reads the bytes of `ranges` of `text`, in order, as one word with a separator between the
     /// ranges. `source` is the text `text` was made from.
     init?(_ text: NormalizedText, _ ranges: [Range<Int>], source: [Unicode.Scalar]) {
         var bytes: [UInt8] = []
         var origins: [Int] = []
-        var wildcards: Set<Int> = []
+        var wildcards: [Bool] = []
+        let count = ranges.reduce(ranges.count) { $0 + $1.count }
+        bytes.reserveCapacity(count)
+        origins.reserveCapacity(count)
+        wildcards.reserveCapacity(count)
         for range in ranges {
             if !bytes.isEmpty {
                 bytes.append(UInt8(ascii: " "))
                 origins.append(range.lowerBound)
+                wildcards.append(false)
             }
             for k in range {
-                if text.bytes[k] == CompatibilityText.unreadable, ScalarClass.isLetter(source[text.offsets[k]]) { wildcards.insert(bytes.count) }
                 bytes.append(text.bytes[k])
                 origins.append(k)
+                wildcards.append(text.bytes[k] == CompatibilityText.unreadable && ScalarClass.isLetter(source[text.offsets[k]]))
             }
         }
         guard let name = PlainName(looseBytes: bytes, wildcards: wildcards) else { return nil }
@@ -125,7 +131,7 @@ struct LooseReading {
         self.wildcards = wildcards
     }
 
-    private func isLetter(at k: Int) -> Bool { ASCII.isAlphanumeric(bytes[k]) || wildcards.contains(k) }
+    private func isLetter(at k: Int) -> Bool { ASCII.isAlphanumeric(bytes[k]) || wildcards[k] }
 
     /// The number of letters that come from bytes before `byte`.
     func letterCount(before byte: Int) -> Int {

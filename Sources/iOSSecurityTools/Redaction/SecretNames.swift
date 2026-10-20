@@ -41,15 +41,31 @@ enum SecretNames {
     }()
 
     /// The entries by their first letter, `a` to `z`.
-    private static let byFirstLetter: [[Entry]] = {
-        var table = [[Entry]](repeating: [], count: 26)
-        for entry in entries { table[Int(entry.letters[0] - UInt8(ascii: "a"))].append(entry) }
-        return table
-    }()
+    private static let byFirstLetter = table { $0.letters[0] }
 
-    /// The entries that start with a lowercase ASCII letter.
-    static func entries(startingWith letter: UInt8) -> [Entry] {
+    /// The entries by their second letter, for a start where a wildcard stands for the first.
+    /// Every entry has two letters or more.
+    private static let bySecondLetter = table { $0.letters[1] }
+
+    private static func table(_ letter: (Entry) -> UInt8) -> [[Entry]] {
+        var table = [[Entry]](repeating: [], count: 26)
+        for entry in entries { table[Int(letter(entry) - UInt8(ascii: "a"))].append(entry) }
+        return table
+    }
+
+    /// The entries that can be spelled from letter `start` of a name's lowercase `letters`: those
+    /// that start with that letter, or, where a ``PlainName/wildcard`` stands for the first
+    /// letter, those whose second letter follows it. A word holds one wildcard at most, so after
+    /// two of them in a row no entry can start.
+    static func candidates(at start: Int, in letters: [UInt8]) -> [Entry] {
+        let first = letters[start]
+        guard first == PlainName.wildcard else { return entries(in: byFirstLetter, letter: first) }
+        guard start + 1 < letters.count else { return [] }
+        return entries(in: bySecondLetter, letter: letters[start + 1])
+    }
+
+    private static func entries(in table: [[Entry]], letter: UInt8) -> [Entry] {
         guard (UInt8(ascii: "a")...UInt8(ascii: "z")).contains(letter) else { return [] }
-        return byFirstLetter[Int(letter - UInt8(ascii: "a"))]
+        return table[Int(letter - UInt8(ascii: "a"))]
     }
 }
