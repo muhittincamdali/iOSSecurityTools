@@ -62,7 +62,11 @@ enum WrittenName {
     /// Whether a field holds a name: one of ``nameFields`` in any case, or a field whose own name
     /// is not plain ASCII, which may be one of them disguised (`lab\u{200B}el`, `ⓛⓐⓑⓔⓛ`).
     static func holdsName(_ field: [Unicode.Scalar]) -> Bool {
-        isField(field, oneOf: nameFields) || PlainName(field) == nil
+        if isField(field, oneOf: nameFields) { return true }
+        // A field of ASCII letters and digits is plain; only the others need to be read.
+        let isAlphanumeric = field.allSatisfy { $0.isASCII && ASCII.isAlphanumeric(UInt8($0.value)) }
+        if !field.isEmpty, field.count <= PlainName.maximumKeyLength, isAlphanumeric { return false }
+        return PlainName(field) == nil
     }
 
     /// Whether a key of free text holds a name: as ``holdsName(_:)``, but for `path`, which in a

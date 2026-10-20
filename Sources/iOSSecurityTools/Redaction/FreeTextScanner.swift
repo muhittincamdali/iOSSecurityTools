@@ -132,7 +132,7 @@ struct FreeTextScanner {
     }
 
     /// Characters that end a key and a word without being part of either.
-    static let boundaries: Set<UInt8> = Set(",;&?|([{<".utf8)
+    static let boundaries = ByteSet(",;&?|([{<")
 
     /// `=` and `:`; a `:` between two digits is part of a time (`12:30`).
     func isSeparator(_ i: Int) -> Bool {

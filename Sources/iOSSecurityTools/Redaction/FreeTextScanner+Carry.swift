@@ -36,26 +36,29 @@ extension FreeTextScanner {
         return !text.isAlphanumeric(k - 1) && !Self.closings.contains(text.bytes[k - 1])
     }
 
-    private static let closings: Set<UInt8> = Set("\"'`)]}.!?;".utf8)
+    private static let closings = ByteSet("\"'`)]}.!?;")
 
     /// A quote (`"`, `'` or a backtick, plain or escaped as `\"`) that may open a value in bytes
     /// `range` without closing it there: one written an odd number of times, or whose last one is
     /// directly followed by text, as an opening quote is (`"a` in `x="a="b`). Which quote closes
     /// which cannot be told, so either way the value may go on below. An apostrophe counts too.
     func unclosedQuote(in range: Range<Int>) -> (UInt8, Bool)? {
-        var counts: [QuoteKind: Int] = [:]
-        var last: [QuoteKind: Int] = [:]
-        for k in range where Self.quotes.contains(text.bytes[k]) {
-            let kind = QuoteKind(quote: text.bytes[k], escaped: isEscaped(k))
-            counts[kind, default: 0] += 1
+        // Each kind of quote, plain and escaped, in the order they are tried: `"`, `'`, backtick.
+        var counts = [0, 0, 0, 0, 0, 0]
+        var last = [0, 0, 0, 0, 0, 0]
+        for k in range {
+            guard let quote = Self.quotes.firstIndex(of: text.bytes[k]) else { continue }
+            let kind = quote * 2 + (isEscaped(k) ? 1 : 0)
+            counts[kind] += 1
             last[kind] = k
         }
-        let open = counts.keys.sorted { $0.quote < $1.quote || ($0.quote == $1.quote && !$0.escaped) }.first { kind in
-            guard let k = last[kind] else { return false }
-            return counts[kind, default: 0] % 2 == 1 || (k + 1 < range.upperBound && opensText(at: k + 1))
-                || endsWithQuoteRun(k, in: range)
+        for kind in counts.indices where counts[kind] > 0 {
+            let k = last[kind]
+            if counts[kind] % 2 == 1 || (k + 1 < range.upperBound && opensText(at: k + 1)) || endsWithQuoteRun(k, in: range) {
+                return (Self.quotes[kind / 2], kind % 2 == 1)
+            }
         }
-        return open.map { ($0.quote, $0.escaped) }
+        return nil
     }
 
     /// Whether the quote at `k` ends a run of two or more at the end of the range, as a triple
@@ -65,12 +68,7 @@ extension FreeTextScanner {
         return firstNonSpace(from: k + 1, to: range.upperBound) == range.upperBound
     }
 
-    private struct QuoteKind: Hashable {
-        let quote: UInt8
-        let escaped: Bool
-    }
-
-    private static let quotes: Set<UInt8> = Set("\"'`".utf8)
+    private static let quotes: [UInt8] = [UInt8(ascii: "\""), UInt8(ascii: "'"), UInt8(ascii: "`")]
 
     /// A letter, a digit, a character outside ASCII or a backslash: text that a quote opens.
     private func opensText(at i: Int) -> Bool {

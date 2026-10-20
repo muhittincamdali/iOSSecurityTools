@@ -71,7 +71,7 @@ extension FreeTextScanner {
         return reading.secretEnd { $0.lowerBound < split && $0.upperBound > split }.map { ($0, next) }
     }
 
-    private static let splittingBoundaries: Set<UInt8> = Set("|,;&?".utf8)
+    private static let splittingBoundaries = ByteSet("|,;&?")
 
     /// Punctuation, a math symbol or a modifier letter or symbol outside ASCII, such as `꞉`, `∶`,
     /// `≔`, `→` or `·`, may be meant as a separator. Glued between other characters of a word
@@ -142,7 +142,7 @@ extension FreeTextScanner {
         return k >= wordEnd ? firstNonSpace(from: max(k, wordEnd), to: lineEnd) : k
     }
 
-    private static let closingMarks: Set<UInt8> = Set(")]}>".utf8)
+    private static let closingMarks = ByteSet(")]}>")
 
     /// The end of the word that starts at `start`. An HTML character reference (`&#97;`) and a
     /// `\u{…}` escape are part of a word, though `&`, `;` and `{` end words elsewhere.

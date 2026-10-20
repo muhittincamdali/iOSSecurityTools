@@ -6,7 +6,7 @@ extension FreeTextScanner {
     /// `]`, with optional white space between. `[INFO]`, `[1/3]` and `{x}` are not JSON.
     func startsJSON(_ i: Int) -> Bool {
         let byte = text.bytes[i]
-        let allowed: Set<UInt8>
+        let allowed: ByteSet
         if byte == UInt8(ascii: "{") {
             allowed = Self.objectStarts
         } else if byte == UInt8(ascii: "[") {
@@ -19,9 +19,9 @@ extension FreeTextScanner {
         return k < text.count && allowed.contains(text.bytes[k])
     }
 
-    private static let objectStarts: Set<UInt8> = Set("\"}".utf8)
-    private static let arrayStarts: Set<UInt8> = Set("{[\"]".utf8)
-    private static let jsonWhitespace: Set<UInt8> = [0x20, 0x09, 0x0A, 0x0D]
+    private static let objectStarts = ByteSet("\"}")
+    private static let arrayStarts = ByteSet("{[\"]")
+    private static let jsonWhitespace = ByteSet(" \t\n\r")
 
     /// JSON in a line, parsed and redacted by the key rule for structured input. JSON that does
     /// not parse cannot be read with certainty and is hidden. In a text inside a document, JSON
@@ -105,8 +105,8 @@ extension FreeTextScanner {
     }
 
     private static let maximumSchemeLength = 32
-    private static let urlEnds: Set<UInt8> = Set("\"'<>`".utf8)
-    private static let trailingPunctuation: Set<UInt8> = Set(".,;:!?)]}".utf8)
+    private static let urlEnds = ByteSet("\"'<>`")
+    private static let trailingPunctuation = ByteSet(".,;:!?)]}")
 
     private static func isSchemeCharacter(_ byte: UInt8) -> Bool {
         ASCII.isAlphanumeric(byte) || byte == UInt8(ascii: "+") || byte == UInt8(ascii: "-") || byte == UInt8(ascii: ".")
