@@ -60,7 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `URLSearchParams` entries). One function makes this decision for JSON in a body, in a line, in a
   JSON string, in a form value, in a URL query and in a multipart part, for two-element arrays, for
   form fields, URL query parameters and multipart parts (`label=Password&value=…`), and for quoted
-  values and markup in free text.
+  values and markup in free text. A multipart part that holds a name and cannot be read as plain
+  UTF-8 text (base64 or another transfer encoding, JSON, another charset, a file) names a secret.
 - Email addresses are found with a name in any script, over letters, marks and digits
   (`ayşe.yılmaz@…`, `bjørn.dæhlie@…`, `张伟@…`), and with an internationalized domain
   (`王小明@例子.中国`); only the first letter of the name is written.
@@ -73,23 +74,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   JSON strings, URLs in query values and runs of brackets on a thread with 512 KiB of stack in
   debug and release builds, and check with `swift test -c release` that a megabyte of text,
   nested input or a body takes less than a second, also for ordinary shapes timed by the CPU time
-  of such a thread: JSON arrays of short or empty strings, a multipart body of 1,000 parts and
-  URLs of many segments. The default redactor and its folded keys are made once and shared, a
-  short plain word is not scanned, and a URL path segment is read in a single pass.
+  of such a thread: JSON arrays of short or empty strings, a multipart body of 1,000 parts, URLs
+  of many segments, and a megabyte of Turkish sentences or of `ı` quoted in JSON up to four
+  times. The default redactor and its folded keys are made once and shared, a short plain word
+  is not scanned, a URL path segment is read in a single pass, and a word is compared with each
+  secret word in a single pass.
+- A reading budget bounds the time one redaction takes: the documents found inside an input
+  (JSON in a line or a string, a URL in text, a multipart part) and the texts read inside them
+  read at most four times the input's length in all. The input itself is read freely; a text past
+  the budget is hidden whole and a multipart part is omitted. A long text quoted in JSON three
+  times in a body, or twice in a log line, has its innermost string hidden, and a chain of URLs
+  each in the query of the one before is read two levels deep.
 - Free text keeps a value only after an allowed key: in `key=value`, `key: value` and
   `"key":"value"` every other value is hidden, so `user=bob` becomes `user=[redacted]`. A quoted
   value is hidden up to its closing quote, also on a later line; an unquoted one to the end of its
   line, with the lines below that it may go on to. A word that holds a secret name hides the rest
-  of its line, also when it is escaped, split by punctuation or a space, or spelled with a letter
+  of its line, also when it is escaped, split by punctuation or a space, or spelled with one letter
   that has no ASCII form; a word that mixes scripts or holds an invisible character hides itself
-  and the rest of its line.
+  and the rest of its line. Free text is a best effort, as the threat model in the README and the
+  logging guide now says: written with a separator a value is always hidden, but a name written
+  without one and disguised with two or more letters that have no ASCII form (`pɑsswoʀd hunter2`)
+  is not guaranteed to be found, and no table of look-alikes is kept to chase it.
 - A secret name written as a value names what follows it. In free text, a text/plain body and
   text inside a JSON string, a quoted value that holds a secret name or a word that cannot be read
   (`name="password"`, `key='token'`, `id: "pin"`, `label="API Key"`) hides the rest of its line
   after the closing quote. In XML and HTML the other attribute values of its start tag are hidden
-  too, and the lines below up to the element's end tag; a secret name in an element's text
-  (`<key>password</key>`) names the element after it, as a property list writes a key and its
-  value. In a JSON object, a member whose value is such a name hides the values of the other
+  too, and the lines below up to the element's end tag and the rest of the line where it ends; a
+  secret name in an element's text (`<key>password</key>`) names the element after it, as a
+  property list writes a key and its value, on one line or on lines of their own. An element that
+  closes itself or holds nothing (`<string/>`, `<string></string>`) holds no value, so the text
+  after it or the next line with text is hidden too. JSON after `name=`, `key=`, `label=` and the
+  like hides what follows it to the end of the line where it closes, also when it spans lines.
+  In a JSON object, a member whose value is such a name hides the values of the other
   members, apart from the members that hold names and a JSON Patch or SCIM `op`. A name that is
   not secret (`name="status"`, `{"label":"Status",…}`) keeps what follows it.
 - The JSON Web Token detector also finds a header and payload whose last dot was cut off
@@ -203,6 +219,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `%20` or `+` around it) and inside angle brackets (`password: <…>`), and treats
   `pass`, `session_id`, `session_key`, `PHPSESSID`, `JSESSIONID` and a field named exactly
   `session` as secret names.
+- The eleventh review timed a megabyte of text quoted in JSON at 1.1 to 2.6 seconds a megabyte in
+  a release build, past the one-second limit, and found values that showed: a property list's
+  value on the lines below its key (`<key>password</key>`, then `<string/>` and the value below
+  it), the text after an element that holds nothing, JSON over several lines after `name=`, and a
+  multipart label part in base64, as JSON or in another charset. The reading budget and a single
+  pass per secret word bound the time; the others are hidden on every path. A connector glued
+  inside a word (`user‿bob`) separates a key from its value. The review's 475 probes are kept as
+  tests, 52 of them documented limitations, with property tests for the budget, for layouts over
+  lines and for the one-pass match.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
