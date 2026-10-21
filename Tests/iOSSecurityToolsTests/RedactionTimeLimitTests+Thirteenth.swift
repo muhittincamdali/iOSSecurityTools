@@ -23,6 +23,8 @@ extension RedactionTimeLimitTests {
         all += MarkupQuoteShapes.text
         all += DenseFindingShapes.text
         all += DenseFindingShapes.bodies(size: size, redactor: largeBodies)
+        all += DistinctScalarShapes.text
+        all += DistinctScalarShapes.bodies(size: size, redactor: largeBodies)
         return all
     }()
 }
