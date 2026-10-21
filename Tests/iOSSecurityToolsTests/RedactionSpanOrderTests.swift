@@ -2,7 +2,9 @@ import Testing
 @testable import iOSSecurityTools
 
 /// The findings are sorted in place, without the buffer of half their size that the standard sort
-/// takes, by merging the runs in which they come (see ``SensitiveDataRedactor/sortRuns(_:)``).
+/// takes, by merging the runs in which they come (see ``SensitiveDataRedactor/sortRuns(_:)``), and
+/// joined so that a `[redacted]` span hides every finding it covers or lies inside
+/// (see ``SensitiveDataRedactor/merged(_:)``).
 @Suite("SensitiveDataRedactor order of findings")
 struct RedactionSpanOrderTests {
     typealias Span = SensitiveDataRedactor.Span
@@ -36,6 +38,42 @@ struct RedactionSpanOrderTests {
             SensitiveDataRedactor.sortRuns(&sorted)
             #expect(sorted.map(\.replacement) == expected)
         }
+    }
+
+    @Test("a [redacted] span over the same characters as another finding, or inside it, wins")
+    func redactedSpanWins() {
+        let redacted = SensitiveDataRedactor.replacement
+        let url = Span(start: 1, end: 39, kind: .secretFields, replacement: "https://api.example.com/users/:id")
+        let cut = Span(start: 1, end: 39, kind: .secretFields, replacement: redacted)
+        let inside = Span(start: 30, end: 39, kind: .secretFields, replacement: redacted)
+        for spans in [[url, cut], [cut, url], [url, inside]] {
+            let merged = SensitiveDataRedactor.merged(spans)
+            #expect(merged.map(\.replacement) == [redacted])
+            #expect(merged.map(\.start) == [1] && merged.map(\.end) == [39])
+        }
+        // A finding of the mask's own kind inside it, other than [redacted], keeps the mask.
+        let mask = Span(start: 0, end: 19, kind: .cardNumbers, replacement: "•••• •••• •••• 4242")
+        let card = Span(start: 5, end: 19, kind: .cardNumbers, replacement: "•••• •••• 4242")
+        #expect(SensitiveDataRedactor.merged([mask, card]).map(\.replacement) == [mask.replacement])
+    }
+
+    /// The nineteenth review: an unclosed bracket before a clean URL cuts the text where the URL
+    /// starts, and the cut ends where the URL does. The URL's `:id` form showed until the cut won.
+    @Test("free text cut where a clean URL starts hides the URL", arguments: [
+        ("(https://api.example.com/users/12345678", "([redacted]"),
+        ("see (https://api.example.com/users/12345678", "see ([redacted]"),
+        ("see [https://api.example.com/users/12345678", "see [[redacted]"),
+        ("see {https://api.example.com/users/12345678", "see {[redacted]"),
+        ("see (https://api.example.com/users/12345678/orders/987654321", "see ([redacted]"),
+        ("see (https://api.example.com/v1/users/550e8400-e29b-41d4-a716-446655440000", "see ([redacted]"),
+        ("x [https://api.example.com/users/12345678]", "x [[redacted]"),
+        ("(https://x.example/a", "([redacted]"),
+        // A clean URL that no cut covers keeps its form.
+        ("GET https://api.example.com/users/12345678 200", "GET https://api.example.com/users/:id 200"),
+        ("see (https://api.example.com/users/12345678) ok", "see (https://api.example.com/users/:id) ok"),
+    ])
+    func cutCoveringURL(input: String, expected: String) {
+        #expect(SensitiveDataRedactor().redact(input) == expected)
     }
 
     @Test("a span keeps its offsets and kinds in its 24 bytes")
