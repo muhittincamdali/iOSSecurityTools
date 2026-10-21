@@ -15,10 +15,13 @@ import iOSSecurityTools
 /// sixteenth measured 26 MB for a quoted key of a megabyte inside another, which the reading of
 /// quoted keys copied (see ``QuotedKeyShapes``). The quotes of the seventeenth review's shapes are
 /// read in a pass of their own (see ``MarkupQuoteShapes``). The eighteenth measured up to 18.55 MiB
-/// for a megabyte dense with findings (see ``DenseFindingShapes``).
+/// for a megabyte dense with findings (see ``DenseFindingShapes``), and the nineteenth 15.65 MiB for
+/// a body of arrays 63 deep (see ``DeepArrayShapes``), which are now held to 12 MiB.
 @Suite("SensitiveDataRedactor peak memory", .serialized)
 struct RedactionPeakMemoryTests {
     static let limit = 16 * 1_048_576
+    /// The limit of the bodies of arrays 63 deep, which keeps a margin below ``limit``.
+    static let deepArrayLimit = 12 * 1_048_576
     private static let redactor = SensitiveDataRedactor()
 
     static let shapes: [TimedInput] = RedactionTimeLimitTests.attributeShapes + [
@@ -36,7 +39,14 @@ struct RedactionPeakMemoryTests {
         }, redact: redactor.redact),
     ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor) + FourteenthReviewShapes.text
         + URLInTextShapes.text + QuotedKeyShapes.text + MarkupQuoteShapes.text + DenseFindingShapes.text
-        + DenseFindingShapes.bodies(size: bodySize, redactor: redactor)
+        + DenseFindingShapes.bodies(size: bodySize, redactor: redactor) + deepArrayShapes
+
+    static let deepArrayShapes = DeepArrayShapes.bodies(size: bodySize, redactor: redactor)
+
+    /// The limit of the shape with this description.
+    static func limit(for description: String) -> Int {
+        deepArrayShapes.contains { $0.testDescription == description } ? deepArrayLimit : limit
+    }
 
     /// Bodies just under ``SensitiveDataRedactor/defaultMaximumBodySize``.
     static let bodySize = SensitiveDataRedactor.defaultMaximumBodySize - 144
@@ -116,8 +126,9 @@ struct RedactionPeakMemoryTests {
     /// has ended before the next starts.
     static func fewestBytes(_ input: TimedInput, attempts: Int) -> Int {
         let text = input.make()
+        let shapeLimit = limit(for: input.testDescription)
         var fewest = Int.max
-        for _ in 0..<attempts where fewest >= limit {
+        for _ in 0..<attempts where fewest >= shapeLimit {
             fewest = min(fewest, peakAllocation { _ = input.redact(text) })
         }
         return fewest
@@ -138,7 +149,8 @@ struct RedactionPeakMemoryTests {
         for line in lines {
             let fields = line.split(separator: "\t", maxSplits: 1)
             let bytes = Int(fields[0]) ?? .max
-            #expect(bytes < Self.limit, "\(fields.last ?? ""): \(bytes / 1_024) KiB")
+            let description = String(fields.last ?? "")
+            #expect(bytes < Self.limit(for: description), "\(description): \(bytes / 1_024) KiB")
         }
     }
     #else
@@ -147,13 +159,13 @@ struct RedactionPeakMemoryTests {
     @Test("redacting a megabyte of text or a body of 256 KiB takes less than 16 MB more memory", arguments: shapes)
     func peak(input: TimedInput) {
         let bytes = Self.fewestBytes(input, attempts: 10)
-        #expect(bytes < Self.limit, "\(input.testDescription): \(bytes / 1_048_576) MB")
+        #expect(bytes < Self.limit(for: input.testDescription), "\(input.testDescription): \(bytes / 1_048_576) MB")
     }
     #endif
 
     @Test("every body shape is read, not omitted, at the default limit")
     func bodiesAreRead() {
-        for input in ThirteenthReviewShapes.bodies(size: Self.bodySize, redactor: Self.redactor) {
+        for input in ThirteenthReviewShapes.bodies(size: Self.bodySize, redactor: Self.redactor) + Self.deepArrayShapes {
             let text = input.make()
             #expect(text.utf8.count <= SensitiveDataRedactor.defaultMaximumBodySize, "\(input.testDescription)")
             #expect(!input.redact(text).hasPrefix("[body omitted"), "\(input.testDescription)")
