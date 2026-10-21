@@ -30,10 +30,13 @@ import Foundation
 /// `key`, `auth`, `authorization`, `cookie`, `session`, `sid`, `otp`, `pin`, `cvv`, `card`, `iban`,
 /// `ssn`, `private_key`, `client_secret`, `signature`, …) and this library's extensions
 /// (`passphrase`, `passcode`, `credential`, `cvc`, `sessid`, `pin_code`, `verification_code`, …),
-/// also in the plural. Words of five or more letters count anywhere in a key (`dbPassword`),
-/// shorter ones as a word of it or at its end (`user_pin`, `X-Auth-Key`, `apitoken`), `pass` and
-/// `sid` only as a word, and `session` only as the last word. A hidden value is hidden whole: a
-/// string, a number, and an array or object with everything in it.
+/// also in the plural. The long names and the compounds (`password`, `passwd`, `passphrase`,
+/// `passcode`, `apikey`, `credential`, `signature`, `cookie`, `authorization`, `access_token`,
+/// `pin_code`, …) count anywhere in a key (`dbpassword`); `token`, `secret` and the short words as a
+/// word of it or at its end (`user_pin`, `X-Auth-Key`, `apitoken`, `mysecret`, not `tokenvalue` or
+/// `secretvalue`); `pass`, `sid` and `pw` only as a word (`DB_PASS`, `user_pw`, not `bypass` or
+/// `dbpw`); and `session` only as the last word (`laravel_session`, not `session_start`). A hidden
+/// value is hidden whole: a string, a number, and an array or object with everything in it.
 ///
 /// ## Structured input
 ///

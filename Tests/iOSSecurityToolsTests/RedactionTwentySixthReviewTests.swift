@@ -2,9 +2,15 @@ import Foundation
 import Testing
 @testable import iOSSecurityTools
 
-/// The twenty-sixth review (`a-26`, `c-26`) found a name of control characters alone that did not
-/// hide what was beside it, while the documentation said a name with a control character in it
-/// names a secret wherever it is.
+/// The twenty-sixth review (`a-26`, `c-26`) found three things:
+///
+/// - A name of control characters alone (`{"ParameterKey":"\n",…}`) did not hide what was beside
+///   it, while the documentation said a name with a control character in it names a secret
+///   wherever it is.
+/// - A short string with a line break or a tab that names nothing (`ok\n`, `a\tb`) hid every
+///   member beside it, in objects, forms and multipart bodies.
+/// - The documentation of the type said that words of five or more letters count anywhere in a
+///   key, while `token` and `secret` count only as a word or at the end, and `pw` only as a word.
 @Suite("SensitiveDataRedactor twenty-sixth review")
 struct RedactionTwentySixthReviewTests {
     private static let secret = "Qz26Wk5m"
@@ -91,6 +97,23 @@ struct RedactionTwentySixthReviewTests {
         #expect(Self.json(#"{"label":"ok\n","value":"x"}"#) == #"{"label":"ok\n","value":"[redacted]"}"#)
         #expect(Self.json(#"[["a\tb","x"]]"#) == #"[["a\tb","[redacted]"]]"#)
         #expect(Self.form("name=region%0A&value=x") == "name=region%0A&value=[redacted]")
+    }
+
+    /// The documentation of the type and the logging guide say where a secret word counts in a key:
+    /// the long names and the compounds anywhere, `token`, `secret` and the short words as a word or
+    /// at the end, `pass`, `sid` and `pw` only as a word, `session` only as the last word.
+    @Test("a secret word counts in a key where the documentation says", arguments: [
+        ("dbpassword", true), ("dbPassword", true), ("xpassphrasey", true), ("myapikeyhash", true), ("oldcredentials", true),
+        ("user_pin", true), ("X-Auth-Key", true), ("apitoken", true), ("mysecret", true), ("refresh_token", true),
+        ("tokenvalue", false), ("TOKENID", false), ("secretvalue", false), ("secrethash", false), ("tokenizer", false),
+        ("DB_PASS", true), ("user_pw", true), ("bypass", false), ("dbpw", false), ("userpw", false),
+        ("laravel_session", true), ("session_start", false),
+    ])
+    func keyPlacement(key: String, hides: Bool) {
+        let json = Self.json(#"{"\#(key)":"v1","status":"ok"}"#)
+        #expect(json == (hides ? #"{"\#(key)":"[redacted]","status":"ok"}"# : #"{"\#(key)":"v1","status":"ok"}"#))
+        let form = Self.form("\(key)=v1&status=ok")
+        #expect(form == (hides ? "\(key)=[redacted]&status=ok" : "\(key)=v1&status=ok"))
     }
 
     @Test("a name of spaces alone, or an empty one, beside a field that holds no name keeps the value")

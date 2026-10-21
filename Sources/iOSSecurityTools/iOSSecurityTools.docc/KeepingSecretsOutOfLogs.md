@@ -124,10 +124,13 @@ The secret names are the list the redaction spec shares between packages — `pa
 `key`, `auth`, `authorization`, `cookie`, `set-cookie`, `session`, `sid`, `otp`, `pin`, `cvv`,
 `card`, `iban`, `ssn`, `private_key`, `client_secret`, `signature` — and `passphrase`,
 `passcode`, `credential`, `cvc`, `sessid`, `pw` and compounds such as `pin_code` or
-`verification_code`, also in the plural (`tokens`, `api_keys`). Long words count anywhere in a
-key (`dbpassword`), short ones as a word of it or at its end (`user_pin`, `X-Auth-Key`,
-`apitoken`), `pass`, `sid` and `pw` only as a word (`DB_PASS`, not `bypass`), and `session` as
-the last word (`laravel_session`, not `session_start`).
+`verification_code`, also in the plural (`tokens`, `api_keys`). The long names and the compounds
+(`password`, `passwd`, `passphrase`, `passcode`, `apikey`, `credential`, `signature`, `cookie`,
+`authorization`, `access_token`, `pin_code`, …) count anywhere in a key (`dbpassword`); `token`,
+`secret` and the short words as a word of it or at its end (`user_pin`, `X-Auth-Key`, `apitoken`,
+`mysecret`, not `tokenvalue` or `secretvalue`); `pass`, `sid` and `pw` only as a word (`DB_PASS`,
+`user_pw`, not `bypass` or `dbpw`); and `session` only as the last word (`laravel_session`, not
+`session_start`).
 
 The cost is that a key that only describes a secret hides its value too — `passwordHint`,
 `token_type`, `key_path`, `pin_length` — and so does a key written in another script or with
