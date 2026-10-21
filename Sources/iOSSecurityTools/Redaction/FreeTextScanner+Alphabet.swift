@@ -4,8 +4,10 @@
 /// any script (the general categories L*, M* and N*), the ASCII space, tab, line feed and carriage
 /// return, and the printable ASCII punctuation. The first character outside it cuts the text:
 /// punctuation, a symbol or a space outside ASCII (`꞉`, `≔`, `→`, `·`, `＝`, an emoji, U+00A0), a
-/// control character, a format character and any default-ignorable code point. No list of
-/// look-alike separators is kept; a character is judged by its Unicode category alone. A modifier
+/// control character, a format character and any default-ignorable code point. So does a letter or
+/// number whose compatibility form, which the scanner reads, is not written in the alphabet (`🄁`
+/// is `0,`, `⑴` is `(1)`). No list of look-alike separators is kept; a character is judged by its
+/// Unicode category and its compatibility form alone (see ``SafeAlphabet/class(of:)``). A modifier
 /// letter (`ː`, `ー`) belongs to the safe alphabet only after a letter or digit outside ASCII, as in
 /// Japanese or Thai: after ASCII it can stand for a colon.
 ///
@@ -112,7 +114,17 @@ enum SafeAlphabet {
         case unsafe
     }
 
+    /// The class of a scalar outside ASCII: by its general category, and outside the alphabet when
+    /// its compatibility form is (see ``compatibilityFormIsSafe(_:)``). This is the one place the
+    /// safe alphabet is decided: the scanning copy (``CompatibilityText/reading(_:)``) and
+    /// ``FreeTextScanner/firstUnsafeOffset(in:)`` both ask it.
     static func `class`(of scalar: Unicode.Scalar) -> Class {
+        let category = categoryClass(of: scalar)
+        guard category != .unsafe, compatibilityFormIsSafe(scalar) else { return .unsafe }
+        return category
+    }
+
+    private static func categoryClass(of scalar: Unicode.Scalar) -> Class {
         let properties = scalar.properties
         guard !properties.isDefaultIgnorableCodePoint else { return .unsafe }
         switch properties.generalCategory {
@@ -121,6 +133,26 @@ enum SafeAlphabet {
         case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .otherLetter, .decimalNumber, .letterNumber, .otherNumber: return .letter
         default: return .unsafe
         }
+    }
+
+    /// Whether the compatibility form (NFKD) of a scalar is written in the alphabet too: ASCII
+    /// letters and digits, and letters, marks and digits outside ASCII. The scanner reads a text in
+    /// that form, so a letter or number whose form holds punctuation, a space or a symbol (`🄁` is
+    /// `0,`, `⒈` is `1.`, `⑴` is `(1)`, `½` is `1⁄2`, U+FE70 is a space and a mark) or a modifier
+    /// letter (`ŉ` is `ʼn`) cuts the text where it stands: what the scanner would read there is not
+    /// what the text holds.
+    private static func compatibilityFormIsSafe(_ scalar: Unicode.Scalar) -> Bool {
+        for part in String(scalar).decomposedStringWithCompatibilityMapping.unicodeScalars where part != scalar {
+            if part.isASCII {
+                guard ASCII.isAlphanumeric(UInt8(part.value)) else { return false }
+                continue
+            }
+            switch categoryClass(of: part) {
+            case .letter, .mark: continue
+            case .modifierLetter, .unsafe: return false
+            }
+        }
+        return true
     }
 }
 
