@@ -234,7 +234,8 @@ public struct SensitiveDataRedactor: Sendable {
     ///   - allowedQueryParameters: Query parameters whose values ``redact(url:)`` keeps; free
     ///     text does not use them. A name that is not plain ASCII or names a secret is ignored.
     ///   - urlDetail: How much of a URL is recorded.
-    ///   - maximumBodySize: The largest body that is read, in bytes; a larger one is omitted.
+    ///   - maximumBodySize: The largest body that is read, in bytes; a larger one is omitted. A
+    ///     body of 256 MiB or more is always omitted.
     public init(
         kinds: Kinds = .all, allowedTextKeys: [String] = [], allowedQueryParameters: [String] = [], urlDetail: URLDetail = .full,
         maximumBodySize: Int = defaultMaximumBodySize

@@ -46,9 +46,9 @@ extension SensitiveDataRedactor {
         return Self.merged(found)
     }
 
-    /// The longest text that is read: one whose scalar offsets fit in 32 bits (see
-    /// ``ScalarOffsets``). A longer one is hidden whole.
-    static let maximumTextLength = Int(UInt32.max)
+    /// The longest text that is read: one whose scalar offsets fit in the 28 bits a ``Span`` keeps
+    /// them in, 256 Mi scalars. A longer one is hidden whole, and a longer body is omitted.
+    static let maximumTextLength = (1 << 28) - 1
 
     /// The findings that run over the edge of a JSON or URL region, hidden whole. A URL ends
     /// before the punctuation that ends a sentence, so `…?q=eyJ….eyJ….` keeps the dot of an
