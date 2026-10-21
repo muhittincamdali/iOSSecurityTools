@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
+<!-- i18n-source: README.md@e204efd24392b6dc208347f6870992461cf043ee status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  538 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  549 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -314,7 +314,8 @@ Un champ dont le nom est à un endroit et la valeur à un autre, comme dans
 ASCII simple. Un hôte d’URL qui n’est ni un nom fait de libellés ASCII ni une adresse, ou qui porte
 un numéro de carte ou un jeton, est écrit `scheme://[redacted]`, et le nom d’un en-tête de partie
 multipart n’est écrit que s’il fait partie de ceux qu’une partie porte. Une URL de plus de 64
-segments de chemin ou de 128 paramètres, ou dont le chemin est résolu différemment selon les
+segments de chemin ou de 128 paramètres, dont l’hôte nomme un secret (`myapp://pin/4831`, dont
+l’hôte est `pin`), ou dont le chemin est résolu différemment selon les
 serveurs (un segment point comme dans `/pin/./4831`, un `;` comme dans `/a;pin/4831`, un `.`, `/`,
 `\`, `;` ou `%` échappé), n’est enregistrée qu’avec son schéma et son hôte, et une
 adresse e-mail ne montre que la première lettre de son nom, dans n’importe quelle écriture
@@ -346,7 +347,8 @@ ni de la fin du texte le coupe ; et un nom secret,
 avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Un mot est comparé par
 son squelette ASCII : les lettres sans forme ASCII sont omises, si bien que `piꞏn`, `tokeın` et
 `tokenꞏs` se lisent `pin`, `token` et `tokens`, et un nom compte aussi avec une lettre en moins là
-où une lettre a été omise (`pɑssword`). Un guillemet qui ne se ferme pas sur sa ligne coupe le
+où une lettre a été omise, si bien qu’une lettre (L*) mise à la place d’une lettre est trouvée
+(`pɑssword`). Un guillemet qui ne se ferme pas sur sa ligne coupe le
 texte à ce guillemet, si bien que rien n’apparaît d’une clé entre guillemets contenant un saut de
 ligne. Le texte est
 coupé jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401`
@@ -366,8 +368,9 @@ structurée (JSON, formulaires, corps multipart et en-têtes de leurs parties, U
 est sûre par défaut, et ce qu’il n’y comprend pas est masqué ; les noms des clés structurées sont
 affichés et seules les valeurs qu’elles portent sont masquées. Dans le texte libre, un nom écrit
 sans séparateur dont deux lettres ou plus sont remplacées par des lettres ressemblantes
-(`pɑsswoʀd hunter2`) n’est pas
-forcément trouvé quand rien avant lui ne coupe le texte. Le
+(`pɑsswoʀd hunter2`), ou dont une lettre est remplacée par un signe combinant (Mn)
+(`tͦken hunter2`), n’est pas forcément trouvé quand rien avant lui ne coupe le texte : ce sont
+deux déguisements délibérés, alors qu’une lettre (L*) mise à la place d’une lettre est trouvée. Le
 [guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 décrit les règles pour le texte libre, ce qu’elles coûtent et ce qu’elles ne trouvent pas.
 

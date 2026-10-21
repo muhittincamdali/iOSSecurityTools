@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 538 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 549 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -299,7 +299,8 @@ Patch or SCIM operation on `/password` or `[["Authorization","…"]]`, has its v
 when the name is secret or not plain ASCII. A URL host that is not a name of ASCII labels or an
 address, or that holds a card number or a token, is written as `scheme://[redacted]`, and a
 multipart part header name is written only when it is one a part carries. A URL with more than 64
-path segments or 128 parameters, or with a path that servers resolve differently (a dot
+path segments or 128 parameters, with a host that names a secret (`myapp://pin/4831`, whose host
+is `pin`), or with a path that servers resolve differently (a dot
 segment as in `/pin/./4831`, a `;` as in `/a;pin/4831`, an escaped `.`, `/`, `\`, `;` or `%`),
 is recorded as its scheme and host only, and an email address
 shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes
@@ -324,7 +325,8 @@ a `<` cuts it unless an ASCII space, tab, line break or digit, `=` or the end of
 it; and a
 secret name, with or without a separator, also one written as a value such as `name="password"`. A word is compared by its ASCII skeleton: the letters that have no ASCII form
 are left out, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and a name
-also counts with one letter missing where one was left out (`pɑssword`). A quote that does not
+also counts with one letter missing where one was left out, so one letter (L*) put in place of a
+letter is found (`pɑssword`). A quote that does not
 close on its line cuts the text at the quote, so a quoted key with a line break in it shows
 nothing. The text is cut to its
 end and not only to the end of the line: `login user=bob status=401` becomes
@@ -342,8 +344,10 @@ Redaction is a safety net, not a guarantee: it is built for secrets logged by ac
 Structured input (JSON, forms, multipart bodies and their part headers, URLs and their hosts) is
 default-safe, and what the redactor does not understand there is redacted; structured key names
 are shown, and only the values under them are hidden. In free text, a name written without a
-separator with two or more of its letters replaced by look-alike letters (`pɑsswoʀd hunter2`) is
-not guaranteed to be found when nothing before it cuts the text. The
+separator with two or more of its letters replaced by look-alike letters (`pɑsswoʀd hunter2`), or
+with a combining mark (Mn) put in place of one of its letters (`tͦken hunter2`), is not
+guaranteed to be found when nothing before it cuts the text: both are deliberate disguise, while
+one letter (L*) put in place of a letter is found. The
 [logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describes the rules for free text, what they cost and what they do not find.
 
