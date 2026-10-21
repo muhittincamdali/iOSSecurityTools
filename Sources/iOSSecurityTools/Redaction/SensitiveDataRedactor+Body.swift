@@ -84,7 +84,9 @@ extension SensitiveDataRedactor {
     private func redactedJSON(_ body: Data, allowsFragments: Bool, nesting: Nesting) -> String? {
         guard let text = String(data: body, encoding: .utf8) else { return nil }
         let scalars = Array(text.unicodeScalars)
-        guard let document = try? JSONDocument(scalars, allowsFragments: allowsFragments, nesting: nesting) else { return nil }
+        // The body is the UTF-8 of the text unless decoding dropped a byte order mark.
+        let utf8 = body.count == text.utf8.count ? body : Data(text.utf8)
+        guard let document = try? JSONDocument(scalars, utf8: utf8, allowsFragments: allowsFragments, nesting: nesting) else { return nil }
         let spans = Self.merged(document.secretSpans(using: self, compatibility: CompatibilityText()))
         return spans.isEmpty ? text : Self.replacing(spans, in: scalars)
     }

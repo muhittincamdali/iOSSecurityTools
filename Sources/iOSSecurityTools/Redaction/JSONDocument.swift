@@ -78,12 +78,14 @@ struct JSONDocument {
     ///   - allowsFragments: Whether the text may be a single string, number or literal instead of
     ///     an object or array.
     ///   - nesting: The nesting of the document itself.
-    init(_ scalars: [Unicode.Scalar], allowsFragments: Bool, nesting: Nesting) throws(ReadError) {
+    ///   - utf8: The UTF-8 of `scalars`, when the caller holds it: a body is not encoded again
+    ///     for `JSONSerialization`, which took two more copies of it while its tree was built.
+    init(_ scalars: [Unicode.Scalar], utf8: Data? = nil, allowsFragments: Bool, nesting: Nesting) throws(ReadError) {
         guard scalars.count <= Self.maximumLength else { throw .invalid }
         var reader = Reader(scalars: scalars, depthLimit: nesting.depthLeft)
         guard let root = reader.document() else { throw reader.failure }
         guard allowsFragments || root.isContainer else { throw .invalid }
-        let data = Data(String(String.UnicodeScalarView(scalars)).utf8)
+        let data = utf8 ?? Data(String(String.UnicodeScalarView(scalars)).utf8)
         guard Self.serializationAgrees(root, with: data, options: .fragmentsAllowed, in: scalars) else { throw .invalid }
         self.scalars = scalars
         self.root = root
