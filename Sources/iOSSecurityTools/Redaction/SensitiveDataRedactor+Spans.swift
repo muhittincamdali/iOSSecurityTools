@@ -83,7 +83,10 @@ extension SensitiveDataRedactor {
 
     /// The spans in order and without overlaps. A span inside a mask (an address, a card number)
     /// turns the mask into ``replacement``, since the mask shows part of what it covers; spans that
-    /// partly overlap are joined into one ``replacement``.
+    /// partly overlap are joined into one ``replacement``. A ``replacement`` that covers the same
+    /// characters as another finding, or lies inside one, always wins: the cut of free text that
+    /// starts and ends where a clean URL does (`(https://api.example.com/users/12345678`) hides the
+    /// URL, which otherwise kept its `:id` form.
     ///
     /// The spans are sorted and joined in the array passed in, which a text of many findings (a
     /// megabyte of addresses) otherwise copied twice, and sorted without a buffer (see
@@ -101,7 +104,8 @@ extension SensitiveDataRedactor {
             }
             let last = spans[count - 1]
             guard span.end > last.end else {
-                if last.replacement != replacement, !span.kind.isEmpty, span.kind != last.kind {
+                let hides = span.replacement == replacement || (!span.kind.isEmpty && span.kind != last.kind)
+                if last.replacement != replacement, hides {
                     spans[count - 1] = Span(start: last.start, end: last.end, kind: last.kind.union(span.kind), replacement: replacement)
                 }
                 continue
