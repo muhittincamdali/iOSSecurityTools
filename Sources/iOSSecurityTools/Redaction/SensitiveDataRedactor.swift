@@ -358,12 +358,13 @@ public struct SensitiveDataRedactor: Sendable {
     ///   Punctuation inside a word (`pass~word`) and a space or `|` between two words
     ///   (`pass word`) are read as a separator. A word is compared by its ASCII skeleton, with
     ///   one wildcard rule: a letter, mark or number outside ASCII that has no ASCII form (`ꞏ`,
-    ///   `ı`, `ɑ`, a combining mark such as U+0366, `〇`) counts as nothing or as any one letter.
-    ///   It is left out, and what remains is compared with the secret names, a plural `s` included
-    ///   (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`); a name also counts with one of its letters missing
-    ///   where such a character stands, so one put in place of a letter is found (`pɑssword`,
-    ///   `user_pın`, `tͦken`, `passw〇rd`). A word of another language that reads as a name this
-    ///   way hides what follows it (Turkish `yapın` reads as `pin`), on purpose. A name written
+    ///   `ı`, `ɑ`, a combining mark such as U+0366, `〇`, a decimal digit of another script such as
+    ///   the Myanmar `၀`) counts as nothing or as any one letter. It is left out, and what remains
+    ///   is compared with the secret names, a plural `s` included (`piꞏn`, `tokeın`, `tokenꞏs`,
+    ///   `keyıs`); a name also counts with one of its letters missing where such a character
+    ///   stands, so one put in place of a letter is found (`pɑssword`, `user_pın`, `tͦken`,
+    ///   `passw〇rd`, `t၀ken`). A word of another language that reads as a name this way hides
+    ///   what follows it (Turkish `yapın` reads as `pin`), on purpose. A name written
     ///   without a separator with two or more of its letters replaced so (`pɑsswoʀd hunter2`) is
     ///   not found: that is deliberate disguise.
     ///   After an allowed key that holds a name (`id=`, `type=`, … but not `path=`, the route of a
