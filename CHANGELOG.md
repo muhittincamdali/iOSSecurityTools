@@ -118,21 +118,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     word is copied for reading at more than that length.
   - **The key rule in every shape.** A key that is not on `allowedTextKeys` cuts the text at its
     value: in `key=value` and `key: value` (also `x=hunter2` and `Error: …`, a separator without
-    a key and a key on the line before its separator) and as the tag of an element, whose text is
-    cut (`<user>…</user>`). A quoted key (`"…": value`, `"…"=value`), a member name of JSON in
+    a key and a key on the line before its separator). A quoted key (`"…": value`, `"…"=value`), a member name of JSON in
     the text and the first string of a two-element array (`["user","…"]`, `[["X-User","…"]]`)
     cut it at their opening quote, so nothing written in them shows. A key with a space in it is
     never allowed in free text.
+  - **Markup.** In free text the first markup tag cuts the text: markup is never parsed, and a
+    `<` before a letter of any script, `/`, `!` or `?` cuts the text there, whatever the tag
+    (`<user>`, `</a>`, `<br/>`, `<!--`, `<![CDATA[`, `<?xml`); no tag is allowed. A `<` before
+    white space, a digit, `=` or other punctuation is a comparison (`a < b`).
   - **Secret names**, with or without a separator, split by punctuation or a space, and names
-    written as values (`name="password"`, `<string name="api_key">`,
-    `Content-Disposition: form-data; name="pin"`). A word is compared by its ASCII skeleton, one
+    written as values (`name="password"`, `Content-Disposition: form-data; name="pin"`). A word is compared by its ASCII skeleton, one
     reading for every path: once the text is read in compatibility form, the letters that have
     no ASCII form are left out, however many (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`), and a name
     also counts with one of its letters missing where a letter was left out (`pɑssword`,
     `user_pın`). A word of another language that reads as a name this way hides what follows it
     (Turkish `yapın` reads as `pin`), on purpose.
-  A word that mixes scripts, a quote or bracket left open and JSON that does not parse cut the text
-  too. Everything after the first trigger is hidden, to the end of the text and not only of its
+  A word that mixes scripts, a quote that does not close on its line (at the quote), a bracket
+  left open and JSON that does not parse cut the text too. Everything after the first trigger is hidden, to the end of the text and not only of its
   line; a log message, a text/plain body, a JSON string, a form value, an allowed query value and
   a multipart text part each count as one text. A text without a trigger is written as it is,
   apart from the value detectors. Nothing is carried from line to line and no line is read twice:
@@ -314,7 +316,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   values shown by design), with property tests that no value after a character outside the safe
   alphabet, an escape, a long word, an unallowed key of a pair or a tag, an unknown part header
   name or a host that is not an address shows, and that text in the safe alphabet without a
-  trigger and allowed pairs, tags, part headers and hosts stay.
+  trigger and allowed pairs, part headers and hosts stay.
 - The fourteenth review got values past free text right after a URL whose end named them, 168
   inputs in every scheme (`http`, `HTTPS`, `ftp`, `wss`, `postgres`, `mongodb+srv`, `[::1]`, IPv4,
   ports, user info, `myapp`) and on every path that reads free text, also after an allowed key and
@@ -374,6 +376,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shown by design), with property tests of generated quoted keys holding secret names, words in
   two scripts, tags, escapes and separators, and of generated names with letters put in and one
   put in place, on every path, and with the two quoted-key shapes measured for time and memory.
+- The seventeenth review got the text of an element past free text in two ways, on all six paths
+  that read it (a log line, a text/plain body, a JSON string, a form value, an allowed query value
+  and a multipart text part). A quote opened before the tag kept the start tag from ever ending,
+  as the scan read the `>` that ends it only when no quote was open
+  (`msg "<user>QZ9WK7RXV</user>" done`, `status='<phone>…</phone>'`), and the first `<` after a
+  start tag ended the cut it had set up, so markup between the tag and its text let the text show
+  (`<user><![CDATA[…]]></user>`, `<user><!-- c -->…`, `<user><br/>…`, `<user><count>1</count>…`,
+  `<user></x>…`, `<user><?pi?>…`). The reading of tags is removed, not patched: the tag allowlist,
+  the start tag the scan was in and the cut it set up for the element's text are gone, and the
+  first markup tag cuts free text at its `<`. The same review found a quoted key with a line break
+  in it read as two lines, so the words in it showed (`"note\nQx31": 1`); the scan no longer keeps
+  a quote open, and a pass of its own, which keeps two positions, cuts the text at a quote that
+  does not close on its line or before the first character outside the safe alphabet. The
+  review's 178 free-text probes, 23 markup probes and 56 quoted keys are kept as tests on every
+  path (19 of them values or key text shown by design), with property tests of generated tags of
+  every script, markup between a tag and its text and quotes around it, and of quoted keys with
+  every line break, quote and separator, on every path; quotes of every style, a quote before a
+  megabyte of escaped ones and comparisons written with `<` are measured for time and memory.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
