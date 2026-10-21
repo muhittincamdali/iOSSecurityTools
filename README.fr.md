@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@7f32b9c6808f9063527af1053a4fb1e3799889af status=reviewed -->
+<!-- i18n-source: README.md@72c6a3c0d9670618c43accdb704574b6810e25b5 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  478 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  493 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -321,7 +321,7 @@ Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils 
 valeurs : la valeur à côté d’un champ qui porte un nom (`name`, `label`, `type`, `id`, …) comme
 `Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée.
 Dans le texte libre, le premier nom secret masque tout ce qui le suit dans ce texte ; cela masque
-trop, volontairement. Masquer trop est un choix de conception. Cinq règles fixent où le texte est
+trop, volontairement. Masquer trop est un choix de conception. Six règles fixent où le texte est
 coupé, et aucune ne tient de liste de variantes : le premier caractère hors d’un alphabet sûr
 (lettres, marques et chiffres de toute écriture, l’espace ASCII, la tabulation et les sauts de
 ligne, et l’ASCII imprimable), si bien qu’un séparateur ressemblant comme `꞉` ou `→`, un emoji ou
@@ -329,15 +329,18 @@ un caractère de contrôle le coupe ; toute séquence d’échappement (`%3D`, `
 n’est jamais décodée ; un mot de plus de 256 caractères ; une clé qui n’est pas autorisée (toute
 clé sauf `status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez), aussi
 entre guillemets, où elle coupe le texte au guillemet ouvrant
-(`cache miss for "session Qz9Wk7rX": refetching` devient `cache miss for [redacted]`), comme
-première chaîne d’un tableau de deux éléments ou comme balise d’un élément ; et un nom secret,
+(`cache miss for "session Qz9Wk7rX": refetching` devient `cache miss for [redacted]`), ou comme
+première chaîne d’un tableau de deux éléments ; une balise, car dans le texte libre la première
+balise coupe le texte, quelle qu’elle soit (`<user>`, `</a>`, `<!--`) ; et un nom secret,
 avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Un mot est comparé par
 son squelette ASCII : les lettres sans forme ASCII sont omises, si bien que `piꞏn`, `tokeın` et
 `tokenꞏs` se lisent `pin`, `token` et `tokens`, et un nom compte aussi avec une lettre en moins là
-où une lettre a été omise (`pɑssword`). Le texte est
+où une lettre a été omise (`pɑssword`). Un guillemet qui ne se ferme pas sur sa ligne coupe le
+texte à ce guillemet, si bien que rien n’apparaît d’une clé entre guillemets contenant un saut de
+ligne. Le texte est
 coupé jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401`
-devient `login user=[redacted]`, et un corps multipart ou une property list écrits dans un journal
-sont masqués à partir de leur premier en-tête ou de leur première clé.
+devient `login user=[redacted]`, et un corps multipart écrit dans un journal
+est masqué à partir de son premier en-tête, une property list à partir de sa première balise.
 Une URL dans du texte libre n’est affichée que si elle est propre — `scheme://host` et un chemin
 facultatif de lettres ASCII, de chiffres, de `.`, `_`, `-` et `/`, dont l’hôte et les segments ne
 nomment aucun secret, suivie d’une espace, d’un saut de ligne ou d’une ponctuation de fin de phrase

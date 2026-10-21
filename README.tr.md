@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@7f32b9c6808f9063527af1053a4fb1e3799889af status=reviewed -->
+<!-- i18n-source: README.md@72c6a3c0d9670618c43accdb704574b6810e25b5 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 478 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 493 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -318,7 +318,7 @@ harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com` olur).
 ASCII dışı adlar, değer olarak yazıldıklarında da gizli sayılır: ad taşıyan bir alanın (`name`,
 `label`, `type`, `id`, …) yanındaki değer, ad `Şifre`, `ⓟⓘⓝ` ya da `🔑` gibiyse maskelenir.
 Serbest metinde ilk gizli ad, o metinde kendisinden sonra gelen her şeyi gizler; bu bilerek fazla
-gizler. Fazla gizleme tasarımdır. Metnin nerede kesileceğini beş kural belirler ve hiçbiri bir
+gizler. Fazla gizleme tasarımdır. Metnin nerede kesileceğini altı kural belirler ve hiçbiri bir
 varyant listesi tutmaz: güvenli bir alfabenin (her yazı sisteminin harfleri, işaretleri ve
 rakamları, ASCII boşluk, sekme ve satır sonları ile yazdırılabilir ASCII) dışındaki ilk karakter,
 yani `꞉` ya da `→` gibi benzer görünen bir ayraç, bir emoji ya da bir kontrol karakteri metni
@@ -326,13 +326,15 @@ keser; hiçbir zaman çözülmeyen her kaçış dizisi (`%3D`, `&colon;`, `\075`
 bir kelime; izin verilmeyen bir anahtar (`status`, `method`, `path`, `duration_ms`, `count` ve
 sizin verdiğiniz anahtarlar dışındaki her anahtar), tırnak içinde de (burada metni açılış
 tırnağında keser: `cache miss for "session Qz9Wk7rX": refetching`, `cache miss for [redacted]`
-olur), iki elemanlı bir dizinin ilk dizesi ya da bir elemanın etiketi olarak da; ve ayraçlı ya da
+olur), ya da iki elemanlı bir dizinin ilk dizesi olarak da; bir işaretleme etiketi, çünkü serbest metinde
+ilk işaretleme etiketi metni keser, etiket ne olursa olsun (`<user>`, `</a>`, `<!--`); ve ayraçlı ya da
 ayraçsız, `name="password"` gibi değer olarak yazılmış olanı da dahil bir gizli ad. Bir kelime
 ASCII iskeletiyle karşılaştırılır: ASCII karşılığı olmayan harfler atılır, böylece `piꞏn`,
 `tokeın` ve `tokenꞏs`, `pin`, `token` ve `tokens` olarak okunur; bir ad, harf atılan yerde bir
-harfi eksik olarak da sayılır (`pɑssword`). Metin yalnız satırın sonuna kadar değil, sonuna kadar kesilir:
-`login user=bob status=401`, `login user=[redacted]` olur; log'a yazılmış bir multipart gövdesi ya
-da property list ilk başlığından ya da anahtarından itibaren gizlenir.
+harfi eksik olarak da sayılır (`pɑssword`). Aynı satırda kapanmayan bir tırnak metni tırnağın
+başından keser; böylece içinde satır sonu olan tırnaklı bir anahtardan hiçbir şey görünmez. Metin yalnız satırın sonuna kadar değil, sonuna kadar kesilir:
+`login user=bob status=401`, `login user=[redacted]` olur; log'a yazılmış bir multipart gövdesi ilk
+başlığından, bir property list ise ilk etiketinden itibaren gizlenir.
 Serbest metindeki bir URL yalnızca temizse gösterilir — `scheme://host` ve isteğe bağlı olarak ASCII
 harf, rakam, `.`, `_`, `-` ve `/` karakterlerinden oluşan bir yol; host'u ve segmentleri gizli bir
 ad taşımaz ve ardından boşluk, satır sonu ya da cümleyi bitiren bir noktalama gelir — ve başka her

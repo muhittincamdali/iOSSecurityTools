@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 478 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 493 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -305,21 +305,23 @@ shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com
 Non-ASCII names count as secret even when they are written as values: the value beside a field that
 holds a name (`name`, `label`, `type`, `id`, …) such as `Şifre`, `ⓟⓘⓝ` or `🔑` is redacted.
 In free text, the first secret name hides everything after it in that text; this over-hides on
-purpose. Over-hiding is by design. Five rules set where the text is cut, and none keeps a list of
+purpose. Over-hiding is by design. Six rules set where the text is cut, and none keeps a list of
 variants: the first character outside a safe alphabet (letters, marks and digits of any script,
 the ASCII space, tab and line breaks, and printable ASCII), so a look-alike separator such as `꞉`
 or `→`, an emoji or a control character cuts it; any escape (`%3D`, `&colon;`, `\075`), which is
 never decoded; a word longer than 256 characters; a key that is not allowed (any key but
 `status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also in quotes, where it
 cuts the text at the opening quote (`cache miss for "session Qz9Wk7rX": refetching` becomes
-`cache miss for [redacted]`), as the first string of a two-element array or as the tag of an
-element; and a secret name, with or without a separator, also one written as a value such as
-`name="password"`. A word is compared by its ASCII skeleton: the letters that have no ASCII form
+`cache miss for [redacted]`), or as the first string of a two-element array; a markup tag, as in
+free text the first markup tag cuts the text, whatever the tag (`<user>`, `</a>`, `<!--`); and a
+secret name, with or without a separator, also one written as a value such as `name="password"`. A word is compared by its ASCII skeleton: the letters that have no ASCII form
 are left out, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and a name
-also counts with one letter missing where one was left out (`pɑssword`). The text is cut to its
+also counts with one letter missing where one was left out (`pɑssword`). A quote that does not
+close on its line cuts the text at the quote, so a quoted key with a line break in it shows
+nothing. The text is cut to its
 end and not only to the end of the line: `login user=bob status=401` becomes
-`login user=[redacted]`, and a multipart body or a property list written to a log is hidden from
-its first header or key.
+`login user=[redacted]`, and a multipart body written to a log is hidden from its first header, a
+property list from its first tag.
 A URL in free text is shown only when it is clean — `scheme://host` and an optional path of ASCII
 letters, digits, `.`, `_`, `-` and `/`, whose host and segments name no secret, followed by white
 space, a line break or punctuation that ends a sentence — and any other URL cuts the text where it
