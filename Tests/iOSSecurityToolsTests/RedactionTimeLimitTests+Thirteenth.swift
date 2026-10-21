@@ -26,6 +26,7 @@ extension RedactionTimeLimitTests {
         all += DistinctScalarShapes.text
         all += DistinctScalarShapes.bodies(size: size, redactor: largeBodies)
         all += CollidingScalarShapes.text
+        all += DetectorScanShapes.shapes(size: size, bodies: largeBodies)
         return all
     }()
 }

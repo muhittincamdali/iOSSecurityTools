@@ -35,7 +35,13 @@ struct RedactionScalingTests {
     static let adversarial = [
         RepeatedText(unit: "token=abc_4111 1111 1111 1111 "),
         RepeatedText(unit: "eyJ"),
+        RepeatedText(unit: "eyJ "),
+        RepeatedText(unit: "eyJ\n"),
         RepeatedText(unit: "eyJa."),
+        // Line separators that the value detectors read across, between digits and tokens.
+        RepeatedText(unit: "4242\u{0B}"),
+        RepeatedText(unit: "1\u{2028}2\u{85}3\u{0C}4\u{0B}5 "),
+        RepeatedText(unit: "eyJ\u{0B}\u{0B}\u{0B}"),
         RepeatedText(unit: "@"),
         RepeatedText(unit: "a.", suffix: "@"),
         RepeatedText(prefix: "@", unit: "a."),
