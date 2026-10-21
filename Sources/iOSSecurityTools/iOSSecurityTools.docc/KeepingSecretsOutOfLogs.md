@@ -160,11 +160,15 @@ CloudFormation's `{"ParameterKey":"DbPassword","ParameterValue":…}` write a fi
 a string without `:`, `=`, `,`, `;`, quotes or brackets inside it, in which a symbol whose
 compatibility form is a letter (`ⓟ`, `🄿`) counts as one, so a sentence (`"Error: token expired"`)
 or JSON in a string is read as free text instead. One function makes the decision for every place
-that reads a name, and a name with a control character in it — a line feed or carriage return
-before, inside or after it, a tab or any other — names a secret whatever it says, wherever it is:
-`{"ParameterKey":"DbPassword\n",…}`, `{"OptionName":"\nDBPassword",…}` and
-`{"OptionName":"Db\nPassword",…}` hide the value beside them, as one reader of the name trims it and
-another splits it. A name with a percent escape or a character
+that reads a name. A name with a control character in it — a line feed or carriage return
+before, inside or after it, a tab or any other — names a secret whatever it says in a member that
+holds a name and as the name of a pair. Elsewhere it is read twice, with its control characters
+left out and with each read as a space, as one reader of the name trims it and another splits it,
+and either reading that names a secret counts: `{"ParameterKey":"DbPassword\n",…}`,
+`{"OptionName":"\nDBPassword",…}`, `{"OptionName":"Db\nPassword",…}` and
+`{"OptionName":"pa\nssword",…}` hide the value beside them. A short string of control characters
+and white space alone (`"\n"`, `"\t"`, `"\u0000"`, `" \n "`) names a secret beside any member, as
+what it stands for cannot be told. A name with a percent escape or a character
 reference is read as written, with the `x` of `&#x` and the `u` of `%u` read as punctuation, and
 with its escapes decoded, and any of these readings that names a secret counts: `%card` and
 `&#xcvv` name `card` and `cvv` although decoding takes their first letters for hex digits,
@@ -183,9 +187,11 @@ naming a secret, as an array or object does in JSON.
 
 The cost is that a name in another script hides what is beside it, whatever it holds:
 `{"label":"Şifre","value":…}` hides the value on purpose, `{"name":"Ayşe","role":"admin"}` hides
-`role`, and `{"type":"image/png","data":…}` hides `data`. So does a short string with a line break
-or a tab beside other members, wherever it is: `{"message":"Hello\nWorld","id":"7"}` hides `id`. Names that are plain and not secret keep
-their values:
+`role`, and `{"type":"image/png","data":…}` hides `data`. So does a short string of control
+characters and white space alone: `{"title":"\n","data":…}` hides `data`. A short string with a
+line break or a tab in it that names no secret either way is not such a name, so
+`{"message":"Hello\nWorld","id":"7"}` and `{"stdout":"ok\n","exit_code":0,"duration_ms":12}` keep
+every member. Names that are plain and not secret keep their values:
 
 ```swift
 let patch = #"[{"op":"replace","path":"/user/password","value":"hunter2"},{"op":"replace","path":"/status","value":"active"}]"#
