@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
+<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 509 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 529 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -312,8 +312,11 @@ Adı bir yerde, değeri başka bir yerde duran bir alanın — `{"name":"X-Api-K
 ya da düz ASCII değilse değeri bütünüyle maskelenir. ASCII etiketlerinden oluşan bir ad ya da bir
 adres olmayan veya bir kart numarası ya da token taşıyan bir URL host'u `scheme://[redacted]` olarak
 yazılır; bir multipart parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse
-yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan bir URL yalnız şeması ve
-host'u ile kaydedilir; bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk
+yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan
+ya da yolunu sunucuların farklı çözebileceği (`/pin/./4831` gibi bir nokta
+bölümü, kaçışlı `.`, `/`, `\` ya da `%`, yalnız
+parametreden oluşan bir bölüm) bir URL yalnız şeması ve host'u ile kaydedilir;
+bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk
 harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com` olur).
 ASCII dışı adlar, değer olarak yazıldıklarında da gizli sayılır: ad taşıyan bir alanın (`name`,
 `label`, `type`, `id`, …) yanındaki değer, ad `Şifre`, `ⓟⓘⓝ` ya da `🔑` gibiyse maskelenir.
@@ -322,7 +325,12 @@ gizler. Fazla gizleme tasarımdır. Metnin nerede kesileceğini altı kural beli
 varyant listesi tutmaz: güvenli bir alfabenin (her yazı sisteminin harfleri, işaretleri ve
 rakamları, ASCII boşluk, sekme ve satır sonları ile yazdırılabilir ASCII) dışındaki ilk karakter,
 yani `꞉` ya da `→` gibi benzer görünen bir ayraç, bir emoji ya da bir kontrol karakteri metni
-keser; hiçbir zaman çözülmeyen her kaçış dizisi (`%3D`, `&colon;`, `\075`); 256 karakterden uzun
+keser, uyumluluk biçimi bu alfabenin dışında kalan bir harf ya da rakam da öyle (`🄁`, `0,`
+olarak okunur); hiçbir zaman çözülmeyen her kaçış dizisi (`%3D`, `&colon;`, `\075`) —
+serbest metinde her ters bölü kaçışı metni keser, yani ardından ASCII boşluk, sekme ya da satır
+sonu gelmeyen her ters bölü (`login pa\x{73}sword hunter2` metninden `login ` kalır;
+`\\nas\backup` gibi bir Windows yolu da ilk ters bölüsünden itibaren gizlenir);
+256 karakterden uzun
 bir kelime; izin verilmeyen bir anahtar (`status`, `method`, `path`, `duration_ms`, `count` ve
 sizin verdiğiniz anahtarlar dışındaki her anahtar), her türden tırnak (`"`, `'`, ters tırnak) içinde de (burada metni açılış
 tırnağında keser: `cache miss for "session Qz9Wk7rX": refetching`, `cache miss for [redacted]`

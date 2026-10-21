@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
+<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  509 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  529 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -313,7 +313,9 @@ Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wi
 reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse ist oder eine
 Kartennummer oder ein Token enthält, wird als `scheme://[redacted]` geschrieben, und der Name eines
 Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Eine URL mit mehr als 64 Pfadsegmenten
-oder 128 Parametern wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
+oder 128 Parametern oder mit einem Pfad, den Server unterschiedlich auflösen (ein
+Punktsegment wie in `/pin/./4831`, ein maskiertes `.`, `/`, `\` oder `%`, ein Segment nur aus
+Parametern), wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
 jeder Schrift nur den ersten Buchstaben ihres Namens (`ayşe.yılmaz@gmail.com` wird zu
 `a•••@gmail.com`).
 Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert
@@ -324,8 +326,13 @@ absichtlich mehr als nötig. Zu viel zu verbergen ist so gewollt. Sechs Regeln l
 Text abgeschnitten wird, und keine führt eine Liste von Varianten: das erste Zeichen außerhalb
 eines sicheren Alphabets (Buchstaben, Zeichen und Ziffern jeder Schrift, das ASCII-Leerzeichen,
 Tabulator und Zeilenumbrüche sowie druckbares ASCII), also ein ähnlich aussehendes Trennzeichen wie
-`꞉` oder `→`, ein Emoji oder ein Steuerzeichen; jede Escape-Sequenz (`%3D`, `&colon;`, `\075`), die
-nie dekodiert wird; ein Wort mit mehr als 256 Zeichen; ein Schlüssel, der nicht erlaubt ist (jeder
+`꞉` oder `→`, ein Emoji oder ein Steuerzeichen, ebenso ein Buchstabe oder eine Zahl, deren
+Kompatibilitätsform nicht in diesem Alphabet liegt (`🄁` ist `0,`); jede Escape-Sequenz (`%3D`,
+`&colon;`, `\075`), die nie dekodiert wird — im Freitext schneidet jede Backslash-Escape-Sequenz
+den Text ab, also jeder Backslash, dem kein ASCII-Leerzeichen, Tabulator oder Zeilenumbruch
+folgt (`login pa\x{73}sword hunter2` behält `login `, und ein Windows-Pfad wie
+`\\nas\backup` wird ab seinem ersten Backslash verborgen);
+ein Wort mit mehr als 256 Zeichen; ein Schlüssel, der nicht erlaubt ist (jeder
 außer `status`, `method`, `path`, `duration_ms`, `count` und den Schlüsseln, die Sie übergeben),
 auch in Anführungszeichen jeder Art (`"`, `'`, Backtick), wo er den Text am öffnenden
 Anführungszeichen abschneidet (aus

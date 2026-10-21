@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 509 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 529 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -299,7 +299,9 @@ Patch or SCIM operation on `/password` or `[["Authorization","…"]]`, has its v
 when the name is secret or not plain ASCII. A URL host that is not a name of ASCII labels or an
 address, or that holds a card number or a token, is written as `scheme://[redacted]`, and a
 multipart part header name is written only when it is one a part carries. A URL with more than 64
-path segments or 128 parameters is recorded as its scheme and host only, and an email address
+path segments or 128 parameters, or with a path that servers resolve differently (a dot
+segment as in `/pin/./4831`, an escaped `.`, `/`, `\` or `%`, a segment that is only
+parameters), is recorded as its scheme and host only, and an email address
 shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes
 `a•••@gmail.com`).
 Non-ASCII names count as secret even when they are written as values: the value beside a field that
@@ -308,8 +310,12 @@ In free text, the first secret name hides everything after it in that text; this
 purpose. Over-hiding is by design. Six rules set where the text is cut, and none keeps a list of
 variants: the first character outside a safe alphabet (letters, marks and digits of any script,
 the ASCII space, tab and line breaks, and printable ASCII), so a look-alike separator such as `꞉`
-or `→`, an emoji or a control character cuts it; any escape (`%3D`, `&colon;`, `\075`), which is
-never decoded; a word longer than 256 characters; a key that is not allowed (any key but
+or `→`, an emoji or a control character cuts it, as does a letter or number whose compatibility
+form is not in that alphabet (`🄁` is `0,`); any escape (`%3D`, `&colon;`, `\075`), which
+is never decoded — in free text every backslash escape cuts the text, as does any backslash
+that no ASCII space, tab or line break follows (`login pa\x{73}sword hunter2` keeps
+`login `, and a Windows path such as `\\nas\backup` is hidden from its first backslash on);
+a word longer than 256 characters; a key that is not allowed (any key but
 `status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also in quotes of any
 kind (`"`, `'`, a backtick), where it cuts the text at the opening quote (`cache miss for "session Qz9Wk7rX": refetching` becomes
 `cache miss for [redacted]`), or as the first string of a two-element array; a markup tag, as in

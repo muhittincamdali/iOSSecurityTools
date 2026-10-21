@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
+<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  509 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  529 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -314,7 +314,9 @@ Un champ dont le nom est à un endroit et la valeur à un autre, comme dans
 ASCII simple. Un hôte d’URL qui n’est ni un nom fait de libellés ASCII ni une adresse, ou qui porte
 un numéro de carte ou un jeton, est écrit `scheme://[redacted]`, et le nom d’un en-tête de partie
 multipart n’est écrit que s’il fait partie de ceux qu’une partie porte. Une URL de plus de 64
-segments de chemin ou de 128 paramètres n’est enregistrée qu’avec son schéma et son hôte, et une
+segments de chemin ou de 128 paramètres, ou dont le chemin est résolu différemment selon les
+serveurs (un segment point comme dans `/pin/./4831`, un `.`, `/`, `\` ou `%` échappé, un segment
+fait seulement de paramètres), n’est enregistrée qu’avec son schéma et son hôte, et une
 adresse e-mail ne montre que la première lettre de son nom, dans n’importe quelle écriture
 (`ayşe.yılmaz@gmail.com` devient `a•••@gmail.com`).
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
@@ -325,8 +327,14 @@ trop, volontairement. Masquer trop est un choix de conception. Six règles fixen
 coupé, et aucune ne tient de liste de variantes : le premier caractère hors d’un alphabet sûr
 (lettres, marques et chiffres de toute écriture, l’espace ASCII, la tabulation et les sauts de
 ligne, et l’ASCII imprimable), si bien qu’un séparateur ressemblant comme `꞉` ou `→`, un emoji ou
-un caractère de contrôle le coupe ; toute séquence d’échappement (`%3D`, `&colon;`, `\075`), qui
-n’est jamais décodée ; un mot de plus de 256 caractères ; une clé qui n’est pas autorisée (toute
+un caractère de contrôle le coupe, de même qu’une lettre ou un chiffre dont la forme de
+compatibilité n’est pas dans cet alphabet (`🄁` donne `0,`) ; toute séquence d’échappement
+(`%3D`, `&colon;`, `\075`), qui n’est jamais décodée — en texte libre, toute séquence
+d’échappement par barre oblique inverse coupe le texte, c’est-à-dire toute barre oblique inverse
+que ne suit pas une espace, une tabulation ou un saut de ligne ASCII (`login pa\x{73}sword
+hunter2` garde `login `, et un chemin Windows comme `\\nas\backup` est masqué dès sa première
+barre oblique inverse) ;
+un mot de plus de 256 caractères ; une clé qui n’est pas autorisée (toute
 clé sauf `status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez), aussi
 entre guillemets de toute sorte (`"`, `'`, accent grave), où elle coupe le texte au guillemet
 ouvrant
