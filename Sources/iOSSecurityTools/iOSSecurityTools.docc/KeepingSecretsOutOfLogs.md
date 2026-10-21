@@ -67,8 +67,8 @@ digits of a card number or an IBAN and the domain and first letter of an email a
 body it cannot parse or that is too large a note with its size and content type. What it never
 writes: the value of a field it reads as secret or cannot read, anything in free text after its
 first trigger — a key that is not allowed, a character outside the safe alphabet, an escape, a
-word longer than 256 characters, a secret name, a word it cannot read, a quote left open, a URL
-that is not clean — a body it cannot parse completely, a URL host that is not an address, the name of a part header it does
+word longer than 256 characters, a secret name, a word it cannot read, a markup tag, a quote that
+does not close on its line, a URL that is not clean — a body it cannot parse completely, a URL host that is not an address, the name of a part header it does
 not know, the other digits of a card number or an IBAN, and the rest of the name in an email
 address.
 
@@ -294,8 +294,9 @@ first bracket, like JSON that does not parse. The package's tests run every limi
 512 KiB of stack, the default of a secondary thread, a GCD queue and a Swift concurrency task, and
 with `swift test -c release` they check that a megabyte of text, nested input or a body takes less
 than a second, also for ordinary shapes such as a JSON array of short strings, a multipart body of
-1,000 parts, URLs of many segments and a megabyte of Turkish sentences or of `ı` quoted in JSON up
-to four times, timed by the CPU time of such a thread. The default redactor and its folded keys are
+1,000 parts, URLs of many segments, a megabyte of Turkish sentences or of `ı` quoted in JSON up
+to four times, quotes of every style, a quote before a megabyte of escaped ones and comparisons
+written with `<`, timed by the CPU time of such a thread. The default redactor and its folded keys are
 made once and shared, never per array element or path segment, each path segment is read in a single
 pass, and each word is compared with each secret word in a single pass. Free text is read once and
 keeps a fixed number of positions, the tree of each JSON in it is released before the next one is
@@ -335,7 +336,7 @@ redactor.redact("Error: connection refused\nretrying in 5 s")
 // "Error: [redacted]"
 ```
 
-Five rules set the triggers. None of them keeps a list of variants, which earlier designs of 2.1.0
+Six rules set the triggers. None of them keeps a list of variants, which earlier designs of 2.1.0
 kept and reviews got past one variant at a time:
 
 - **A safe alphabet.** The text is read only as far as it is written in letters, marks and digits
@@ -371,11 +372,16 @@ kept and reviews got past one variant at a time:
   JSON in the text is parsed and its members follow the same rule, a member name that is not
   allowed cutting the text at its opening quote (`{"password hunter2": 1}` keeps `{`), as does the
   first string of a two-element array, as fetch headers and `URLSearchParams` entries write a pair
-  (`[["X-User","bob"]]` cuts at `"X-User"`). A tag is a key
-  too: the text of an element whose tag is not allowed cuts the text (`<user>bob</user>` keeps
-  `<user>`), and a key in a start tag that is not allowed cuts it at the tag's first attribute
-  value (`<input value="…" name="password">`). JSON that does not parse, or is longer than 64 Ki
+  (`[["X-User","bob"]]` cuts at `"X-User"`). JSON that does not parse, or is longer than 64 Ki
   scalars, cuts the text at its first bracket.
+- **Markup.** In free text the first markup tag cuts the text. Markup is never parsed: a `<`
+  before a letter of any script, `/`, `!` or `?` cuts the text there, whatever the tag and
+  whatever comes between it and the text — `<user>`, `</a>`, `<br/>`, `<!-- … -->`,
+  `<![CDATA[…]]>`, `<?xml …?>` — so `login <user>bob</user>` keeps `login `, and no tag is
+  allowed, whatever keys the app allows. An earlier design of 2.1.0 read a tag as a key and cut
+  at the text of its element; reviews got the text past it behind a quote opened before the tag
+  and behind other markup between the tag and the text. A `<` before white space, a digit, `=`
+  or other punctuation is a comparison (`a < b`, `<3`), not markup.
 - **Secret names.** A word that holds a secret name cuts the text after the name, with or without
   a separator: `password hunter2`, `PIN 1234`. Punctuation inside a word and a space, `|`, `,`,
   `;`, `&` or `?` between two words are read as a separator (`pass~word`, `pass word`, `p|wd`). A
@@ -390,14 +396,19 @@ kept and reviews got past one variant at a time:
   two or more of its letters replaced is not read this way (see "What it does not find"). A name
   written as a value is read too: `name=`, `key=`, `label=` and
   the other keys that hold a name are not allowed by default, so they cut the text at once
-  (`name="password"`, `<string name="api_key">`, `Content-Disposition: form-data; name="pin"`).
+  (`name="password"`, `Content-Disposition: form-data; name="pin"`).
   When the app allows such a key (`id`, `type`, … but not `path`, the route of a request), a
   secret name after it, or one that is not plain ASCII, cuts the text after the name, as in JSON
   (`type="Пароль"`), and so does JSON there.
 
-A word that mixes scripts (`pаssword` with a Cyrillic `а`) cuts the text where it starts, and a
-quote or bracket that does not close before the text ends, or before the text is cut, cuts it
-after the quote or bracket: where its value ends cannot be told.
+A word that mixes scripts (`pаssword` with a Cyrillic `а`) cuts the text where it starts. A quote —
+`"`, a backtick, or `'` at the start of a word, so not the apostrophe of `don't` — that does not
+close on its line, or before the first character outside the safe alphabet, cuts the text at the
+quote: what it holds cannot be told, and a quoted key with a line break in it shows nothing
+(`"note\nQx31": 1` keeps nothing). A quote closes only at the next quote of its kind written the
+same way, escaped (`\"`) or not. A bracket that does not close before the text ends cuts it after
+the bracket: where its value ends cannot be told. Quotes and brackets are read in a pass of their
+own, by position alone: no quote or tag is open while the text is read.
 
 **URLs.** A URL in free text is shown only when it is clean — `scheme://host` and an optional
 path of ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or
@@ -417,16 +428,18 @@ redactor.redact("contact alice%40example.com")           // "contact [redacted]"
 redactor.redact(#"log [["X-User","bob"]]"#)              // "log [[[redacted]"
 redactor.redact(#"cache miss for "session Qz9Wk7rX": refetching"#)
 // "cache miss for [redacted]"
-redactor.redact("<user>bob</user>")                      // "<user>[redacted]"
+redactor.redact("<user>bob</user>")                      // "[redacted]"
+redactor.redact("note \"a\nhunter2\": 1")                 // "note [redacted]"
+redactor.redact("if a < b then")                         // "if a < b then"
 redactor.redact("password hunter2")                      // "password [redacted]"
 redactor.redact("p\u{0430}ssword=hunter2")               // "pаssword=[redacted]"
 redactor.redact("login pa\u{115F}ssword hunter2")        // "login [redacted]"
 redactor.redact("password: 'abc\n  hunter2'")            // "password: [redacted]"
 redactor.redact("| password | hunter2 |")                // "| password [redacted]"
 redactor.redact("field name=\"password\" hunter2")       // "field name=[redacted]"
-redactor.redact(#"<string name="api_key">k-1</string>"#) // "<string name=[redacted]"
+redactor.redact(#"<string name="api_key">k-1</string>"#) // "[redacted]"
 redactor.redact("<key>password</key>\n<string>k-1</string>")
-// "<key>[redacted]"
+// "[redacted]"
 redactor.redact("upload ok status=200\n--B\r\nContent-Disposition: form-data; name=\"pin\"\r\n\r\n4831\r\n--B--")
 // "upload ok status=200\n--B\r\nContent-Disposition: [redacted]"
 redactor.redact(#"{"status":200,"user":"bob"} done"#)   // "{\"status\":200,[redacted]"
@@ -439,10 +452,10 @@ redactor.redact("GET https://api.example.com/users/12345678 200")
 redactor.redact("user1:2345678 at 12:30")                 // "user1:[redacted]"
 ```
 
-The scan reads the text once, left to right, and stops at the first trigger. It keeps a fixed
-number of positions — the cut, the key before the next separator, the quote and the outermost
-bracket that are open, the start tag it is in — however many keys or names the text holds, so
-nothing is carried from line to line and no line is read twice. The line breaks of the input are
+The scan reads the text once, left to right, and stops at the first trigger. It keeps two
+positions — the cut and the key before the next separator — however many keys or names the text
+holds, and the pass that reads quotes and brackets keeps two more, so nothing is carried from line
+to line. The line breaks of the input are
 written as they are.
 
 The name of an email address may be written in any script: it runs over letters, marks and
@@ -488,14 +501,15 @@ an allowed key is shown, also when it is repeated (`status==…`).
 Where it cannot tell, it hides more than it has to, on purpose: over-hiding is by design. It hides
 everything after the first key that is not allowed (`Error: connection refused` hides
 `connection refused` and every line after it), after the first secret name, word it cannot read or
-quote left open, after the first character outside the safe alphabet — an emoji, a dash, a
-currency sign or East Asian punctuation in a sentence (`Merhaba dünya 👋 bye` keeps only
-`Merhaba dünya `), a whole word with an escape in it, a word longer than 256 characters, the text of
-an element whose tag is not allowed (`Optional<String>(x)` keeps `Optional<String>`), a whole JSON
-string after a trigger in JSON written into it, everything from a URL that is not clean on —
-one with a query, a port, user info or a host in letters outside ASCII
-(`see https://x.example/a?q=1 ok` keeps `see `) — and a
-multipart body or a property list written into text from its first header or key.
+quote that does not close on its line, after the first character outside the safe alphabet — an
+emoji, a dash, a currency sign or East Asian punctuation in a sentence (`Merhaba dünya 👋 bye`
+keeps only `Merhaba dünya `) — a whole word with an escape in it, a word longer than 256
+characters, everything from the first markup tag on, whatever the tag (`Optional<String>(x)` keeps
+`Optional`, and an email address written as `<bob@example.com>` goes whole), a whole JSON string
+after a trigger in JSON written into it, everything from a URL that is not clean on — one with a
+query, a port, user info or a host in letters outside ASCII (`see https://x.example/a?q=1 ok`
+keeps `see `) — a multipart body written into text from its first header and a property list or
+any other markup from its first tag.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
 `.public`; use the redactor for the values you do mark public, and for logs sent to your own
