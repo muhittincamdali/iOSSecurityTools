@@ -16,7 +16,7 @@ import Testing
 ///   with a vertical tab, a form feed, U+0085, U+2028 or U+2029 in it showed the part before it
 ///   (`paid with 4111 1111 1111` and the vertical tab, 28 of the probes): free text is cut there,
 ///   and the detectors did not read across it. They now do, so the finding is whole and the text is
-///   hidden from its start (see ``NormalizedText/isBridgedLineBreak(_:)``).
+///   hidden from its start (see ``NormalizedText/isGap(_:)`` and ``NormalizedText/readable(after:)``).
 @Suite("SensitiveDataRedactor twenty-fourth review probes")
 struct RedactionTwentyFourthReviewProbeTests {
     /// The probes that showed their secret in the review.
