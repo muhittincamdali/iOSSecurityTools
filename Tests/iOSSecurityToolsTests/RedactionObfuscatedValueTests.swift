@@ -153,7 +153,8 @@ struct RedactionObfuscatedValueTests {
     @Test("a separator with no name hides the rest of its line", arguments: [
         ("=hunter2 x\nnext", "=[redacted]"),
         ("status=200, =hunter2 x", "status=200, =[redacted]"),
-        ("<:password>b", "<:[redacted]"),
+        // `<` before `:` starts markup, which cuts the text before the separator does.
+        ("<:password>b", "[redacted]"),
         ("=\n  hunter2\nnext", "=[redacted]"),
         ("=====\nHeader\n=====", "=====[redacted]"),
     ])

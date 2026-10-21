@@ -7,17 +7,26 @@
 /// bytes of the scanning copy, finds the two positions where quotes and brackets cut the text
 /// (see ``openMarks()``).
 extension FreeTextScanner {
-    /// Whether markup starts at byte `i`: a `<` before a letter of any script, `/`, `!` or `?`
-    /// (`<user>`, `</a>`, `<!--`, `<![CDATA[`, `<?xml`). Free text never parses markup, whatever
-    /// the tag: the first such `<` cuts the text, so what an element, a comment or a CDATA
-    /// section holds never shows. A `<` before white space, a digit, `=` or anything else is
-    /// read as a comparison (`a < b`, `<=`, `<3`).
+    /// Whether markup starts at byte `i`: a `<` that is not a comparison. The rule names what a
+    /// comparison is, not what a tag can start with: a `<` is a comparison only before an ASCII
+    /// space, tab, line feed or carriage return, an ASCII digit, `=` or the end of the text
+    /// (`a < b`, `1<2`, `<3`, `<=`, `x <`). Before any other character — a letter of any script,
+    /// `_`, `:`, `/`, `!`, `?`, any other punctuation, a digit or a symbol outside ASCII — it starts
+    /// markup (`<user>`, `<_id>`, `</a>`, `<!--`, `<?xml`, `<०>`, `<-x>`, `x << 1`). Free text
+    /// never parses markup: the first such `<` cuts the text, whatever follows it, so what an
+    /// element, a comment or a CDATA section holds never shows. The character after the `<` is
+    /// read in the original text, so a digit or a space outside ASCII (`<١>`, `<\u{00A0}`) is not
+    /// read as its ASCII form.
     func startsMarkup(at i: Int) -> Bool {
-        guard text.bytes[i] == UInt8(ascii: "<"), i + 1 < text.count else { return false }
-        return text.isAnyLetter(i + 1) || Self.markupMarks.contains(text.bytes[i + 1])
+        guard text.bytes[i] == UInt8(ascii: "<") else { return false }
+        let next = text.offsets[i] + 1
+        guard next < source.count else { return false }
+        let scalar = source[next]
+        return !(scalar.isASCII && Self.comparisonFollowers.contains(UInt8(scalar.value)))
     }
 
-    private static let markupMarks = ByteSet("/!?")
+    /// What may follow a `<` that is a comparison.
+    private static let comparisonFollowers = ByteSet(" \t\n\r0123456789=")
 
     /// Where the quotes and brackets that do not close cut the text.
     struct OpenMarks: Equatable {
