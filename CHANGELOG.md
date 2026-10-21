@@ -145,10 +145,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Secret names**, with or without a separator, split by punctuation or a space, and names
     written as values (`name="password"`, `Content-Disposition: form-data; name="pin"`). A word is compared by its ASCII skeleton, one
     reading for every path: once the text is read in compatibility form, one wildcard rule
-    applies — a letter, mark or number outside ASCII that has no ASCII form counts as nothing or
-    as any one letter. Such characters are left out, however many (`piꞏn`, `tokeın`, `tokenꞏs`,
-    `keyıs`), and a name also counts with one of its letters missing where one stands
-    (`pɑssword`, `user_pın`, `tͦken`, `passw〇rd`). A word of another language that reads as a
+    applies — a letter, mark or number outside ASCII that has no ASCII form, a decimal digit of
+    another script among them, counts as nothing or as any one letter. Such characters are left
+    out, however many (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`), and a name also counts with one of
+    its letters missing where one stands (`pɑssword`, `user_pın`, `tͦken`, `passw〇rd`,
+    `t၀ken`). A word of another language that reads as a
     name this way hides what follows it (Turkish `yapın` reads as `pin`), on purpose.
   A word that mixes scripts, a quote that does not close on its line (at the quote), a bracket
   left open and JSON that does not parse cut the text too. Everything after the first trigger is hidden, to the end of the text and not only of its
@@ -546,11 +547,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   port or a line and column — followed by the end of the word; a letter in what follows and five
   or more digits right after the `:` make it a separator.
 - The same review found that a name with a line feed or carriage return in it, beside a field
-  that holds no name, showed the value beside it: `{"ParameterKey":"DbPassword
-",
-  "ParameterValue":…}`, `{"OptionName":"
-DBPassword","Value":…}` and `Db
-Password`, also in
+  that holds no name, showed the value beside it: `{"ParameterKey":"DbPassword\n",
+  "ParameterValue":…}`, `{"OptionName":"\nDBPassword","Value":…}` and `Db\nPassword`, also in
   CloudFormation `Parameters` and Elastic Beanstalk `OptionSettings`, a form, a multipart body and
   an allowed query, 64 probes. One function now decides for every place that reads a name, and a
   name with any control character in it names a secret. A short string with a line break or a
@@ -569,6 +567,40 @@ Password`, also in
   rule as a name held by a field, so the segment after such a one becomes `:id`; `:id` itself is
   not such a name. The review's probes are kept as tests, and so are the inputs of every class
   around them.
+- The twenty-fifth review put a decimal digit of another script in place of a letter of a secret
+  name, or into it, without a separator (`login t၀ken X` with a Myanmar zero, `INFO passw०rd X
+  ok`, `pas၀sword X`, the zeros of 20 scripts), and the value showed on every path that reads a
+  word — free text, quotes and brackets, a JSON string, a text/plain body, a form value, a
+  multipart part, an allowed query value (`?q=t%E1%81%80ken+X`) — and beside a name written as a
+  value (`{"title":"t၀ken","value":X}`, `{"ParameterKey":"passw०rd",…}`, `["a","c๐okie",X]`),
+  152 probes. Such a digit has no ASCII form, so the one wildcard rule names it, but the scanning
+  copy reads every decimal digit as its ASCII digit, for numbers and the value detectors, and a
+  word read it so too: `t၀ken` was `t0ken`. A word now reads it as the wildcard; numbers and the
+  detectors still read its digit (`४२४२ ४२४२ ४२४२ ४२४२` is a card number), and a digit with an
+  ASCII form (full-width, mathematical, segmented, outlined) is that digit (`passw０rd`, a
+  documented limit). A test compares the digits read as the wildcard with Foundation's
+  decomposition for every decimal digit, and the review's probes are kept as tests.
+- The twenty-fifth correctness review measured the JSON Web Token detector reading the rest of
+  the text for every `eyJ`: to find where the payload starts, it looked for the next `.` from the
+  start of the candidate, so a megabyte of `eyJ ` took 46.6 s in a release build (0.164 s before
+  the detectors read across line separators), a JSON body of 256 KiB of them 2.0 s and log lines
+  of `cursor eyJpZCI6MTIzfQ` 1.53 s a megabyte. A candidate that was not a token also moved on by
+  the characters of its first segment rather than its bytes, so the line separators it read
+  across were read again: `eyJ` and 1,000 vertical tabs, repeated, took 1.38 s a megabyte at
+  64 MB with the token detector alone. The detector now keeps where the payload starts as it reads
+  the segments and moves on by bytes. The line separators are read in two ways, each written once
+  in the scanning copy — as the white space between the groups of a card number or an IBAN and
+  after `Bearer`, and as nothing inside a run of an address, a token or the token after
+  `Bearer` — and no detector tests for one itself; one reading cannot serve both, as read as
+  nothing the groups of two card numbers on either side of one run together, and read as white
+  space one ends an address whose name the cut then shows. The token after `Bearer` and the
+  top-level domain of an address are now read across them too (`Bearer abcd`, a vertical tab and
+  `efgh12345678` showed `abcd`), an IBAN may be grouped by tabs, and an address mask leaves the
+  separator out. A test compares, for every detector, a value cut by each separator, by a
+  character the copy leaves out and by a space outside ASCII, on seven paths, with the start of
+  the finding in the value written whole; the time tests take a megabyte of `eyJ `, of `eyJ` and a
+  line feed, of such cursors, of line separators between digits, groups and tokens with every
+  kind and with the value detectors alone, and 4 MB of `eyJ` and vertical tabs.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
