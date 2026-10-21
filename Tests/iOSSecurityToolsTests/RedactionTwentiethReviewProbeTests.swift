@@ -20,7 +20,6 @@ struct RedactionTwentiethReviewProbeTests {
     static let shown: [String: String] = {
         var shown: [String: String] = [:]
         let byReason: [(String, [Int])] = [
-            ("a name spelled with a digit, here one outside ASCII, as `passw0rd` is (`passw〇rd`, `p〡n`)", [34, 35, 37, 38, 43, 166, 181, 192, 238]),
             ("a name written in UTF-7 (`+AHM-ecret`), which is printable ASCII and no escape", [22]),
             ("a letter put into a name that reads as an ASCII letter (`passªword` reads as `passaword`)", [53]),
             ("a secret name split into two segments of a clean URL path (`/to/ken/`)", [125]),
@@ -40,7 +39,7 @@ struct RedactionTwentiethReviewProbeTests {
         let probes = ReviewProbes.of(Self.review)
         #expect(probes.count == 240)
         #expect(Dictionary(grouping: probes, by: \.claim).mapValues(\.count) == ["C": 230, "D": 2, "X": 8])
-        #expect(Self.shown.count == 12)
+        #expect(Self.shown.count == 3)
         #expect(Self.braced.count == 23)
     }
 

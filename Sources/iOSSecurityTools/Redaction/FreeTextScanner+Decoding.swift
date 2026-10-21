@@ -126,20 +126,20 @@ extension FreeTextScanner {
 ///
 /// The scanning copy has already read each character as the ASCII it stands for under
 /// compatibility normalization and left out marks and format characters (`pässword`, `ｐａｓｓ`
-/// are `password`, `pass`). Every letter that is still without an ASCII form (`ꞏ`, `ı`, `ɑ`,
-/// `ø`) is then left out, and what remains is compared, lowercased, with the secret names, a
-/// plural `s` included (see ``PlainName/firstSecret(where:)``): `piꞏn`, `tokeın`, `tokenꞏs` and
-/// `keyıs` read as `pin`, `token`, `tokens` and `keys`, however many letters are left out. A name
-/// also counts with one of its letters missing where letters were left out, so a letter (L*) put
-/// in place of one of its letters is found too (`pɑssword`, `user_pın`), and a word of another
-/// language that reads as a name this way is read as that name (Turkish `yapın` as `pin`),
-/// which hides more on purpose. Two or more letters put in place of letters of one name
-/// (`pɑsswoʀd`) are not found: no list of look-alikes is kept. Nor is a name with a combining
-/// mark (Mn) in place of one of its letters (`tͦken`): the mark is left out like any mark, so the
-/// letter the name misses is not where a letter was left out. Both are deliberate disguise, a
-/// documented limit of free text written without a separator. Punctuation between letters is
-/// read as a separator (`pass~word`), and a word read with the next one (`pass word`) holds a
-/// secret name across the space.
+/// are `password`, `pass`). Every letter, mark or number outside ASCII that is still without an
+/// ASCII form — a letter or number such as `ꞏ`, `ı`, `ɑ`, `ø` or `〇`, and a mark that the copy
+/// left out (`ͦ`, U+0366) — is then left out, and what remains is compared, lowercased, with the
+/// secret names, a plural `s` included (see ``PlainName/firstSecret(where:)``). That is the one
+/// wildcard rule: each such character counts as nothing or as any one letter. As nothing,
+/// `piꞏn`, `tokeın`, `tokenꞏs` and `keyıs` read as `pin`, `token`, `tokens` and `keys`, however
+/// many are put in. As a letter, a name counts with one of its letters missing where such a
+/// character was left out, so a letter, mark or number put in place of one of its letters is
+/// found too (`pɑssword`, `user_pın`, `tͦken`, `passw〇rd`), and a word of another language that
+/// reads as a name this way is read as that name (Turkish `yapın` as `pin`), which hides more on
+/// purpose. Two or more letters put in place of letters of one name (`pɑsswoʀd`) are not found:
+/// no list of look-alikes is kept, a documented limit of free text written without a separator.
+/// Punctuation between letters is read as a separator (`pass~word`), and a word read with the
+/// next one (`pass word`) holds a secret name across the space.
 struct LooseReading {
     private let name: PlainName
     /// The bytes of the skeleton, with the byte of the scanned text each came from. Where a
@@ -165,11 +165,14 @@ struct LooseReading {
             leftOutBefore.append(isLeavingOut)
             if ASCII.isAlphanumeric(byte) { isLeavingOut = false }
         }
+        // A copy in which each byte came from the scalar at its own index left nothing out.
+        let readsGaps = text.leavesOutScalars
         for range in ranges {
             if !bytes.isEmpty { append(UInt8(ascii: " "), from: range.lowerBound) }
             for k in range {
+                if readsGaps, Self.leftOutMark(before: k, in: text, source: source) { isLeavingOut = true }
                 let byte = text.bytes[k]
-                if byte == CompatibilityText.unreadable, ScalarClass.isLetter(source[text.offsets[k]]) {
+                if byte == CompatibilityText.unreadable, ScalarClass.isLetterOrNumber(source[text.offsets[k]]) {
                     isLeavingOut = true
                 } else if readsEscapeStartsAsPunctuation, k > 0, Self.isEscapeStart(byte, after: text.bytes[k - 1]) {
                     append(UInt8(ascii: "_"), from: k)
@@ -177,12 +180,27 @@ struct LooseReading {
                     append(byte, from: k)
                 }
             }
+            if readsGaps, !range.isEmpty, Self.leftOutMark(before: range.upperBound, in: text, source: source) { isLeavingOut = true }
         }
         guard let name = PlainName(skeleton: bytes, leftOutBefore: leftOutBefore, leftOutAtEnd: isLeavingOut) else { return nil }
         self.name = name
         self.bytes = bytes
         self.origins = origins
     }
+
+    /// Whether the scanning copy left out a mark, or a letter or number, right before byte `k`:
+    /// between the scalar of the byte before it and the scalar of byte `k`, or the end of the copy.
+    /// Such a mark is read as any one letter, like a letter without an ASCII form (`tͦken`). At
+    /// most ``longestGap`` scalars are looked at: a copy may end before the text does.
+    private static func leftOutMark(before k: Int, in text: NormalizedText, source: [Unicode.Scalar]) -> Bool {
+        let start = k > 0 ? text.offsets[k - 1] + 1 : 0
+        let end = min(text.offset(at: k), start + longestGap)
+        guard start < end else { return false }
+        return source[start..<end].contains(where: ScalarClass.isLetterOrNumber)
+    }
+
+    /// The most scalars left out between two bytes that are read for a mark.
+    private static let longestGap = 32
 
     /// Whether `byte` is the letter that starts a hex escape, the `x` of `&#x` or the `u` of `%u`,
     /// and not a letter of a name: `&#xpass` is `&#x` and `pass`. The byte before a word counts,
