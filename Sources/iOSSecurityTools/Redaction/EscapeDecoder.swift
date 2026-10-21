@@ -3,7 +3,10 @@
 /// input is read for secret words: a name held by a field (`{"ParameterKey":"Db%50assword"}`), an
 /// element of a JSON array, a URL path segment and the words of JSON written into a line. Free
 /// text itself never decodes an escape: one cuts the text (see
-/// ``FreeTextScanner/isEscape(at:)``).
+/// ``FreeTextScanner/isEscape(at:)``). The decoded name is never read alone: decoding takes the
+/// hex letters that start a name for digits of the escape before it (`%card` decodes to U+FFFD
+/// and `rd`, `&#xcvv` to U+000C and `vv`), so the name is read as written too, and the reading
+/// that hides more counts (see ``FreeTextScanner/read(_:)``).
 ///
 /// Decoded are percent escapes (as UTF-8, and `%uXXXX`), HTML character references by number
 /// (`&#97;`, `&#x61;`, also without the `;` and with leading zeros) and `&amp;`, round after
