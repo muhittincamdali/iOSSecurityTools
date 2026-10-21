@@ -351,11 +351,12 @@ public struct SensitiveDataRedactor: Sendable {
     ///   (`pass word`) are read as a separator. A word is compared by its ASCII skeleton: every
     ///   letter that has no ASCII form (`ꞏ`, `ı`, `ɑ`) is left out, and what remains is compared
     ///   with the secret names, a plural `s` included (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`); a
-    ///   name also counts with one of its letters missing where a letter was left out
-    ///   (`pɑssword`, `user_pın`). A word of another language that reads as a name this way hides
-    ///   what follows it (Turkish `yapın` reads as `pin`), on purpose. A name with two or more of
-    ///   its letters replaced so and written without a separator (`pɑsswoʀd hunter2`) is not
-    ///   found.
+    ///   name also counts with one of its letters missing where a letter was left out, so one
+    ///   letter (L*) put in place of a letter is found (`pɑssword`, `user_pın`). A word of another
+    ///   language that reads as a name this way hides what follows it (Turkish `yapın` reads as
+    ///   `pin`), on purpose. A name written without a separator with two or more of its letters
+    ///   replaced so (`pɑsswoʀd hunter2`), or with a combining mark (Mn) in place of a letter
+    ///   (`tͦken hunter2`), is not found: both are deliberate disguise.
     ///   After an allowed key that holds a name (`id=`, `type=`, … but not `path=`, the route of a
     ///   request), a secret name or one that is not plain ASCII cuts the text after it, as in JSON
     ///   (`type="Пароль"`), and so does JSON there.

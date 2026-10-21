@@ -12,10 +12,9 @@ extension SensitiveDataRedactor {
     ///   brackets, and the value detectors that ``kinds`` turns on find nothing in it (a card number,
     ///   a run of 32 hex digits, a token). Any other host — one with `=`, `;`, `%`, `_` or letters
     ///   outside ASCII, such as `password=hunter2` in `myapp://password=hunter2` — is written as
-    ///   `[redacted]` after the scheme, with nothing after it. A host that names a secret
-    ///   (see ``hostNamesSecret(_:compatibility:)``) is written with the scheme and port only, as
-    ///   the path after it is its value: `myapp://pin/4831` has the host `pin` and is written as
-    ///   `myapp://pin`.
+    ///   `[redacted]` after the scheme, with nothing after it. A host that names a secret, by the
+    ///   key rule or as a word, is written with the scheme and port only, as the path after it is
+    ///   its value: `myapp://pin/4831` has the host `pin` and is written as `myapp://pin`.
     /// - **Query:** a parameter keeps its value only when its name, decoded, is plain ASCII and on
     ///   ``allowedQueryParameters``, which is empty by default; any other value is
     ///   `[redacted]`, and so is a parameter without `=` that is not on the list. A name that is not
