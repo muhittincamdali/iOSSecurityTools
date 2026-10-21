@@ -35,7 +35,9 @@ struct NormalizedText {
         /// scan and the value detectors read past that scalar only to finish what starts before
         /// it — a word, a finding, a quote on its line, the white space before a separator or a
         /// bracket — so the rest of the text is neither read nor cached: a megabyte that opens
-        /// with a control character costs a line, not a megabyte.
+        /// with a control character costs a line, not a megabyte. A line ends at a line feed or a
+        /// carriage return: the value detectors read a finding across the other line separators
+        /// (see ``isBridgedLineBreak(_:)``), so the copy reads them as spaces.
         case scanned
     }
 
@@ -61,7 +63,7 @@ struct NormalizedText {
                 byte = reading.bytes[0]
             }
             bytes.append(byte)
-            if alphabet.firstUnsafe != nil { end.read(byte) }
+            if alphabet.firstUnsafe != nil { end.read(byte, isASCII: scalar.isASCII) }
             index += 1
         }
         guard index < scalars.count, !end.isReached else {
@@ -82,7 +84,7 @@ struct NormalizedText {
                 guard !ASCII.isHidingControl(byte) else { continue }
                 offsets.add(byte: bytes.count, from: offset)
                 bytes.append(byte)
-                if alphabet.firstUnsafe != nil { end.read(byte) }
+                if alphabet.firstUnsafe != nil { end.read(byte, isASCII: true) }
             } else {
                 let reading = compatibility.reading(scalar)
                 if offset > index { alphabet.read(reading.alphabet, at: offset) }
@@ -90,7 +92,7 @@ struct NormalizedText {
                 for byte in reading.bytes {
                     offsets.add(byte: bytes.count, from: offset)
                     bytes.append(byte)
-                    if alphabet.firstUnsafe != nil { end.read(byte) }
+                    if alphabet.firstUnsafe != nil { end.read(byte, isASCII: false) }
                 }
             }
             if end.isReached { break }
@@ -120,12 +122,15 @@ struct NormalizedText {
 
         var isReached: Bool { stage == .reached }
 
-        mutating func read(_ byte: UInt8) {
+        /// Reads the next byte, which came from an ASCII scalar or not: a line feed read from
+        /// U+0085, U+2028 or U+2029, a vertical tab and a form feed are read as spaces.
+        mutating func read(_ byte: UInt8, isASCII: Bool) {
             guard ends else { return }
-            let endsLine = byte == 0x0A || byte == 0x0D || byte == 0x0B || byte == 0x0C
+            let endsLine = (byte == 0x0A && isASCII) || byte == 0x0D
+            let isBlank = byte == UInt8(ascii: " ") || byte == UInt8(ascii: "\t") || byte == 0x0B || byte == 0x0C || byte == 0x0A
             switch stage {
             case .unsafeLine: if endsLine { stage = .blankLines }
-            case .blankLines: if !endsLine, byte != UInt8(ascii: " "), byte != UInt8(ascii: "\t") { stage = .nextLine }
+            case .blankLines: if !isBlank, byte != 0x0D { stage = .nextLine }
             case .nextLine: if endsLine { stage = .reached }
             case .reached: break
             }
@@ -237,6 +242,19 @@ struct NormalizedText {
     func isLineTerminator(_ i: Int) -> Bool {
         let byte = bytes[i]
         return byte == 0x0A || byte == 0x0D || byte == 0x0B || byte == 0x0C
+    }
+
+    /// Whether byte `i` is a line separator that the value detectors read across as white space:
+    /// a vertical tab, a form feed, or a line feed read from U+0085, U+2028 or U+2029. Each of
+    /// them is outside the safe alphabet and cuts free text, so a card number, an IBAN, an email
+    /// address or a token written across one is found whole and the cut moves back to its start;
+    /// a line feed or carriage return written as such ends a finding, as it ends a line.
+    func isBridgedLineBreak(_ i: Int) -> Bool {
+        switch bytes[i] {
+        case 0x0B, 0x0C: true
+        case 0x0A: !source[offsets[i]].isASCII
+        default: false
+        }
     }
 
     /// Whether a word starts at `i`: after a character that does not glue to it (see
