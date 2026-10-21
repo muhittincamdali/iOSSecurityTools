@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
+<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  572 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  582 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -350,7 +350,9 @@ con o sin separador, también escrito como valor como `name="password"`. Una pal
 por su esqueleto ASCII con una única regla de comodín: una letra, marca o número fuera de ASCII
 que no tiene forma ASCII cuenta como nada o como una letra cualquiera, así que `piꞏn`, `tokeın` y
 `tokenꞏs` se leen como `pin`, `token` y `tokens`, y se encuentra uno de esos caracteres puesto en
-lugar de una letra (`pɑssword`, `tͦken`, `passw〇rd`). Una comilla que no se cierra en su línea corta el texto en
+lugar de una letra (`pɑssword`, `tͦken`, `passw〇rd`
+y `t၀ken`: un dígito decimal de otra escritura es uno de esos números).
+Una comilla que no se cierra en su línea corta el texto en
 la comilla, así que de una clave entre comillas con un salto de línea dentro no se ve nada. El texto se corta hasta su
 final y no solo hasta el final de la línea: `login user=bob status=401` queda como
 `login user=[redacted]`, y un cuerpo multipart escrito en un log se oculta

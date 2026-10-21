@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
+<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 572 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 582 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -346,7 +346,9 @@ ayraçsız, `name="password"` gibi değer olarak yazılmış olanı da dahil bir
 ASCII iskeletiyle, tek bir joker kuralıyla karşılaştırılır: ASCII karşılığı olmayan, ASCII dışı
 bir harf, işaret ya da rakam hiçbir şey ya da herhangi bir harf sayılır; böylece `piꞏn`, `tokeın`
 ve `tokenꞏs`, `pin`, `token` ve `tokens` olarak okunur ve adın bir harfinin yerine konan böyle tek
-bir karakter bulunur (`pɑssword`, `tͦken`, `passw〇rd`). Aynı satırda kapanmayan bir tırnak metni tırnağın
+bir karakter bulunur (`pɑssword`, `tͦken`, `passw〇rd`
+ve `t၀ken`: başka bir yazının ondalık rakamı da böyle bir sayıdır).
+Aynı satırda kapanmayan bir tırnak metni tırnağın
 başından keser; böylece içinde satır sonu olan tırnaklı bir anahtardan hiçbir şey görünmez. Metin yalnız satırın sonuna kadar değil, sonuna kadar kesilir:
 `login user=bob status=401`, `login user=[redacted]` olur; log'a yazılmış bir multipart gövdesi ilk
 başlığından, bir property list ise ilk etiketinden itibaren gizlenir.

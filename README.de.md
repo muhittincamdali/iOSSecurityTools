@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
+<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  572 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  582 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -349,7 +349,9 @@ oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Ein Wor
 ASCII-Skelett mit einer einzigen Platzhalterregel verglichen: Ein Buchstabe, ein Zeichen oder eine
 Zahl außerhalb von ASCII ohne ASCII-Form zählt als nichts oder als ein beliebiger Buchstabe, sodass
 `piꞏn`, `tokeın` und `tokenꞏs` als `pin`, `token` und `tokens` gelesen werden und ein solches
-Zeichen an der Stelle eines Buchstabens gefunden wird (`pɑssword`, `tͦken`, `passw〇rd`). Ein Anführungszeichen, das
+Zeichen an der Stelle eines Buchstabens gefunden wird (`pɑssword`, `tͦken`, `passw〇rd`
+und `t၀ken`: eine Dezimalziffer einer anderen Schrift ist eine solche Zahl).
+Ein Anführungszeichen, das
 sich nicht in seiner Zeile schließt, schneidet den Text an diesem Anführungszeichen ab, sodass von
 einem Schlüssel in Anführungszeichen mit einem Zeilenumbruch darin nichts zu sehen ist. Der
 Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
