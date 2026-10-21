@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@8a2e031d1dc5605d6b446b9c6c043993db62bdb1 status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="CI durumu"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Son sürüm: v2.0.0"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Son sürüm: v2.1.0"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Desteklenen platformlar: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Dil sürümü: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="Lisans: MIT"></picture></a>
@@ -51,13 +51,17 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
   dokümantasyon da bir saldırganın bunlardan nelerini gizleyebileceğini açıkça söyler.
 - **Gizli veriler günlüklerde ve ekran görüntülerinde görünmez** — `@Redacted` her yerde
   `<redacted>` yazdırır, `SensitiveDataRedactor` kart numaralarını, e-posta adreslerini,
-  token'ları ve parola alanlarını (sıfır genişlikli veya tam genişlikli karakterlerle
-  gizlenmiş olsalar bile) siler, `.privacyShield()` ise uygulama değiştiricide ve ekran
-  kaydı sırasında görünümleri örter.
+  token'ları ve gizli alanları siler, `.privacyShield()` ise uygulama değiştiricide ve ekran
+  kaydı sırasında görünümleri örter. Maskeleyici yalnız düz ASCII anahtarları gizli adlarla
+  karşılaştırır, diğer her anahtarı varsayılan olarak maskeler; JSON, form ve multipart
+  gövdeleri ayrıştırılır; ayrıştırılamayan gövdeler ve bir sunucunun alanlara farklı
+  bölebileceği gövdeler atlanır. Serbest metin ilk tetikleyicide kesilir: güvenli bir alfabenin
+  dışındaki bir karakter, bir kaçış dizisi, uzun bir kelime, izin verilmeyen bir anahtar ya da bir
+  gizli ad.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 157 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 589 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -84,7 +88,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
 Adresi pencerenin sağ üstündeki arama alanına yapıştırın. **Dependency Rule** ayarını
-`2.0.0` sürümünden itibaren **Up to Next Major Version** olarak bırakın, ardından **Add Package**
+`2.1.0` sürümünden itibaren **Up to Next Major Version** olarak bırakın, ardından **Add Package**
 düğmesine tıklayın. Açılan pencerede **iOSSecurityTools** satırının yanından uygulama hedefinizi
 seçin ve yeniden **Add Package**'a tıklayın.
 
@@ -151,7 +155,7 @@ Ya da `Package.swift` dosyanızdaki `dependencies` listesine ekleyin:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.0.0")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -283,11 +287,96 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` gizli adlarla yalnız düz ASCII anahtarları (`A`–`Z`, `a`–`z`, `0`–`9`,
+`_`, `-`, `.` ve boşluk) karşılaştırır; benzer harfler, görünmez karakterler ve kaçış dizileri bir
+gizli adı gizleyebildiği için diğer her anahtarın değeri varsayılan olarak maskelenir. JSON, form
+ve multipart gövdeleri bir ayrıştırıcıyla okunur; tamamen ayrıştıramadığı bir gövdeyi
+`[body omitted: N bytes, <type>]` olarak atlar. Yaygın bir sunucu ayrıştırıcısının alanlara
+farklı bölebileceği bir gövde de atlanır; örneğin tek başına bir satır sonundan sonra gelen
+multipart sınırı ya da `;` içeren bir form.
+256 KiB'tan büyük bir gövde de atlanır (`maximumBodySize`; uygulama bu sınırı yükseltebilir, bunun
+bedeli gövdenin her baytı için en fazla yaklaşık 40 bayt bellektir); JSON, dizelerin içindeki JSON
+da sayılarak en fazla 64 nesne ve dizi derinliğinde ve iç içe en fazla dört belge olarak okunur,
+böylece kötü niyetli bir girdinin kullanabileceği yığın sınırlı kalır; daha fazlasını içeren bir
+dize bütünüyle maskelenir.
+Bir girdinin içinde bulunan belgeler toplamda en fazla girdinin dört katı uzunluğunda okunur; bu
+süreyi de sınırlar ve bu bütçenin ötesindeki metin bütünüyle maskelenir.
+Adı bir yerde, değeri başka bir yerde duran bir alanın — `{"name":"X-Api-Key","value":…}`,
+`/password` üzerinde bir JSON Patch ya da SCIM işlemi veya `[["Authorization","…"]]` — adı gizliyse
+ya da düz ASCII değilse değeri bütünüyle maskelenir. ASCII etiketlerinden oluşan bir ad ya da bir
+adres olmayan veya bir kart numarası ya da token taşıyan bir URL host'u `scheme://[redacted]` olarak
+yazılır; bir multipart parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse
+yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan,
+host'u gizli bir ad anan (`myapp://pin/4831`; burada host `pin`'dir)
+ya da yolunu sunucuların farklı çözebileceği (`/pin/./4831` gibi bir nokta
+bölümü, `/a;pin/4831` gibi bir `;`, kaçışlı `.`, `/`, `\`, `;` ya da
+`%`) bir URL yalnız şeması ve host'u ile kaydedilir;
+bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk
+harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com` olur).
+ASCII dışı adlar, değer olarak yazıldıklarında da gizli sayılır: ad taşıyan bir alanın (`name`,
+`label`, `type`, `id`, …) yanındaki değer, ad `Şifre`, `ⓟⓘⓝ` ya da `🔑` gibiyse maskelenir.
+İçinde satır sonu ya da başka bir kontrol karakteri bulunan bir ad, ad tutan bir alanda ne derse
+desin gizli sayılır; başka yerlerde ise kontrol karakterleri çıkarıldığında ya da boşluk olarak
+okunduğunda gizli bir ad veriyorsa gizli sayılır
+(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`). Yalnız kontrol karakterlerinden oluşan kısa
+bir dizgi (`"\n"`) de gizli sayılır, `{"message":"Hello\nWorld","id":"7"}` ise `id`'yi gösterir; `redact(url:)` içinde de düz ASCII
+bir ad olmayan bir yol segmentinden sonraki segment `:id` olur (`/şifre/…`, `/a,b/…`).
+Serbest metinde ilk gizli ad, o metinde kendisinden sonra gelen her şeyi gizler; bu bilerek fazla
+gizler. Fazla gizleme tasarımdır. Metnin nerede kesileceğini altı kural belirler ve hiçbiri bir
+varyant listesi tutmaz: güvenli bir alfabenin (her yazı sisteminin harfleri, işaretleri ve
+rakamları, ASCII boşluk, sekme ve satır sonları ile yazdırılabilir ASCII) dışındaki ilk karakter,
+yani `꞉` ya da `→` gibi benzer görünen bir ayraç, bir emoji ya da bir kontrol karakteri metni
+keser, uyumluluk biçimi bu alfabenin dışında kalan bir harf ya da rakam da öyle (`🄁`, `0,`
+olarak okunur); hiçbir zaman çözülmeyen her kaçış dizisi (`%3D`, `&colon;`, `\075`) —
+serbest metinde her ters bölü kaçışı metni keser, yani ardından ASCII boşluk, sekme ya da satır
+sonu gelmeyen her ters bölü (`login pa\x{73}sword hunter2` metninden `login ` kalır;
+`\\nas\backup` gibi bir Windows yolu da ilk ters bölüsünden itibaren gizlenir);
+256 karakterden uzun
+bir kelime; izin verilmeyen bir anahtar (`status`, `method`, `path`, `duration_ms`, `count` ve
+sizin verdiğiniz anahtarlar dışındaki her anahtar), her türden tırnak (`"`, `'`, ters tırnak) içinde de (burada metni açılış
+tırnağında keser: `cache miss for "session Qz9Wk7rX": refetching`, `cache miss for [redacted]`
+olur), ya da iki elemanlı bir dizinin ilk dizesi olarak da; bir işaretleme etiketi, çünkü serbest metinde
+ilk işaretleme etiketi metni keser, etiket ne olursa olsun (`<user>`, `<_id>`, `</a>`, `<!--`):
+ardından ASCII boşluk, sekme, satır sonu ya da rakam, `=` veya metnin sonu gelmeyen her `<` metni
+keser; ve ayraçlı ya da
+ayraçsız, `name="password"` gibi değer olarak yazılmış olanı da dahil bir gizli ad. Bir kelime
+ASCII iskeletiyle, tek bir joker kuralıyla karşılaştırılır: ASCII karşılığı olmayan, ASCII dışı
+bir harf, işaret ya da rakam hiçbir şey ya da herhangi bir harf sayılır; böylece `piꞏn`, `tokeın`
+ve `tokenꞏs`, `pin`, `token` ve `tokens` olarak okunur ve adın bir harfinin yerine konan böyle tek
+bir karakter bulunur (`pɑssword`, `tͦken`, `passw〇rd`
+ve `t၀ken`: başka bir yazının ondalık rakamı da böyle bir sayıdır).
+Aynı satırda kapanmayan bir tırnak metni tırnağın
+başından keser; böylece içinde satır sonu olan tırnaklı bir anahtardan hiçbir şey görünmez. Metin yalnız satırın sonuna kadar değil, sonuna kadar kesilir:
+`login user=bob status=401`, `login user=[redacted]` olur; log'a yazılmış bir multipart gövdesi ilk
+başlığından, bir property list ise ilk etiketinden itibaren gizlenir.
+Serbest metindeki bir URL yalnızca temizse gösterilir — `scheme://host` ve isteğe bağlı olarak ASCII
+harf, rakam, `.`, `_`, `-` ve `/` karakterlerinden oluşan bir yol; host'u ve segmentleri gizli bir
+ad taşımaz ve ardından boşluk, satır sonu, metnin sonu ya da bunlardan birinden önce tek bir `.`,
+`,`, `!` veya `)` gelir — ve başka her URL, ardından tırnak, `>`, ters tırnak ya da `?`, `#` veya `;`
+gelen URL de, metni başladığı yerde keser (`see https://x.example/a?page=2 ok` ve
+`see https://x.example/a'#token`, `see [redacted]` olur;
+`allowedQueryParameters` yalnızca `redact(url:)` için geçerlidir). Rakamlar arasındaki bir `:`
+yalnızca iki yanı da aynı biçimde bir sayıysa sayının parçasıdır (`12:30:45`, `10.0.0.1:8080`,
+`42:10`); rakamla biten bir anahtardan (`user1:2345`) sonra, bir harften önce (`id 7:9hunter2`)
+ya da beş veya daha fazla rakamdan önce (`1:482913`) ise ayraçtır. Dikey sekme, sayfa sonu ya da
+bir Unicode satır ayırıcısı üzerinden yazılmış bir kart numarası, IBAN, e-posta adresi ya da
+token bütün olarak bulunur ve metin onun başından itibaren gizlenir.
+Maskeleme bir güvenlik
+ağıdır, garanti değildir: yanlışlıkla loglanan sırlar için tasarlanmıştır. Yapılandırılmış girdi
+(JSON, formlar, multipart gövdeleri ve parça başlıkları, URL'ler ve host'ları) varsayılan olarak
+güvenlidir; maskeleyicinin orada anlamadığı şey maskelenir, yapılandırılmış anahtar adları ise
+gösterilir ve yalnız altlarındaki değerler gizlenir. Serbest metinde ayraç olmadan yazılmış ve iki
+ya da daha fazla harfi benzer harflerle değiştirilmiş bir adın (`pɑsswoʀd hunter2`), önünde metni
+kesen bir şey yoksa bulunacağı garanti edilmez: bu kasıtlı gizlemedir; bir harfin yerine konan tek
+bir harf, işaret ya da rakam ise bulunur (`tͦken hunter2`).
+[Loglama rehberi](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+serbest metin kurallarını, bedellerini ve neleri bulmadıklarını anlatır.
 
 ### Bir hesabı cihaza bağlama
 
@@ -299,6 +388,22 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Bilinen sınırlamalar
+
+Bunlar bilinen ve henüz değiştirilmemiş sınırlamalardır:
+
+- İçinde kontrol karakteri olan bir ad, ad tutan bir alanda ya da bir çiftin ilk öğesinde yer
+  aldığında ne derse desin yanındaki üyeleri gizler (`{"name":"Hello\nWorld","value":"x"}`
+  `value`'yu gizler); başka yerlerde ise kontrol karakterleri çıkarıldığında ya da boşluk olarak
+  okunduğunda gizli bir ad veriyorsa gizler (`{"note":"pass\nword","id":"7"}` `id`'yi gizler).
+- Bir anahtar `token` ve `secret` sözcüklerini yalnız ayrı bir sözcük olarak ya da sonunda, `pw`'yi
+  ise yalnız ayrı bir sözcük olarak sayar; bu yüzden `tokenvalue`, `TOKENID`, `secretvalue`,
+  `secrethash`, `userpw` ve `dbpw` değerlerini gösterir. Böyle özellikleri `@Redacted` ile
+  işaretleyin.
+- Yalnız kontrol ve boşluk karakterlerinden oluşan kısa bir dizgi, bir anlam taşımadığı yerde de
+  yanındaki bütün üyeleri gizler (`{"title":"\n","data":"x"}` `data`'yı gizler); 256 skalerden uzun
+  olanı ise metin olarak okunur.
 
 ## Demo
 
@@ -392,6 +497,7 @@ Testleri yerelde çalıştırmak için:
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

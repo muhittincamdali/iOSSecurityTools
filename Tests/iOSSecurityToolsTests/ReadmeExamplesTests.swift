@@ -40,7 +40,7 @@ struct ReadmeExamplesTests {
     func redaction() {
         let (request, log) = redactionSample()
         #expect(request == #"LoginRequest(username: "alice", _password: <redacted>)"#)
-        #expect(log == "card=•••• 4242 email=a•••@example.com token=[redacted]")
+        #expect(log == "charged •••• 4242 to a•••@example.com, token=[redacted]")
     }
 
     @Test("the keychain sample returns the token", .enabled(if: KeychainTestSupport.usesDataProtectionKeychain == true, "The README sample uses the data protection keychain"))

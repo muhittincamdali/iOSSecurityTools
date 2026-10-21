@@ -21,7 +21,7 @@ In the next window, choose your app target next to **iOSSecurityTools** and clic
 again. In a `Package.swift`, add
 
 ```swift
-.package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.0.0")
+.package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.0")
 ```
 
 and `.product(name: "iOSSecurityTools", package: "iOSSecurityTools")` to the target's

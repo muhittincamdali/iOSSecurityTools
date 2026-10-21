@@ -13,7 +13,7 @@ jobs:
   swift:
     permissions:
       contents: read
-    uses: muhittincamdali/.github/.github/workflows/swift-ci.yml@5d3c4432dae8895b16ce3caa2f78398966953212 # v1
+    uses: muhittincamdali/.github/.github/workflows/swift-ci.yml@59e72703c617cfab0c12482c477e706c485ed683 # v1.1.1
     with:
       platforms: '["iOS","macOS","tvOS","watchOS","visionOS"]'
       scheme: iOSSecurityTools

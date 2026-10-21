@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@8a2e031d1dc5605d6b446b9c6c043993db62bdb1 status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg" alt="iOSSecurityTools: Apple アプリ向けのキーチェーン、暗号化、証明書ピンニング、ワンタイムコード、整合性チェック。"></picture></p>
@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="CI ステータス"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="最新バージョン: v2.0.0"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="最新バージョン: v2.1.0"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="対応プラットフォーム: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="言語バージョン: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="ライセンス: MIT"></picture></a>
@@ -33,8 +33,8 @@ iOS、macOS、tvOS、watchOS、visionOS のアプリ向けに、セキュリテ�
 - **改ざんを検出する暗号化** — `DataCipher` は、バージョン、アルゴリズム、nonce を自身に持つ AES-256-GCM または ChaCha20-Poly1305 のエンベロープを書き出します。1 バイトでも変更されたり、鍵や関連データが誤っていたりすると、復号は失敗します。HKDF、PBKDF2、PHC 形式の PIN ハッシュも付属します。
 - **ユーザーを締め出さないピンニング** — `PinningPolicy` はバックアップ用のピンを必須とし、サブドメイン、有効期限、レポートのみのモードに対応します。そのうえで、システム標準の信頼評価に合格することも引き続き求めます。
 - **約束ではなくシグナル** — `IntegrityInspector` は、脱獄の痕跡ファイル、デバッガ、シミュレータ、フックするライブラリ、システムプロキシを `Codable` のレポートとして返します。攻撃者がどこまで隠せるかも、ドキュメントに明記しています。
-- **秘密情報をログとスクリーンショットから遠ざける** — `@Redacted` はどこで出力しても `<redacted>` と表示します。`SensitiveDataRedactor` は、カード番号、メールアドレス、token、パスワード欄を消去します（ゼロ幅文字や全角文字で隠されていても同様です）。`.privacyShield()` は、App スイッチャーや画面収録中にビューを覆います。
-- **悪意ある入力に対するテスト済み** — RFC 4226、6238、5869 のテストベクトル、独立した実装が作成したエンベロープとハッシュ、テスト用 PKI の証明書チェーン、NaN と無限大の日付、`Int.min` と `Int.max`、過大な URI パラメータや重複した URI パラメータ。macOS と iPhone シミュレータで 157 件の Swift Testing テストを実行し、さらにサンプルアプリの中でキーチェーンのテストスイートも実行します。
+- **秘密情報をログとスクリーンショットから遠ざける** — `@Redacted` はどこで出力しても `<redacted>` と表示します。`SensitiveDataRedactor` は、カード番号、メールアドレス、token、秘密のフィールドを消去します。`.privacyShield()` は、App スイッチャーや画面収録中にビューを覆います。リダクタは純粋な ASCII のキーだけを秘密の名前と比較し、それ以外のキーはすべて既定でマスクします。JSON、フォーム、multipart の本文はパーサーで読み、解析できない本文と、サーバーがフィールドを別の形に分割しうる本文は省略します。自由形式のテキストは最初のトリガー（安全なアルファベットの外にある文字、エスケープ、長い単語、許可されていないキー、秘密の名前）で切られます。
+- **悪意ある入力に対するテスト済み** — RFC 4226、6238、5869 のテストベクトル、独立した実装が作成したエンベロープとハッシュ、テスト用 PKI の証明書チェーン、NaN と無限大の日付、`Int.min` と `Int.max`、過大な URI パラメータや重複した URI パラメータ。macOS と iPhone シミュレータで 589 件の Swift Testing テストを実行し、さらにサンプルアプリの中でキーチェーンのテストスイートも実行します。
 
 ### 含まれるもの
 
@@ -59,7 +59,7 @@ Xcode で **File › Add Package Dependencies…** を選び、リポジトリ�
 https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
-ウィンドウ右上の検索欄に貼り付けます。**Dependency Rule** は `2.0.0` からの **Up to Next Major Version** のままにして、**Add Package** をクリックします。次のウィンドウで、**iOSSecurityTools** の横にあるアプリのターゲットを選び、もう一度 **Add Package** をクリックします。
+ウィンドウ右上の検索欄に貼り付けます。**Dependency Rule** は `2.1.0` からの **Up to Next Major Version** のままにして、**Add Package** をクリックします。次のウィンドウで、**iOSSecurityTools** の横にあるアプリのターゲットを選び、もう一度 **Add Package** をクリックします。
 
 **2. モジュールをインポートする**
 
@@ -119,7 +119,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.0.0")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -242,11 +242,13 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` が秘密の名前と比較するのは、純粋な ASCII のキー（`A`–`Z`、`a`–`z`、`0`–`9`、`_`、`-`、`.`、空白）だけです。似た形の文字、不可視文字、エスケープで秘密の名前を偽装できるため、それ以外のキーの値は既定でマスクされます。JSON、フォーム、multipart の本文はパーサーで読み込み、完全に解析できない本文は `[body omitted: N bytes, <type>]` として省略されます。一般的なサーバーのパーサーがフィールドを別の形に分割しうる本文（単独の改行の後にある multipart の境界や、`;` を含むフォームなど）も同じく省略されます。256 KiB を超える本文も省略されます（`maximumBodySize`。アプリは上限を引き上げられますが、その代わりに本文 1 バイトあたり最大で約 40 バイトのメモリを使います）。JSON は文字列の中の JSON も含めて、オブジェクトと配列の入れ子 64 段、ドキュメントの入れ子 4 段までしか読み込まないため、悪意ある入力が使えるスタックには上限があります。それを超えるものを含む文字列は丸ごとマスクされます。1 つの入力の中で見つかったドキュメントは合計で入力の長さの 4 倍までしか読み込まないため、処理時間にも上限があります。この予算を超えるテキストは丸ごとマスクされます。名前と値が別の場所にあるフィールド（`{"name":"X-Api-Key","value":…}`、`/password` に対する JSON Patch や SCIM の操作、`[["Authorization","…"]]` など）は、名前が秘密の名前であるか純粋な ASCII でない場合、値全体がマスクされます。ASCII のラベルからなる名前でもアドレスでもない URL のホスト、またはカード番号やトークンを含むホストは `scheme://[redacted]` と書かれ、multipart のパートのヘッダー名は、パートが持つヘッダーのひとつである場合にだけ書かれます。パスのセグメントが 64 個、またはパラメータが 128 個を超える URL、秘密の名前を表すホストを持つ URL（`myapp://pin/4831` ではホストが `pin` です）、サーバーによって解決結果が異なるパス（`/pin/./4831` のようなドットセグメント、`/a;pin/4831` のような `;`、エスケープされた `.`、`/`、`\`、`;`、`%`）を持つ URL は、スキームとホストだけが記録されます。メールアドレスは、どの文字体系でも名前の最初の 1 文字だけが表示されます（`ayşe.yılmaz@gmail.com` は `a•••@gmail.com` になります）。ASCII 以外の名前は、値として書かれていても秘密の名前として扱われます。名前を持つフィールド（`name`、`label`、`type`、`id` など）が `Şifre`、`ⓟⓘⓝ`、`🔑` のような名前を持つと、隣の値がマスクされます。改行やその他の制御文字を含む名前は、名前を持つフィールドでは内容にかかわらず秘密の名前として扱われ、それ以外の場所では制御文字を取り除くか空白として読んだときに秘密の名前になる場合に扱われます（`{"ParameterKey":"DbPassword\n","ParameterValue":…}`）。制御文字だけの短い文字列（`"\n"`）も秘密の名前として扱われますが、`{"message":"Hello\nWorld","id":"7"}` では `id` が残ります。`redact(url:)` では、純粋な ASCII の名前ではないパスのセグメントの次のセグメントが `:id` になります（`/şifre/…`、`/a,b/…`）。自由形式のテキストでは、最初の秘密の名前がそのテキストの中でそれより後にあるものをすべてマスクします。これは意図的に多めにマスクするものです。多めにマスクするのは設計上の選択です。テキストをどこで切るかは 6 つの規則で決まり、どの規則も変種のリストを持ちません。安全なアルファベット（あらゆる文字体系の文字・記号付き文字・数字、ASCII の空白・タブ・改行、印字可能な ASCII）の外にある最初の文字。つまり `꞉` や `→` のような似た形の区切り文字、絵文字、制御文字はテキストを切ります。互換分解形がこのアルファベットに収まらない文字や数字（`🄁` は `0,`）も同じです。決してデコードされないあらゆるエスケープ（`%3D`、`&colon;`、`\075`）。自由形式のテキストでは、バックスラッシュによるエスケープはすべてテキストを切ります。ASCII の空白・タブ・改行が続かないバックスラッシュはすべて該当します（`login pa\x{73}sword hunter2` は `login ` だけが残り、`\\nas\backup` のような Windows のパスも最初のバックスラッシュから隠されます）。256 文字を超える単語。許可されていないキー（`status`、`method`、`path`、`duration_ms`、`count` と渡したキー以外のすべてのキー）。どの種類の引用符（`"`、`'`、バッククォート）で囲まれたキーも含み、その場合は開き引用符でテキストを切ります（`cache miss for "session Qz9Wk7rX": refetching` は `cache miss for [redacted]` になります）。2 要素の配列の最初の文字列として現れるものも含みます。マークアップのタグ。自由形式のテキストでは、タグが何であっても最初のマークアップのタグがテキストを切ります（`<user>`、`<_id>`、`</a>`、`<!--`）。後ろに ASCII の空白・タブ・改行・数字、`=`、テキストの終わりのどれも続かない `<` は、すべてテキストを切ります。そして区切り文字の有無を問わず、`name="password"` のように値として書かれたものも含む秘密の名前です。単語は ASCII の骨格で、ひとつのワイルドカード規則によって比較されます。ASCII の形を持たない ASCII 以外の文字・記号・数字は、何もないもの、または任意の 1 文字として数えられます。そのため `piꞏn`、`tokeın`、`tokenꞏs` は `pin`、`token`、`tokens` と読まれ、名前の 1 文字の代わりに置かれたそのような 1 文字は見つかります（`pɑssword`、`tͦken`、`passw〇rd`、`t၀ken`。ほかの文字体系の10進数字もそのような数字です）。行の中で閉じない引用符は、その引用符でテキストを切ります。そのため、改行を含む引用符付きのキーは何も表示されません。行の終わりまでではなく、テキストの終わりまで切られます。`login user=bob status=401` は `login user=[redacted]` になり、ログに書かれた multipart の本文は最初のヘッダーから先が、プロパティリストは最初のタグから先がマスクされます。自由形式のテキストの中の URL は、クリーンな場合にだけ表示されます。クリーンな URL とは、`scheme://host` と、ASCII の英字、数字、`.`、`_`、`-`、`/` だけからなる省略可能なパスでできていて、ホストとセグメントが秘密の名前ではなく、後ろに空白、改行、テキストの終わり、またはそれらの前に 1 つだけ置かれた `.`、`,`、`!`、`)` が続くものです。それ以外の URL は、引用符、`>`、バッククォート、`?`、`#`、`;` が続くものも含め、その始まりでテキストを切ります（`see https://x.example/a?page=2 ok` と `see https://x.example/a'#token` は `see [redacted]` になります。`allowedQueryParameters` が適用されるのは `redact(url:)` だけです）。数字の間の `:` は、両側が同じ形の数である場合にだけ数の一部です（`12:30:45`、`10.0.0.1:8080`、`42:10`）。数字で終わるキー（`user1:2345`）の後、文字の前（`id 7:9hunter2`）、5 桁以上の数字の前（`1:482913`）では区切り文字です。垂直タブ、改ページ、Unicode の行区切りをまたいで書かれたカード番号、IBAN、メールアドレス、トークンは丸ごと見つかり、テキストはその始まりからマスクされます。マスクは安全網であり、保証ではありません。誤ってログに書かれた秘密を想定して作られています。構造化された入力（JSON、フォーム、multipart 本文とそのパートのヘッダー、URL とそのホスト）は既定で安全で、理解できないものはマスクされます。構造化されたキーの名前は表示され、その下の値だけがマスクされます。自由形式のテキストでは、区切り文字なしで書かれ、2 文字以上が似た形の文字に置き換えられた名前（`pɑsswoʀd hunter2`）は、その前でテキストを切るものがなければ、見つかる保証はありません。これは意図的な偽装であり、1 文字の代わりに置かれた 1 つの文字・記号・数字は見つかります（`tͦken hunter2`）。自由形式のテキストに対する規則、その代償、見つけられないものは[ログのガイド](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)で説明しています。
 
 ### アカウントをデバイスに結び付ける
 
@@ -258,6 +260,14 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## 既知の制限
+
+次の制限は既知で、まだ変更されていません。
+
+- 制御文字を含む名前は、名前を持つフィールドやペアの最初の要素にあるときは内容にかかわらず隣のメンバーをマスクし（`{"name":"Hello\nWorld","value":"x"}` は `value` をマスクします）、それ以外の場所では制御文字を取り除くか空白として読んだときに秘密の名前になる場合にマスクします（`{"note":"pass\nword","id":"7"}` は `id` をマスクします）。
+- キーは `token` と `secret` を単語としてか末尾にあるときだけ、`pw` を単語としてだけ数えるため、`tokenvalue`、`TOKENID`、`secretvalue`、`secrethash`、`userpw`、`dbpw` の値は表示されます。このようなプロパティには `@Redacted` を付けてください。
+- 制御文字と空白だけの短い文字列は、意味がない場所でも隣のすべてのメンバーをマスクします（`{"title":"\n","data":"x"}` は `data` をマスクします）。256 スカラーを超えるものはテキストとして読まれます。
 
 ## デモ
 
@@ -318,6 +328,7 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

@@ -1,0 +1,186 @@
+import Foundation
+
+// Review probes, part A: see ``ReviewProbeSet``.
+
+// swiftlint:disable line_length function_body_length
+extension ReviewProbeSet {
+    /// A. Labels written in confusable letters, no separator
+    func addA1() {
+        cat("confusable-label-decomposing")
+        p("login 𝐩𝐚𝐬𝐬𝐰𝐨𝐫𝐝 {S} ok")
+        p("login 𝔭𝔞𝔰𝔰𝔴𝔬𝔯𝔡 {S} ok")
+        p("login 𝚙𝚊𝚜𝚜𝚠𝚘𝚛𝚍 {S} ok")
+        p("login 𝓹𝓪𝓼𝓼𝔀𝓸𝓻𝓭 {S} ok")
+        p("login ⓟⓐⓢⓢⓦⓞⓡⓓ {S} ok")
+        p("login ⓅⒾⓃ {S} ok")
+        p("login ｐａｓｓｗｏｒｄ {S} ok")
+        p("login ＴＯＫＥＮ {S} ok")
+        p("login ᵖᵃˢˢʷᵒʳᵈ {S} ok")
+        p("login 🄿🄰🅂🅂🅆🄾🅁🄳 {S} ok")
+        p("login pässwörd {S} ok")
+        p("login ﬁle secret {S} ok")
+        cat("confusable-label-mixed-script")
+        p("login pаssword {S} ok")
+        p("login tοken {S} ok")
+        p("login ѕecret {S} ok")
+        p("login ΡIN {S} ok")
+        cat("confusable-label-whole-script", "X")
+        p("login ΡΙΝ {S} ok")
+        p("login ΤΟΚΕΝ {S} ok")
+        p("login КЕҮ {S} ok")
+        p("login ОТР {S} ok")
+        p("login ΑΡΙ ΚΕΥ {S} ok")
+        p("login ᏢᎪᏚᏚᎳᎾᏒᎠ {S} ok")
+        cat("confusable-label-nondecomposing", "X")
+        p("login ᴘᴀꜱꜱᴡᴏʀᴅ {S} ok")
+        p("login ᴛᴏᴋᴇɴ {S} ok")
+        p("login 🅟🅐🅢🅢🅦🅞🅡🅓 {S} ok")
+        p("login 🅿🅰🆂🆂🆆🅾🆁🅳 {S} ok")
+        p("login 🇵\u{200B}🇦\u{200B}🇸\u{200B}🇸\u{200B}🇼\u{200B}🇴\u{200B}🇷\u{200B}🇩 {S} ok")
+        p("login ⒫⒜⒮⒮⒲⒪⒭⒟ {S} ok")
+        p("login ⒫⒤⒩ {S} ok")
+        cat("confusable-label-ascii-leet", "D")
+        p("login p@ssword {S} ok")
+        p("login pa$$word {S} ok")
+        p("login passw0rd {S} ok")
+
+    }
+
+    /// B. Invisible or ignorable characters inside a label, no separator
+    func addA2() {
+        cat("cf-in-label")
+        p("login pa\u{200B}ssword {S} ok")
+        p("login pa\u{200C}ssword {S} ok")
+        p("login pa\u{200D}ssword {S} ok")
+        p("login pa\u{AD}ssword {S} ok")
+        p("login pa\u{2060}ssword {S} ok")
+        p("login pa\u{FEFF}ssword {S} ok")
+        p("login pa\u{E0041}ssword {S} ok")
+        p("login pa\u{180E}ssword {S} ok")
+        p("login pa\u{034F}ssword {S} ok")
+        p("login pa\u{17B4}ssword {S} ok")
+        p("login pa\u{FE0F}ssword {S} ok")
+        p("login pa\u{1D173}ssword {S} ok")
+        p("login t\u{200D}o\u{200D}k\u{200D}e\u{200D}n {S} ok")
+        cat("ignorable-letter-in-label", "X")
+        p("login pa\u{115F}ssword {S} ok")
+        p("login pa\u{1160}ssword {S} ok")
+        p("login pa\u{3164}ssword {S} ok")
+        p("login pa\u{FFA0}ssword {S} ok")
+        p("login t\u{115F}oken {S} ok")
+        p("login p\u{3164}in {S} ok")
+        p("login pa\u{2800}ssword {S} ok")
+        cat("control-in-label", "X")
+        p("login pa\u{7F}ssword {S} ok")
+        p("login pa\u{0}ssword {S} ok")
+        p("login pa\u{1B}ssword {S} ok")
+        p("login pa\u{08}ssword {S} ok")
+        p("login pa\u{9F}ssword {S} ok")
+        p("login to\u{7}ken {S} ok")
+        cat("spacing-mark-in-label", "X")
+        p("login pa\u{0903}ssword {S} ok")
+
+    }
+
+    /// C. Combining marks
+    func addA3() {
+        cat("combining")
+        p("login p\u{0336}a\u{0336}s\u{0336}s\u{0336}w\u{0336}o\u{0336}r\u{0336}d\u{0336} {S} ok")
+        p("login password\u{20DD} {S} ok")
+        p("login passwor\u{0308}d {S} ok")
+        p("login pass\u{0301}word:{S} ok")
+        p("login secret\u{0489} {S} ok")
+        p("login token=\u{0338}{S} ok")
+        p("login password\u{0332}\u{0332}\u{0332} {S}")
+
+    }
+
+    /// D. Escapes
+    func addA4() {
+        cat("escape-label")
+        p("login pass\\u0077ord {S} ok")
+        p("login p%61ssword {S} ok")
+        p("login p&#97;ssword {S} ok")
+        p("login p&#x61;ssword {S} ok")
+        p("login p%2561ssword {S} ok")
+        p("login p\\x61ssword {S} ok")
+        p("login p\\u{61}ssword {S} ok")
+        p("login pa&#115;&#115;word {S} ok")
+        p("login \\u0070\\u0061\\u0073\\u0073\\u0077\\u006f\\u0072\\u0064 {S} ok")
+        p("login p&#0000097;ssword {S} ok")
+        cat("escape-label-unusual", "X")
+        p("login pa\\163\\163word {S} ok")
+        p("login p&#x000000061;ssword {S} ok")
+        p("login p&#97ssword {S} ok")
+        p("login p&amp;#97;ssword {S} ok")
+        cat("escape-separator")
+        p("login password&#58;{S} ok")
+        p("login password%3a{S} ok")
+        p("login password\\u003a {S} ok")
+        p("login password%253D{S} ok")
+        p("login password&#x3D;&#x20;{S} ok")
+        p("login password\\x3d{S} ok")
+
+    }
+
+    /// E. Delimiters and brackets
+    func addA5() {
+        cat("delimiter")
+        p("[password] {S}")
+        p("(password) {S}")
+        p("<password>{S}</password>")
+        p("password|{S}")
+        p("password/{S}")
+        p("password\\{S}")
+        p("password~{S}")
+        p("password#{S}")
+        p("password^{S}")
+        p("password*{S}")
+        p("password!{S}")
+        p("password→{S}")
+        p("password ⇒ {S}")
+        p("«password» {S}")
+        p("“password” {S}")
+        p("password\t{S}")
+        p("【password】{S}")
+        p("password・{S}")
+        p("password、{S}")
+        p("{password}{S}")
+        p("password.{S}")
+        p("password_{S}")
+        p("password-{S}")
+
+    }
+
+    /// F. Allowed keys, repeated keys
+    func addA6() {
+        cat("allowed-key-smuggle")
+        p("status=ok status=ok password {S}")
+        p("status=ok&password={S}")
+        p("status=200;pwd={S}")
+        p("status=200,token:{S}")
+        p("status:password:{S}")
+        p("status=200\u{3000}secret {S}")
+        p("level=info msg=\"login\" pin {S}")
+        p("status=ok\u{85}password {S}")
+        p("status=\"ok\" \"password\" {S}")
+        p("(status)=ok;(token)={S}")
+        p("'status'='ok' 'secret'='{S}'")
+        p("status=ok password\u{3164}{S}")
+        p("status=ok status:token {S}")
+        p("status: |\n  password {S}")
+        p("path=/login?password={S}")
+        p("path=/v1/pin/{S}")
+        p("user=bob status=ok\npassword {S}")
+        p("status=pass\u{200B}word {S}")
+        p("status\u{200B}=ok {S}", claim: "X")
+        p("ѕtatus={S}")
+        p("ｓｔａｔｕｓ={S}")
+        p("stat\u{AD}us={S}")
+        p("status\\={S}")
+        p("status%3D{S}")
+        p("status=={S}", claim: "X")
+        p("\"status\\\"=x\"={S}")
+
+    }
+}

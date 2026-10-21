@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@8a2e031d1dc5605d6b446b9c6c043993db62bdb1 status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="Статус CI"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Последняя версия: v2.0.0"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Последняя версия: v2.1.0"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Поддерживаемые платформы: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Версия языка: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="Лицензия: MIT"></picture></a>
@@ -50,12 +50,16 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   симуляторе, библиотеках для хукинга и системном прокси в виде отчёта `Codable`, а в документации
   сказано, что от него может скрыть злоумышленник.
 - **Секреты не попадают в логи и скриншоты** — `@Redacted` везде выводит `<redacted>`,
-  `SensitiveDataRedactor` затирает номера карт, адреса электронной почты, токены и поля паролей
-  (даже если они спрятаны символами нулевой или полной ширины), а `.privacyShield()` закрывает
-  экраны в переключателе приложений и во время записи экрана.
+  `SensitiveDataRedactor` затирает номера карт, адреса электронной почты, токены и секретные
+  поля, а `.privacyShield()` закрывает экраны в переключателе приложений и во время записи
+  экрана. Редактор сравнивает с секретными именами только ключи из простого ASCII, а значения
+  любых других ключей по умолчанию скрывает; тела JSON, форм и multipart разбираются парсером,
+  а тела, которые не удалось разобрать или которые сервер мог бы разделить на поля иначе,
+  пропускаются. Свободный текст обрезается на первом триггере: символе вне безопасного алфавита,
+  escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 157 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 589 теста
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -83,7 +87,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
 Вставьте его в поле поиска в правом верхнем углу окна. Оставьте **Dependency Rule** в значении
-**Up to Next Major Version** начиная с `2.0.0` и нажмите **Add Package**. В следующем окне выберите
+**Up to Next Major Version** начиная с `2.1.0` и нажмите **Add Package**. В следующем окне выберите
 таргет вашего приложения рядом с **iOSSecurityTools** и ещё раз нажмите **Add Package**.
 
 **2. Импортируйте модуль**
@@ -148,7 +152,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.0.0")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -279,11 +283,100 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` сравнивает с секретными именами только ключи из простого ASCII (`A`–`Z`,
+`a`–`z`, `0`–`9`, `_`, `-`, `.` и пробелы); значение любого другого ключа по умолчанию
+скрывается: похожие буквы, невидимые символы и escape-последовательности могут замаскировать
+секретное имя. Тела JSON, форм и multipart читаются парсером; тело, которое не удаётся разобрать
+полностью, пропускается как `[body omitted: N bytes, <type>]`. Так же пропускается тело,
+которое распространённый серверный парсер мог бы разделить на поля иначе, например граница
+multipart после одиночного перевода строки или форма с `;`.
+Тело больше 256 КиБ тоже пропускается (`maximumBodySize`; приложение может поднять этот предел,
+ценой до примерно 40 байт памяти на каждый байт тела), а JSON читается не глубже 64 уровней
+объектов и массивов и не больше четырёх вложенных друг в друга документов, считая JSON внутри
+строк, что ограничивает стек, который может занять враждебный ввод; строка, в которой их больше,
+скрывается целиком.
+Документы, найденные внутри одного ввода, вместе читают не больше четырёх его длин, что
+ограничивает время; текст сверх этого бюджета скрывается целиком.
+Поле, у которого имя записано в одном месте, а значение в другом, как в
+`{"name":"X-Api-Key","value":…}`, в операции JSON Patch или SCIM над `/password` или в
+`[["Authorization","…"]]`, скрывается со всем значением, если имя секретное или не состоит из
+простого ASCII. Хост URL, который не является ни именем из меток ASCII, ни адресом, или содержит
+номер карты или токен, записывается как `scheme://[redacted]`, а имя заголовка части multipart
+записывается, только если это один из заголовков, которые несёт часть. URL, в котором больше 64
+сегментов пути или 128 параметров, хост называет секрет (`myapp://pin/4831`, где хост — `pin`)
+или путь, который серверы разрешают по-разному (точечный
+сегмент, как в `/pin/./4831`, `;`, как в `/a;pin/4831`, экранированные `.`, `/`, `\`, `;`
+или `%`), записывается только как схема и хост, а у адреса электронной
+почты видна только первая буква имени, в любой письменности (`ayşe.yılmaz@gmail.com` превращается в
+`a•••@gmail.com`).
+Имена не из простого ASCII считаются секретными, даже когда они записаны как значения: значение
+рядом с полем, которое хранит имя (`name`, `label`, `type`, `id`, …), например `Şifre`, `ⓟⓘⓝ` или
+`🔑`, скрывается. Имя, в котором есть перевод строки или другой управляющий символ, считается секретным, что бы в нём
+ни было, в поле, которое содержит имя, в остальных же местах — если без управляющих символов или с
+пробелами на их месте оно называет секрет (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`);
+короткая строка только из управляющих символов (`"\n"`) тоже считается секретной, а
+`{"message":"Hello\nWorld","id":"7"}` сохраняет `id`, а в
+`redact(url:)` сегмент после сегмента пути, который не является именем из простого ASCII,
+становится `:id` (`/şifre/…`, `/a,b/…`).
+В свободном тексте первое секретное имя скрывает всё, что идёт после него в этом тексте; это
+намеренно скрывает больше, чем нужно. Скрывать лишнее — решение, принятое намеренно. Где
+обрезается текст, задают шесть правил, и ни одно не хранит список вариантов: первый символ вне
+безопасного алфавита (буквы, знаки и цифры любой письменности, пробел ASCII, табуляция и переводы
+строки, а также печатаемый ASCII), так что похожий разделитель вроде `꞉` или `→`, эмодзи или
+управляющий символ обрезают текст, как и буква или цифра, чья форма совместимости не входит в
+этот алфавит (`🄁` — это `0,`); любая escape-последовательность (`%3D`, `&colon;`, `\075`),
+которая никогда не декодируется, — в свободном тексте любая escape-последовательность с
+обратной косой чертой обрезает текст, то есть любая обратная косая черта, за которой не следует
+пробел, табуляция или перевод строки ASCII (`login pa\x{73}sword hunter2` сохраняет
+`login `, а путь Windows вроде `\\nas\backup` скрывается начиная с первой обратной косой
+черты);
+слово длиннее 256 символов; ключ, который не разрешён (любой,
+кроме `status`, `method`, `path`, `duration_ms`, `count` и ключей, которые вы передадите), в том
+числе в кавычках любого вида (`"`, `'`, обратная кавычка), где он обрезает текст по открывающей
+кавычке
+(`cache miss for "session Qz9Wk7rX": refetching` превращается в `cache miss for [redacted]`), или как
+первая строка массива из двух элементов; тег разметки, ведь в свободном тексте первый тег разметки
+обрезает текст, каким бы ни был тег (`<user>`, `<_id>`, `</a>`, `<!--`): его обрезает любой `<`, за
+которым не идёт пробел, табуляция, перевод строки или цифра ASCII, `=` или конец текста; и секретное
+имя, с разделителем или
+без, в том числе записанное как значение, например `name="password"`. Слово сравнивается по его
+ASCII-скелету с одним правилом подстановочного знака: буква, знак или число вне ASCII без формы в
+ASCII считается ничем или любой одной буквой, так что `piꞏn`, `tokeın` и `tokenꞏs` читаются как
+`pin`, `token` и `tokens`, а один такой символ, поставленный вместо буквы имени, находится
+(`pɑssword`, `tͦken`, `passw〇rd`
+и `t၀ken`: десятичная цифра другой письменности — тоже такое число).
+Кавычка, которая не закрывается в своей строке, обрезает текст по этой
+кавычке, так что от ключа в кавычках с переводом строки внутри ничего не видно. Текст
+обрезается до его конца, а не только до конца строки: `login user=bob status=401` превращается в
+`login user=[redacted]`, а тело multipart, записанное в лог, скрывается начиная
+с первого заголовка, а property list — начиная с первого тега.
+URL в свободном тексте показывается, только если он чистый — `scheme://host` и необязательный путь
+из букв ASCII, цифр, `.`, `_`, `-` и `/`, хост и сегменты которого не называют секрет, а после него
+идёт пробел, перевод строки, конец текста или один `.`, `,`, `!` или `)` перед одним из них, — а
+любой другой URL обрезает текст там, где начинается, в том числе URL, после которого идёт кавычка,
+`>`, обратная кавычка или `?`, `#` либо `;` (`see https://x.example/a?page=2 ok` и
+`see https://x.example/a'#token` превращаются в `see [redacted]`;
+`allowedQueryParameters` действует только для `redact(url:)`). `:` между цифрами является частью
+числа, только когда обе стороны — числа одной формы (`12:30:45`, `10.0.0.1:8080`, `42:10`); после
+ключа, который заканчивается цифрами (`user1:2345`), перед буквой (`id 7:9hunter2`) или перед
+пятью и более цифрами (`1:482913`) это разделитель. Номер карты, IBAN, адрес электронной почты
+или токен, записанный через вертикальную табуляцию, перевод страницы или разделитель строк
+Unicode, находится целиком, и текст скрывается с его начала.
+Скрытие — это страховка, а не гарантия: оно рассчитано на секреты,
+попавшие в логи случайно. Структурированный ввод (JSON, формы, тела multipart и заголовки их
+частей, URL и их хосты) безопасен по умолчанию: то, что в нём непонятно, скрывается; имена ключей
+структурированного ввода показываются, а скрываются только значения под ними. В свободном тексте
+имя без разделителя, в котором две или более буквы заменены похожими (`pɑsswoʀd hunter2`), не
+обязательно будет найдено, если до него ничто не обрезало текст: это намеренная маскировка, а
+одна буква, знак или число, поставленные вместо буквы, находятся (`tͦken hunter2`).
+[Руководство по логам](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+описывает правила для свободного текста, их цену и то, чего они не находят.
 
 ### Привязать учётную запись к устройству
 
@@ -295,6 +388,21 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Известные ограничения
+
+Эти ограничения известны и пока не исправлены:
+
+- Имя с управляющим символом скрывает значения рядом с ним, что бы в нём ни было, когда его содержит
+  поле, которое содержит имя, или первый элемент пары (`{"name":"Hello\nWorld","value":"x"}`
+  скрывает `value`), а в остальных местах — когда без управляющих символов или с пробелами на их
+  месте оно называет секрет (`{"note":"pass\nword","id":"7"}` скрывает `id`).
+- Ключ учитывает `token` и `secret` только как слово или в конце, а `pw` только как слово, поэтому
+  `tokenvalue`, `TOKENID`, `secretvalue`, `secrethash`, `userpw` и `dbpw` показывают свои значения;
+  помечайте такие свойства `@Redacted`.
+- Короткая строка только из управляющих и пробельных символов скрывает все значения рядом с ней,
+  даже там, где она ничего не значит (`{"title":"\n","data":"x"}` скрывает `data`), а строка длиннее
+  256 скаляров читается как текст.
 
 ## Демо
 
@@ -388,6 +496,7 @@ Xcode по умолчанию из образа раннера `macos-26` на G
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

@@ -8,7 +8,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Latest version: v2.0.0"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Latest version: v2.1.0"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Supported platforms: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Language version: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="License: MIT"></picture></a>
@@ -44,12 +44,15 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   simulator, hooking libraries and a system proxy as a `Codable` report, and the documentation
   says what an attacker can hide from it.
 - **Secrets stay out of logs and screenshots** — `@Redacted` prints `<redacted>` everywhere,
-  `SensitiveDataRedactor` scrubs card numbers, emails, tokens and password fields (also when hidden
-  with zero-width or full-width characters), and `.privacyShield()` covers views in the app
-  switcher and during screen recording.
+  `SensitiveDataRedactor` scrubs card numbers, emails, tokens and secret fields, and
+  `.privacyShield()` covers views in the app switcher and during screen recording. The redactor
+  compares plain-ASCII keys with its secret names and redacts any other key by default; JSON,
+  form and multipart bodies are parsed, and unparsed bodies are omitted, as are bodies that a
+  server could split into fields differently. Free text is cut at its first trigger: a character
+  outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 157 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 589 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -76,7 +79,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
 Paste it into the search field at the top right of the window. Leave **Dependency Rule** at
-**Up to Next Major Version** from `2.0.0`, then click **Add Package**. In the next window,
+**Up to Next Major Version** from `2.1.0`, then click **Add Package**. In the next window,
 choose your app target next to **iOSSecurityTools** and click **Add Package** again.
 
 **2. Import the module**
@@ -141,7 +144,7 @@ Or add it to the `dependencies` in your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.0.0")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -273,11 +276,90 @@ func redactionSample() -> (request: String, log: String) {
     let printed = "\(request)"   // LoginRequest(username: "alice", _password: <redacted>)
 
     let redactor = SensitiveDataRedactor()
-    let log = redactor.redact("card=4242 4242 4242 4242 email=alice@example.com token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
-    // "card=•••• 4242 email=a•••@example.com token=[redacted]"
+    let log = redactor.redact("charged 4242 4242 4242 4242 to alice@example.com, token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln")
+    // "charged •••• 4242 to a•••@example.com, token=[redacted]"
     return (printed, log)
 }
 ```
+
+`SensitiveDataRedactor` compares only plain-ASCII keys (`A`–`Z`, `a`–`z`, `0`–`9`, `_`, `-`,
+`.` and spaces) with its secret names; any other key is redacted by default, because look-alike
+letters, invisible characters and escapes can disguise a secret name. JSON, form and multipart
+bodies are read with a parser, and a body it cannot parse completely is omitted as
+`[body omitted: N bytes, <type>]`, and so is a body that a common server parser could split into
+fields differently, such as a multipart boundary after a bare line feed or a form with a `;`.
+A body over 256 KiB is omitted too (`maximumBodySize`; an app may raise it, at a cost of up to
+about 40 bytes of memory for each byte of the body), and JSON is read at most 64 objects and arrays
+deep and four documents one inside another, JSON in strings included, which bounds the stack that
+hostile input can use; a string that holds more is redacted whole.
+The documents found inside one input read at most four times its length in all, which bounds
+the time it takes; text past that budget is redacted whole.
+A field named in one place and valued in another, as in `{"name":"X-Api-Key","value":…}`, a JSON
+Patch or SCIM operation on `/password` or `[["Authorization","…"]]`, has its value redacted whole
+when the name is secret or not plain ASCII. A URL host that is not a name of ASCII labels or an
+address, or that holds a card number or a token, is written as `scheme://[redacted]`, and a
+multipart part header name is written only when it is one a part carries. A URL with more than 64
+path segments or 128 parameters, with a host that names a secret (`myapp://pin/4831`, whose host
+is `pin`), or with a path that servers resolve differently (a dot
+segment as in `/pin/./4831`, a `;` as in `/a;pin/4831`, an escaped `.`, `/`, `\`, `;` or `%`),
+is recorded as its scheme and host only, and an email address
+shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes
+`a•••@gmail.com`).
+Non-ASCII names count as secret even when they are written as values: the value beside a field that
+holds a name (`name`, `label`, `type`, `id`, …) such as `Şifre`, `ⓟⓘⓝ` or `🔑` is redacted.
+A name with a line break or another control character in it counts as secret, whatever it says, in a
+field that holds a name, and elsewhere when it names a secret with its control characters left out
+or read as spaces (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`); a short string of control
+characters alone (`"\n"`) counts too, while `{"message":"Hello\nWorld","id":"7"}` keeps `id`, and in `redact(url:)` the segment after a
+path segment that is not a plain-ASCII name becomes `:id` (`/şifre/…`, `/a,b/…`).
+In free text, the first secret name hides everything after it in that text; this over-hides on
+purpose. Over-hiding is by design. Six rules set where the text is cut, and none keeps a list of
+variants: the first character outside a safe alphabet (letters, marks and digits of any script,
+the ASCII space, tab and line breaks, and printable ASCII), so a look-alike separator such as `꞉`
+or `→`, an emoji or a control character cuts it, as does a letter or number whose compatibility
+form is not in that alphabet (`🄁` is `0,`); any escape (`%3D`, `&colon;`, `\075`), which
+is never decoded — in free text every backslash escape cuts the text, as does any backslash
+that no ASCII space, tab or line break follows (`login pa\x{73}sword hunter2` keeps
+`login `, and a Windows path such as `\\nas\backup` is hidden from its first backslash on);
+a word longer than 256 characters; a key that is not allowed (any key but
+`status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also in quotes of any
+kind (`"`, `'`, a backtick), where it cuts the text at the opening quote (`cache miss for "session Qz9Wk7rX": refetching` becomes
+`cache miss for [redacted]`), or as the first string of a two-element array; a markup tag, as in
+free text the first markup tag cuts the text, whatever the tag (`<user>`, `<_id>`, `</a>`, `<!--`):
+a `<` cuts it unless an ASCII space, tab, line break or digit, `=` or the end of the text follows
+it; and a
+secret name, with or without a separator, also one written as a value such as `name="password"`. A word is compared by its ASCII skeleton with one wildcard
+rule: a letter, mark or number outside ASCII that has no ASCII form counts as nothing or as any
+one letter, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and one such
+character put in place of a letter is found (`pɑssword`, `tͦken`, `passw〇rd`,
+and `t၀ken`: a decimal digit of another script is such a number).
+A quote that does not
+close on its line cuts the text at the quote, so a quoted key with a line break in it shows
+nothing. The text is cut to its
+end and not only to the end of the line: `login user=bob status=401` becomes
+`login user=[redacted]`, and a multipart body written to a log is hidden from its first header, a
+property list from its first tag.
+A URL in free text is shown only when it is clean — `scheme://host` and an optional path of ASCII
+letters, digits, `.`, `_`, `-` and `/`, whose host and segments name no secret, followed by white
+space, a line break, the end of the text or one `.`, `,`, `!` or `)` before one of those — and any
+other URL cuts the text where it starts, also one that a quote, `>`, a backtick or a `?`, `#` or `;`
+follows (`see https://x.example/a?page=2 ok` and `see https://x.example/a'#token` become
+`see [redacted]`; `allowedQueryParameters`
+applies only to `redact(url:)`). A `:` between digits is part of a number only when both sides
+are numbers of one shape (`12:30:45`, `10.0.0.1:8080`, `42:10`); after a key that ends in digits
+(`user1:2345`), before a letter (`id 7:9hunter2`) or before five or more digits (`1:482913`) it
+is a separator. A card number, an IBAN, an email address or a token written across a vertical
+tab, a form feed or a Unicode line separator is found whole, and the text is hidden from its
+start.
+Redaction is a safety net, not a guarantee: it is built for secrets logged by accident.
+Structured input (JSON, forms, multipart bodies and their part headers, URLs and their hosts) is
+default-safe, and what the redactor does not understand there is redacted; structured key names
+are shown, and only the values under them are hidden. In free text, a name written without a
+separator with two or more of its letters replaced by look-alike letters (`pɑsswoʀd hunter2`) is
+not guaranteed to be found when nothing before it cuts the text: that is deliberate disguise,
+while one letter, mark or number put in place of a letter is found (`tͦken hunter2`). The
+[logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
+describes the rules for free text, what they cost and what they do not find.
 
 ### Bind an account to the device
 
@@ -289,6 +371,21 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Known limitations
+
+These are known and not changed yet:
+
+- A name with a control character in it hides the members beside it whatever it says when a field
+  that holds a name or the first element of a pair holds it (`{"name":"Hello\nWorld","value":"x"}`
+  hides `value`), and elsewhere when it names a secret once its control characters are left out or
+  read as spaces (`{"note":"pass\nword","id":"7"}` hides `id`).
+- A key counts `token` and `secret` only as a word or at its end and `pw` only as a word, so
+  `tokenvalue`, `TOKENID`, `secretvalue`, `secrethash`, `userpw` and `dbpw` show their values; mark
+  such properties with `@Redacted`.
+- A short string of control characters and white space alone hides every member beside it, also
+  where it means nothing (`{"title":"\n","data":"x"}` hides `data`), while one of more than 256
+  scalars is read as text.
 
 ## Demo
 
@@ -381,6 +478,7 @@ Run the tests locally:
 
 ```sh
 swift test                                    # macOS
+swift test -c release                         # macOS, release build
 xcodebuild test -scheme iOSSecurityTools \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
