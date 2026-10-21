@@ -154,7 +154,12 @@ that names a secret or cannot be read counts wherever it is, as `{"type":"passwo
 CloudFormation's `{"ParameterKey":"DbPassword","ParameterValue":…}` write a field; a name there is
 a string without `:`, `=`, `,`, `;`, quotes or brackets inside it, in which a symbol whose
 compatibility form is a letter (`ⓟ`, `🄿`) counts as one, so a sentence (`"Error: token expired"`)
-or JSON in a string is read as free text instead. In an object with such a name, the values of the
+or JSON in a string is read as free text instead. A name with a percent escape or a character
+reference is read as written, with the `x` of `&#x` and the `u` of `%u` read as punctuation, and
+with its escapes decoded, and any of these readings that names a secret counts: `%card` and
+`&#xcvv` name `card` and `cvv` although decoding takes their first letters for hex digits,
+`&#xpass` names `pass`, and `p&#97;ssword` names `password`, the `;` that ends a character
+reference being part of the escape. In an object with such a name, the values of the
 other members are hidden whole, whatever they are called: an object has no order, so what belongs
 to the name cannot be told. The names of pairs (`name`, `key`, `field`, `header`, `param`, `path`,
 `k`, `n` with a string) and an `op` that names a JSON Patch or SCIM operation stay. The second
