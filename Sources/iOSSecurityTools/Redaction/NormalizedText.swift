@@ -25,14 +25,29 @@ struct NormalizedText {
     /// separator, and unlike it, it never stands for a letter.
     static let masked: UInt8 = 0xFE
 
-    init(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) {
+    /// How much of a text the copy is made of.
+    enum Extent {
+        /// All of it: the value detectors read a whole text when no cut is made.
+        case whole
+        /// As much as free text is read (see ``FreeTextScanner``): to the end of the line of the
+        /// first scalar outside the safe alphabet, which cuts the text at the latest, and on
+        /// through the blank lines after it to the end of the next line that is not blank. The
+        /// scan and the value detectors read past that scalar only to finish what starts before
+        /// it — a word, a finding, a quote on its line, the white space before a separator or a
+        /// bracket — so the rest of the text is neither read nor cached: a megabyte that opens
+        /// with a control character costs a line, not a megabyte.
+        case scanned
+    }
+
+    init(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText, extent: Extent = .whole) {
         var bytes: [UInt8] = []
         bytes.reserveCapacity(scalars.count)
         var alphabet = SafeAlphabetReader()
+        var end = CopyEnd(extent)
         // While every scalar becomes one byte, as in printable ASCII, each byte comes from the
         // scalar at its own index and no offsets are stored.
         var index = 0
-        while index < scalars.count {
+        while index < scalars.count, !end.isReached {
             let scalar = scalars[index]
             let byte: UInt8
             if scalar.isASCII {
@@ -46,9 +61,10 @@ struct NormalizedText {
                 byte = reading.bytes[0]
             }
             bytes.append(byte)
+            if alphabet.firstUnsafe != nil { end.read(byte) }
             index += 1
         }
-        guard index < scalars.count else {
+        guard index < scalars.count, !end.isReached else {
             self.init(bytes: bytes, offsets: ScalarOffsets(), source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
             return
         }
@@ -66,17 +82,54 @@ struct NormalizedText {
                 guard !ASCII.isHidingControl(byte) else { continue }
                 offsets.add(byte: bytes.count, from: offset)
                 bytes.append(byte)
-                continue
+                if alphabet.firstUnsafe != nil { end.read(byte) }
+            } else {
+                let reading = compatibility.reading(scalar)
+                if offset > index { alphabet.read(reading.alphabet, at: offset) }
+                guard !reading.isInvisible else { continue }
+                for byte in reading.bytes {
+                    offsets.add(byte: bytes.count, from: offset)
+                    bytes.append(byte)
+                    if alphabet.firstUnsafe != nil { end.read(byte) }
+                }
             }
-            let reading = compatibility.reading(scalar)
-            if offset > index { alphabet.read(reading.alphabet, at: offset) }
-            guard !reading.isInvisible else { continue }
-            for byte in reading.bytes {
-                offsets.add(byte: bytes.count, from: offset)
-                bytes.append(byte)
-            }
+            if end.isReached { break }
         }
         self.init(bytes: bytes, offsets: offsets.offsets, source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
+    }
+
+    /// Where a copy of the ``Extent/scanned`` extent ends, read from the bytes written from the
+    /// first scalar outside the safe alphabet on.
+    private struct CopyEnd {
+        private enum Stage {
+            /// The line of the first scalar outside the alphabet.
+            case unsafeLine
+            /// The blank lines after it.
+            case blankLines
+            /// The next line that is not blank.
+            case nextLine
+            case reached
+        }
+
+        private let ends: Bool
+        private var stage = Stage.unsafeLine
+
+        init(_ extent: Extent) {
+            ends = extent == .scanned
+        }
+
+        var isReached: Bool { stage == .reached }
+
+        mutating func read(_ byte: UInt8) {
+            guard ends else { return }
+            let endsLine = byte == 0x0A || byte == 0x0D || byte == 0x0B || byte == 0x0C
+            switch stage {
+            case .unsafeLine: if endsLine { stage = .blankLines }
+            case .blankLines: if !endsLine, byte != UInt8(ascii: " "), byte != UInt8(ascii: "\t") { stage = .nextLine }
+            case .nextLine: if endsLine { stage = .reached }
+            case .reached: break
+            }
+        }
     }
 
     private init(bytes: [UInt8], offsets: ScalarOffsets, source: [Unicode.Scalar], firstUnsafeOffset: Int?) {

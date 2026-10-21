@@ -4,7 +4,11 @@ extension SensitiveDataRedactor {
     func textSpans(in scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text, nesting: Nesting) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty, !Self.isQuietWord(scalars) else { return [] }
         guard scalars.count <= Self.maximumTextLength else { return [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] }
-        return textSpans(in: scalars, text: NormalizedText(scalars, compatibility: compatibility), compatibility: compatibility, role: role, nesting: nesting)
+        // With the free-text rule the text is cut at the first scalar outside the safe alphabet
+        // at the latest, so the copy is made only as far as the scan and the detectors read.
+        let extent: NormalizedText.Extent = kinds.contains(.secretFields) ? .scanned : .whole
+        let text = NormalizedText(scalars, compatibility: compatibility, extent: extent)
+        return textSpans(in: scalars, text: text, compatibility: compatibility, role: role, nesting: nesting)
     }
 
     /// ``textSpans(in:compatibility:role:nesting:)`` on a scanning copy that is already made.
