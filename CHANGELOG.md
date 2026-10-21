@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   uploaded files are omitted the same way. The limit is 256 KiB (`defaultMaximumBodySize`)
   unless the app passes another to `SensitiveDataRedactor(maximumBodySize:)`; a body of 256 KiB
   takes less than 16 MB of memory in every shape tested, and the worst shapes take up to about
-  60 bytes for each byte, so a limit of 1 MiB can take 64 MB. A body of 256 MiB or more is
+  40 bytes for each byte, so a limit of 1 MiB can take 40 MB. A body of 256 MiB or more is
   omitted whatever the limit. A multipart part header name is
   written only when it is one of the headers a part carries (`Content-Length`,
   `Content-Transfer-Encoding`, `Content-ID`, `Content-Description`, `Content-Language`,
@@ -427,6 +427,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inputs, each on three paths, are kept as tests, checked claim by claim (53 of them shown by
   design or as a documented limitation), with a property test of `<` before a character of
   every general category on every path.
+- The nineteenth review found that a cut of free text that starts and ends where a clean URL
+  does, as an unclosed bracket before the URL makes it, left the URL in its `:id` form
+  (`(https://api.example.com/users/12345678` became `(https://api.example.com/users/:id`): when
+  two findings covered the same characters, the first kept its replacement. A `[redacted]` span
+  now wins over every finding it covers or lies inside, and the text becomes `([redacted]`. The
+  same review measured 15.65 MiB for a body of 256 KiB of arrays 63 deep, close to the limit of
+  16 MiB: every value of the JSON reader's tree kept its range in two `Int`s and a box of its
+  own, and a JSON body was encoded again for `JSONSerialization`. A value now takes 16 bytes
+  without a box and the body is handed over as it came, so such a body takes less than 10 MiB,
+  and the worst shape of a body about 40 bytes for each byte instead of 60; the tests hold these
+  bodies to 12 MiB.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
