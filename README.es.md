@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
+<!-- i18n-source: README.md@e204efd24392b6dc208347f6870992461cf043ee status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  538 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  549 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -312,6 +312,7 @@ todo su valor cuando el nombre es secreto o no es ASCII simple. Un host de URL q
 de etiquetas ASCII ni una dirección, o que lleva un número de tarjeta o un token, se escribe como
 `scheme://[redacted]`, y el nombre de una cabecera de parte multipart solo se escribe cuando es una
 de las que lleva una parte. Una URL con más de 64 segmentos de ruta o 128 parámetros,
+con un host que nombra un secreto (`myapp://pin/4831`, cuyo host es `pin`)
 o con una ruta que los servidores resuelven de forma distinta (un segmento de punto como en
 `/pin/./4831`, un `;` como en `/a;pin/4831`, un `.`, `/`, `\`, `;` o `%`
 escapado), se registra solo con su esquema y su host,
@@ -344,7 +345,8 @@ un nombre secreto,
 con o sin separador, también escrito como valor como `name="password"`. Una palabra se compara
 por su esqueleto ASCII: las letras que no tienen forma ASCII se omiten, así que `piꞏn`, `tokeın` y
 `tokenꞏs` se leen como `pin`, `token` y `tokens`, y un nombre cuenta también con una letra de
-menos donde se omitió una (`pɑssword`). Una comilla que no se cierra en su línea corta el texto en
+menos donde se omitió una, así que se encuentra una letra (L*) puesta en lugar de una letra
+(`pɑssword`). Una comilla que no se cierra en su línea corta el texto en
 la comilla, así que de una clave entre comillas con un salto de línea dentro no se ve nada. El texto se corta hasta su
 final y no solo hasta el final de la línea: `login user=bob status=401` queda como
 `login user=[redacted]`, y un cuerpo multipart escrito en un log se oculta
@@ -363,8 +365,10 @@ hecha para secretos registrados por accidente. La entrada estructurada (JSON, fo
 multipart con las cabeceras de sus partes, URL con sus hosts) es segura por defecto, y lo que el
 redactor no entiende allí se oculta; los nombres de las claves estructuradas se muestran y solo se
 ocultan los valores bajo ellos. En texto libre no se garantiza encontrar un nombre escrito sin
-separador con dos o más de sus letras sustituidas por letras parecidas (`pɑsswoʀd hunter2`) cuando nada antes de él
-corta el texto. La
+separador con dos o más de sus letras sustituidas por letras parecidas (`pɑsswoʀd hunter2`), ni uno
+con una marca combinante (Mn) en lugar de una de sus letras (`tͦken hunter2`), cuando nada antes de
+él corta el texto: ambos son disfraces deliberados, mientras que una letra (L*) puesta en lugar de
+una letra sí se encuentra. La
 [guía de registros](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describe las reglas para texto libre, lo que cuestan y lo que no encuentran.
 

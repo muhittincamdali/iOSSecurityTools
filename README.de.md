@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
+<!-- i18n-source: README.md@e204efd24392b6dc208347f6870992461cf043ee status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  538 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  549 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -313,7 +313,8 @@ Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wi
 reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse ist oder eine
 Kartennummer oder ein Token enthält, wird als `scheme://[redacted]` geschrieben, und der Name eines
 Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Eine URL mit mehr als 64 Pfadsegmenten
-oder 128 Parametern oder mit einem Pfad, den Server unterschiedlich auflösen (ein
+oder 128 Parametern, mit einem Host, der einen geheimen Namen nennt (`myapp://pin/4831`, dessen
+Host `pin` ist), oder mit einem Pfad, den Server unterschiedlich auflösen (ein
 Punktsegment wie in `/pin/./4831`, ein `;` wie in `/a;pin/4831`, ein maskiertes `.`, `/`, `\`, `;`
 oder `%`), wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
 jeder Schrift nur den ersten Buchstaben ihres Namens (`ayşe.yılmaz@gmail.com` wird zu
@@ -344,7 +345,8 @@ nicht das Textende folgt, schneidet ihn ab; und ein geheimer Name, mit
 oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Ein Wort wird über sein
 ASCII-Skelett verglichen: Buchstaben ohne ASCII-Form werden weggelassen, sodass `piꞏn`, `tokeın`
 und `tokenꞏs` als `pin`, `token` und `tokens` gelesen werden, und ein Name zählt auch mit einem
-fehlenden Buchstaben dort, wo einer weggelassen wurde (`pɑssword`). Ein Anführungszeichen, das
+fehlenden Buchstaben dort, wo einer weggelassen wurde, sodass ein Buchstabe (L*) an der Stelle
+eines Buchstabens gefunden wird (`pɑssword`). Ein Anführungszeichen, das
 sich nicht in seiner Zeile schließt, schneidet den Text an diesem Anführungszeichen ab, sodass von
 einem Schlüssel in Anführungszeichen mit einem Zeilenumbruch darin nichts zu sehen ist. Der
 Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
@@ -366,7 +368,9 @@ Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs mit ihre
 standardmäßig sicher; was der Redactor dort nicht versteht, wird geschwärzt, und strukturierte
 Schlüsselnamen werden gezeigt, nur die Werte darunter werden verborgen. In freiem Text wird ein
 Name ohne Trennzeichen, in dem zwei oder mehr Buchstaben durch ähnlich aussehende ersetzt sind
-(`pɑsswoʀd hunter2`), nicht garantiert gefunden, wenn nichts davor den Text abschneidet. Der
+(`pɑsswoʀd hunter2`) oder ein kombinierendes Zeichen (Mn) an der Stelle eines Buchstabens steht
+(`tͦken hunter2`), nicht garantiert gefunden, wenn nichts davor den Text abschneidet: Beides ist
+absichtliche Tarnung, ein einzelner Buchstabe (L*) an der Stelle eines Buchstabens wird gefunden. Der
 [Logging-Leitfaden](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 beschreibt die Regeln für freien Text, ihren Preis und was sie nicht finden.
 

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
+<!-- i18n-source: README.md@e204efd24392b6dc208347f6870992461cf043ee status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 538 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 549 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -312,7 +312,8 @@ Adı bir yerde, değeri başka bir yerde duran bir alanın — `{"name":"X-Api-K
 ya da düz ASCII değilse değeri bütünüyle maskelenir. ASCII etiketlerinden oluşan bir ad ya da bir
 adres olmayan veya bir kart numarası ya da token taşıyan bir URL host'u `scheme://[redacted]` olarak
 yazılır; bir multipart parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse
-yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan
+yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan,
+host'u gizli bir ad anan (`myapp://pin/4831`; burada host `pin`'dir)
 ya da yolunu sunucuların farklı çözebileceği (`/pin/./4831` gibi bir nokta
 bölümü, `/a;pin/4831` gibi bir `;`, kaçışlı `.`, `/`, `\`, `;` ya da
 `%`) bir URL yalnız şeması ve host'u ile kaydedilir;
@@ -341,7 +342,8 @@ keser; ve ayraçlı ya da
 ayraçsız, `name="password"` gibi değer olarak yazılmış olanı da dahil bir gizli ad. Bir kelime
 ASCII iskeletiyle karşılaştırılır: ASCII karşılığı olmayan harfler atılır, böylece `piꞏn`,
 `tokeın` ve `tokenꞏs`, `pin`, `token` ve `tokens` olarak okunur; bir ad, harf atılan yerde bir
-harfi eksik olarak da sayılır (`pɑssword`). Aynı satırda kapanmayan bir tırnak metni tırnağın
+harfi eksik olarak da sayılır, yani adın bir harfinin yerine konan tek bir harf (L*) bulunur
+(`pɑssword`). Aynı satırda kapanmayan bir tırnak metni tırnağın
 başından keser; böylece içinde satır sonu olan tırnaklı bir anahtardan hiçbir şey görünmez. Metin yalnız satırın sonuna kadar değil, sonuna kadar kesilir:
 `login user=bob status=401`, `login user=[redacted]` olur; log'a yazılmış bir multipart gövdesi ilk
 başlığından, bir property list ise ilk etiketinden itibaren gizlenir.
@@ -360,8 +362,10 @@ ağıdır, garanti değildir: yanlışlıkla loglanan sırlar için tasarlanmı�
 (JSON, formlar, multipart gövdeleri ve parça başlıkları, URL'ler ve host'ları) varsayılan olarak
 güvenlidir; maskeleyicinin orada anlamadığı şey maskelenir, yapılandırılmış anahtar adları ise
 gösterilir ve yalnız altlarındaki değerler gizlenir. Serbest metinde ayraç olmadan yazılmış ve iki
-ya da daha fazla harfi benzer harflerle değiştirilmiş bir ad (`pɑsswoʀd hunter2`), önünde metni kesen bir
-şey yoksa bulunacağı garanti edilmez.
+ya da daha fazla harfi benzer harflerle değiştirilmiş bir ad (`pɑsswoʀd hunter2`) ya da bir harfinin
+yerine birleşik işaret (Mn) konmuş bir ad (`tͦken hunter2`), önünde metni kesen bir şey yoksa
+bulunacağı garanti edilmez: ikisi de kasıtlı gizlemedir; bir harfin yerine konan tek bir harf (L*)
+ise bulunur.
 [Loglama rehberi](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 serbest metin kurallarını, bedellerini ve neleri bulmadıklarını anlatır.
 
