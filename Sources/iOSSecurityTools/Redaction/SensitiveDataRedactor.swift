@@ -365,16 +365,27 @@ public struct SensitiveDataRedactor: Sendable {
 
     /// Returns the sensitive data found in a text, in order, without overlaps.
     public func matches(in text: String) -> [Match] {
-        let scalars = Array(text.unicodeScalars)
-        let spans = textSpans(in: scalars, compatibility: CompatibilityText(), nesting: .text(length: scalars.count)).filter { !$0.kind.isEmpty }
-        var indices: [String.Index] = []
-        indices.reserveCapacity(scalars.count + 1)
-        var index = text.unicodeScalars.startIndex
-        while index < text.unicodeScalars.endIndex {
-            indices.append(index)
-            index = text.unicodeScalars.index(after: index)
+        var spans = {
+            let scalars = Array(text.unicodeScalars)
+            return textSpans(in: scalars, compatibility: CompatibilityText(), nesting: .text(length: scalars.count))
+        }()
+        spans.removeAll { $0.kind.isEmpty }
+        // The spans are in order and do not overlap, so one walk through the scalars finds the
+        // index of each start and end; no index is kept for any other scalar.
+        let view = text.unicodeScalars
+        var current = view.startIndex
+        var offset = 0
+        func index(at target: Int) -> String.Index {
+            current = view.index(current, offsetBy: target - offset)
+            offset = target
+            return current
         }
-        indices.append(text.unicodeScalars.endIndex)
-        return spans.map { Match(kind: $0.kind, range: indices[$0.start]..<indices[$0.end]) }
+        var matches: [Match] = []
+        matches.reserveCapacity(spans.count)
+        for span in spans {
+            let start = index(at: span.start)
+            matches.append(Match(kind: span.kind, range: start..<index(at: span.end)))
+        }
+        return matches
     }
 }
