@@ -24,12 +24,12 @@ extension SensitiveDataRedactor {
     ///   number of six or more digits, a token of 16 or more letters and digits, a run of 32 or more
     ///   hex or base64 characters, a JSON Web Token, anything the value detectors find, and text
     ///   the free-text rule would change. The segment after one that names a secret is a value
-    ///   too and becomes `:id` whatever it looks like (`/pin/4831`, `/token/…/info`). Parameters
-    ///   after a `;` are read like query parameters.
+    ///   too and becomes `:id` whatever it looks like (`/pin/4831`, `/token/…/info`).
     /// - **A path that servers resolve differently** — with a dot segment (`/pin/./4831`,
-    ///   `/token/x/../…`), an escaped `.`, `/`, `\` or `%` (`%2E`, `%2F`, `%5C`, `%25`) or a
-    ///   segment that is only parameters (`/token/;/…`) — is not written: only the scheme, host
-    ///   and port are, as which segment follows a secret name depends on the server.
+    ///   `/token/x/../…`), a `;` anywhere (`/a;pin/4831`, `/cart;jsessionid=…`), or an escaped
+    ///   `.`, `/`, `\`, `;` or `%` (`%2E`, `%2F`, `%5C`, `%3B`, `%25`) — is not written: only the
+    ///   scheme, host and port are, as which segment follows a secret name depends on the server.
+    ///   Parameters after a `;` are not read at all.
     /// - With ``URLDetail/hostOnly`` only the scheme, host and port are written.
     ///
     /// The query and path rules above, apart from `?[redacted]` for a query servers could split
@@ -127,37 +127,37 @@ extension SensitiveDataRedactor {
         }
     }
 
-    /// Whether the path has more than ``maximumPathSegments`` segments, or the path or the query
-    /// more than ``maximumQueryParameters`` parameters. Each segment and parameter is read on its
-    /// own, so the count bounds the work a URL can ask for; real URLs stay far below both.
+    /// Whether the path has more than ``maximumPathSegments`` segments, or the query more than
+    /// ``maximumQueryParameters`` parameters. Each segment and parameter is read on its own, so
+    /// the count bounds the work a URL can ask for; real URLs stay far below both.
     static func exceedsLimits(_ components: URLComponents) -> Bool {
-        let path = components.percentEncodedPath.utf8
-        if path.count(where: { $0 == UInt8(ascii: "/") }) > maximumPathSegments { return true }
-        if path.count(where: { $0 == UInt8(ascii: ";") }) > maximumQueryParameters { return true }
+        if components.percentEncodedPath.utf8.count(where: { $0 == UInt8(ascii: "/") }) > maximumPathSegments { return true }
         guard let query = components.percentEncodedQuery else { return false }
         return query.utf8.count(where: { $0 == UInt8(ascii: "&") }) >= maximumQueryParameters
     }
 
     /// Whether servers could resolve the path to other segments than it is written with: it has a
-    /// dot segment (`.`, `..`, also with parameters, `.;x`), a `.`, `/` or `\` written as an
-    /// escape (`%2E`, `%2F`, `%5C`, in either case), a segment that is only parameters (`/;x`) or
-    /// an escaped `%` (`%25`), which a server that decodes twice reads as another escape. Which
-    /// segment follows the one that names a secret then depends on the server
-    /// (`/pin/./4831`, `/token/x/../…`), so no segment of such a path is written.
+    /// dot segment (`.`, `..`), a `;`, or a `.`, `/`, `\`, `;` or `%` written as an escape (`%2E`,
+    /// `%2F`, `%5C`, `%3B`, `%25`, in either case). Servers remove dot segments and decode escapes
+    /// before routing, and one that decodes twice reads `%25` as another escape; a `;` in a
+    /// segment starts parameters for a Java servlet but is part of the segment for Express, Go,
+    /// Rails, Django and ASP.NET Core (`/a;pin/4831` is `a` and the parameter `pin`, or the segment
+    /// `a;pin`). Which segment follows the one that names a secret then depends on the server
+    /// (`/pin/./4831`, `/token/x/../…`, `/a;pin/4831`), so no segment of such a path is written.
     static func resolvesDifferently(path: String) -> Bool {
         let bytes = Array(path.utf8)
+        if bytes.contains(UInt8(ascii: ";")) { return true }
         for (i, byte) in bytes.enumerated() where byte == UInt8(ascii: "%") && i + 2 < bytes.count {
             let escape = [bytes[i + 1], bytes[i + 2] | 0x20]
             if Self.ambiguousEscapes.contains(escape) { return true }
         }
         return bytes.split(separator: UInt8(ascii: "/"), omittingEmptySubsequences: false).contains { segment in
-            let base = segment.prefix { $0 != UInt8(ascii: ";") }
-            return base.elementsEqual(".".utf8) || base.elementsEqual("..".utf8) || (base.isEmpty && segment.contains(UInt8(ascii: ";")))
+            segment.elementsEqual(".".utf8) || segment.elementsEqual("..".utf8)
         }
     }
 
-    /// The escapes of `.`, `/`, `\` and `%`, the hex letter in lowercase.
-    private static let ambiguousEscapes: Set<[UInt8]> = [Array("2e".utf8), Array("2f".utf8), Array("5c".utf8), Array("25".utf8)]
+    /// The escapes of `.`, `/`, `\`, `;` and `%`, the hex letter in lowercase.
+    private static let ambiguousEscapes: Set<[UInt8]> = [Array("2e".utf8), Array("2f".utf8), Array("5c".utf8), Array("3b".utf8), Array("25".utf8)]
 
     // MARK: Without secret fields
 
@@ -185,7 +185,8 @@ extension SensitiveDataRedactor {
 
     /// The path segment by segment. A segment after one that names a secret or cannot be read
     /// (`/pin/4831`, `/password-reset/…`, `/token/…/info`) is a value, so it becomes `:id`
-    /// whatever it looks like. A segment that comes again is not read again.
+    /// whatever it looks like. A segment that comes again is not read again. The path has no `;`
+    /// (see ``resolvesDifferently(path:)``).
     private func redacted(path: String, nesting: Nesting) -> String {
         let classifier = SensitiveDataRedactor(self, kinds: .all)
         var readings: [Substring: PathSegmentReading] = [:]
@@ -196,16 +197,9 @@ extension SensitiveDataRedactor {
                 segments.append("")
                 continue
             }
-            let parts = segment.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)
-            let base = parts[0]
-            let reading = readings[base] ?? classifier.read(pathSegment: base, nesting: nesting)
-            readings[base] = reading
-            if followsLabel {
-                segments.append(Self.identifierPlaceholder)
-            } else {
-                let shownBase = reading.hides ? Self.identifierPlaceholder : String(base)
-                segments.append(parts.count == 2 ? shownBase + ";" + redacted(pathParameters: parts[1], nesting: nesting) : shownBase)
-            }
+            let reading = readings[segment] ?? classifier.read(pathSegment: segment, nesting: nesting)
+            readings[segment] = reading
+            segments.append(followsLabel || reading.hides ? Self.identifierPlaceholder : String(segment))
             followsLabel = reading.isLabel
         }
         return segments.joined(separator: "/")
@@ -219,9 +213,9 @@ extension SensitiveDataRedactor {
         let isLabel: Bool
     }
 
-    /// Reads a path segment, without its parameters, once: it is decoded and scanned a single
-    /// time, and the free-text rule, every value detector and the word reading all run on that
-    /// scan. A segment that does not decode is both.
+    /// Reads a path segment once: it is decoded and scanned a single time, and the free-text rule,
+    /// every value detector and the word reading all run on that scan. A segment that does not
+    /// decode is both.
     private func read(pathSegment segment: Substring, nesting: Nesting) -> PathSegmentReading {
         guard let decoded = segment.removingPercentEncoding else { return PathSegmentReading(hides: true, isLabel: true) }
         let scalars = Array(decoded.unicodeScalars)
@@ -235,23 +229,15 @@ extension SensitiveDataRedactor {
         return PathSegmentReading(hides: isIdentifier || holdsSecret, isLabel: isLabel)
     }
 
-    /// Parameters after a `;` in a path segment (`cart;jsessionid=…`), read like query parameters.
-    private func redacted(pathParameters: Substring, nesting: Nesting) -> String {
-        pathParameters.split(separator: ";", omittingEmptySubsequences: false).map { parameter in
-            let pair = parameter.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-            return redacted(parameter: String(pair[0]), value: pair.count == 2 ? String(pair[1]) : nil, nesting: nesting)
-        }.joined(separator: ";")
-    }
-
     /// Whether the decoded segment holds something the free-text rule hides, or does not decode.
     private func holdsSecret(_ segment: String, nesting: Nesting) -> Bool {
         guard let decoded = segment.removingPercentEncoding else { return true }
         return redact(decoded, nesting: nesting) != decoded
     }
 
-    /// `name=value` from a query or path parameter, both percent-encoded. The value is kept only
-    /// when the name is allowed and no other parameter names a secret (`hidesValue`).
-    private func redacted(parameter rawName: String, value rawValue: String?, hidesValue: Bool = false, nesting: Nesting) -> String {
+    /// `name=value` from a query, both percent-encoded. The value is kept only when the name is
+    /// allowed and no other parameter names a secret (`hidesValue`).
+    private func redacted(parameter rawName: String, value rawValue: String?, hidesValue: Bool, nesting: Nesting) -> String {
         let name = Self.formDecoded(rawName)
         let shownName = name.map { PlainName($0.unicodeScalars) != nil && redactedName($0, nesting: nesting) == $0 } == true ? rawName : Self.replacement
         let allowed = name.flatMap { FieldName.allowableFold($0.unicodeScalars) }.map(allowedQueryParameters.contains) ?? false

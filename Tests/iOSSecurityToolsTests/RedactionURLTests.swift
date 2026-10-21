@@ -19,7 +19,7 @@ struct RedactionURLTests {
         ("https://example.com/files/0123456789abcdef0123456789abcdef", "https://example.com/files/:id", nil),
         ("https://example.com/s/aB3dE5fG7hJ9kL1m", "https://example.com/s/:id", nil),
         ("https://example.com/u/alice@example.com/x", "https://example.com/u/:id/x", "GET [redacted]"),
-        ("https://example.com/cart;jsessionid=abc/view", "https://example.com/cart;jsessionid=[redacted]/view", "GET [redacted]"),
+        ("https://example.com/cart;jsessionid=abc/view", "https://example.com", "GET [redacted]"),
         ("https://example.com/a?flag&q=", "https://example.com/a?[redacted]&q=", "GET [redacted]"),
         ("https://example.com/a?p%61ssword=x&%E2%80%8Btoken=y", "https://example.com/a?p%61ssword=[redacted]&[redacted]=[redacted]", "GET [redacted]"),
         ("https://example.com/v1/items/42?page=2", "https://example.com/v1/items/42?page=[redacted]", "GET [redacted]"),
