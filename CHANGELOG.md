@@ -601,6 +601,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the finding in the value written whole; the time tests take a megabyte of `eyJ `, of `eyJ` and a
   line feed, of such cursors, of line separators between digits, groups and tokens with every
   kind and with the value detectors alone, and 4 MB of `eyJ` and vertical tabs.
+- The twenty-sixth review found that a short string of control characters and white space alone
+  kept the value beside it (`{"ParameterKey":"\n","ParameterValue":…}`, `"\t"`, `"\u0000"`,
+  `" \n "`, `{"title":"\n","data":…}`, the form `ParameterKey=%0A&ParameterValue=…`), as the
+  check for a name wanted a letter or a digit before the control character rule was reached.
+  Such a string now names a secret beside any member.
+- The same review found that the control character rule of the twenty-fourth review hid every
+  member beside a plain line of text in structured input:
+  `{"id":1,"status":"ok","message":"line one\nline two","count":3}` hid `id`, `status` and
+  `count`, `{"stdout":"ok\n","exit_code":0}` hid `exit_code`, and the form
+  `msg=hello%0A&user=alice` hid `user`. A name with a control
+  character in it still names a secret whatever it says in a member that holds a name and as the
+  name of a pair; elsewhere it is read with its control characters left out and with each read as
+  a space, and it names a secret when either reading does (`DbPassword\n`, `Db\nPassword`,
+  `pa\nssword`, `\r\npin`), so `Hello\nWorld`, `ok\n` and `a\tb` keep their siblings.
+- The documentation of `SensitiveDataRedactor` said that words of five or more letters count
+  anywhere in a key; `token` and `secret` count only as a word or at its end and `pw` only as a
+  word, so `tokenvalue`, `secretvalue` and `dbpw` show their values. It now writes the logging
+  guide's sentence, with examples a test checks, and the logging guide and the README list these
+  and the other limits the review left under "Known limitations".
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
