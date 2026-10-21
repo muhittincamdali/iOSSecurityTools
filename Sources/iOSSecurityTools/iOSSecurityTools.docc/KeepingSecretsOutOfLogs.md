@@ -92,15 +92,16 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   key that is not on the allowlist in any of its shapes, a markup tag, and a secret name with or
   without a separator. A URL is shown only when it is clean; any other URL
   cuts the text where it starts. Over-hiding is by design. A value written with a
-  separator, ASCII or not, is always hidden. The limits apply only when no trigger comes before a
-  secret and the name is written without a separator, and both are deliberate disguise: a name in
-  letters of the safe alphabet with two or more of its letters replaced on purpose by look-alike
-  letters (`pɑsswoʀd hunter2`), and a name with a combining mark (Mn) put in place of one of its
-  letters (`tͦken hunter2`, a small `o` written above the `t`), are not guaranteed to be found.
-  One letter (L*) put in place of a letter of a name is found (`pɑssword`, `tøken`);
-  <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits. No table of
-  look-alikes is kept to chase them, since none is ever complete. Write logs with separators, or
-  as structured data, and keep secrets out of them.
+  separator, ASCII or not, is always hidden. One wildcard rule reads a name written without a
+  separator: a letter, mark or number outside ASCII that has no ASCII form, inside an ASCII word,
+  counts as nothing or as any one letter, so one such character put in or put in place of a letter
+  is found (`pɑssword`, `tøken`, `tͦken` with a small `o` written above the `t`, `passw〇rd`,
+  `piꞏn`). The limit applies only when no trigger comes before a secret and the name is written
+  without a separator, and it is deliberate disguise: a name in letters of the safe alphabet with
+  two or more of its letters replaced on purpose by look-alike letters (`pɑsswoʀd hunter2`) is not
+  guaranteed to be found. <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits.
+  No table of look-alikes is kept to chase them, since none is ever complete. Write logs with
+  separators, or as structured data, and keep secrets out of them.
 
 ### Plain-ASCII keys are compared; any other key is redacted
 
@@ -154,7 +155,12 @@ that names a secret or cannot be read counts wherever it is, as `{"type":"passwo
 CloudFormation's `{"ParameterKey":"DbPassword","ParameterValue":…}` write a field; a name there is
 a string without `:`, `=`, `,`, `;`, quotes or brackets inside it, in which a symbol whose
 compatibility form is a letter (`ⓟ`, `🄿`) counts as one, so a sentence (`"Error: token expired"`)
-or JSON in a string is read as free text instead. A name with a percent escape or a character
+or JSON in a string is read as free text instead. One function makes the decision for every place
+that reads a name, and a name with a control character in it — a line feed or carriage return
+before, inside or after it, a tab or any other — names a secret whatever it says, wherever it is:
+`{"ParameterKey":"DbPassword\n",…}`, `{"OptionName":"\nDBPassword",…}` and
+`{"OptionName":"Db\nPassword",…}` hide the value beside them, as one reader of the name trims it and
+another splits it. A name with a percent escape or a character
 reference is read as written, with the `x` of `&#x` and the `u` of `%u` read as punctuation, and
 with its escapes decoded, and any of these readings that names a secret counts: `%card` and
 `&#xcvv` name `card` and `cvv` although decoding takes their first letters for hex digits,
@@ -173,7 +179,8 @@ naming a secret, as an array or object does in JSON.
 
 The cost is that a name in another script hides what is beside it, whatever it holds:
 `{"label":"Şifre","value":…}` hides the value on purpose, `{"name":"Ayşe","role":"admin"}` hides
-`role`, and `{"type":"image/png","data":…}` hides `data`. Names that are plain and not secret keep
+`role`, and `{"type":"image/png","data":…}` hides `data`. So does a short string with a line break
+or a tab beside other members, wherever it is: `{"message":"Hello\nWorld","id":"7"}` hides `id`. Names that are plain and not secret keep
 their values:
 
 ```swift
@@ -254,7 +261,9 @@ without ``SensitiveDataRedactor/Kinds/secretFields`` only the value detectors ru
 the query. With it, a query parameter keeps its value only when its name is plain ASCII and on
 ``SensitiveDataRedactor/allowedQueryParameters``, which is empty by default. A path segment
 that looks like an identifier or a secret becomes `:id`, and so does the segment after one that
-names a secret. A URL whose path has more than ``SensitiveDataRedactor/maximumPathSegments`` (64)
+names a secret or is not a plain-ASCII name — ASCII letters and digits, `_`, `-`, `.` and spaces,
+read by the same rule as a name held by a field — so `/şifre/…`, `/p%0Ain/…`, `/p%20in/…`,
+`/@me/…` and `/a,b/…` hide the segment after them, and `:id` is not such a name. A URL whose path has more than ``SensitiveDataRedactor/maximumPathSegments`` (64)
 segments, or whose query has more than ``SensitiveDataRedactor/maximumQueryParameters`` (128)
 parameters, is recorded with its scheme, host and port only, and so is a URL whose path servers
 resolve to other segments than it is written with: one with a dot segment (`/pin/./4831`,
@@ -427,9 +436,13 @@ kept and reviews got past one variant at a time:
   plain ASCII is never allowed. Any other key cuts the text at its value — `x=hunter2` as well as
   `Error: …` — and so does a separator with no key before it, or a key on the line before its
   separator. The separators are `=` and `:` and runs of them (`:=`, `==`, `=>`); a `:` between two
-  digits is part of a number only after a number — a time, a date and time or an address and its
-  port (`12:30:45`, `2026-10-19T12:30`, `10.0.0.1:8080`) — and after a key that ends in digits it
-  is a separator (`user1:2345` cuts at `2345`). A key in quotes of any kind (`"…":`, `'…'=`, or
+  digits is part of a number only when both sides have the whole shape of one — a time, a date and
+  time, an address and its port or a line and column (`12:30:45`, `2026-10-19T12:30:45.123+03:00`,
+  `10.0.0.1:8080`, `42:10`): one to four digits after it (five after an address), then more groups
+  after `:`, a fraction after `.`, `Z` or an offset, and then the end of the word. A letter after
+  the digits (`7:9hunter2`, `12:3hunter2`), five or more digits right after the `:` (`1:482913`)
+  and a key that ends in digits (`user1:2345`) make it a separator, which cuts the text at the
+  value. A key in quotes of any kind (`"…":`, `'…'=`, or
   in backticks) that is not allowed cuts the text at its opening quote, so nothing written in the
   quotes shows: `cache miss for "session Qz9Wk7rX": refetching` keeps `cache miss for `,
   `"password hint": 1` keeps nothing, and `{'status': 200, 'last status': 'x'}` keeps
@@ -459,14 +472,15 @@ kept and reviews got past one variant at a time:
   word is compared by its ASCII skeleton, the one reading every path uses: once the text is read
   in compatibility form (`ｐａｓｓ`, `pässword`), every letter still without an ASCII form (`ꞏ`,
   `ı`, `ɑ`, `ø`) is left out, and what remains is compared with the secret names, a plural `s`
-  included. However many such letters are put in, the name is found: `piꞏn`, `tokeın`, `tokenꞏs`
-  and `keyıs` read as `pin`, `token`, `tokens` and `keys`. A name also counts with one of its
-  letters missing where a letter was left out, so one letter (L*) put in place of a letter of the
-  name is found too (`pɑssword`, `user_pın`). A word of another language that reads as a name this
-  way hides what follows it — Turkish `yapın` reads as `pin` — which over-hides on purpose. A name
-  with two or more of its letters replaced is not read this way, and neither is one with a
-  combining mark (Mn) in place of a letter (`tͦken`): a mark is left out like any mark, so no
-  letter was left out where the name misses one (see "What it does not find"). A name
+  included. That is the one wildcard rule: a letter, mark or number outside ASCII that has no
+  ASCII form — `ꞏ`, `ı`, `ɑ`, `ø`, a combining mark such as `ͦ` (U+0366), `〇` — counts as nothing
+  or as any one letter. As nothing, however many such characters are put in, the name is found:
+  `piꞏn`, `tokeın`, `tokenꞏs` and `keyıs` read as `pin`, `token`, `tokens` and `keys`. As a
+  letter, a name counts with one of its letters missing where such a character stands, so one put
+  in place of a letter of the name is found too (`pɑssword`, `user_pın`, `tͦken`, `ͦtp`,
+  `passw〇rd`). A word of another language that reads as a name this way hides what follows it —
+  Turkish `yapın` reads as `pin` — which over-hides on purpose. A name with two or more of its
+  letters replaced is not read this way (see "What it does not find"). A name
   written as a value is read too: `name=`, `key=`, `label=` and
   the other keys that hold a name are not allowed by default, so they cut the text at once
   (`name="password"`, `Content-Disposition: form-data; name="pin"`).
@@ -528,6 +542,9 @@ redactor.redact("GET https://api.example.com/items 200") // "GET https://api.exa
 redactor.redact("GET https://api.example.com/users/12345678 200")
 // "GET https://api.example.com/users/:id 200"
 redactor.redact("user1:2345678 at 12:30")                 // "user1:[redacted]"
+redactor.redact("at 12:30 id 7:9hunter2")                 // "at 12:30 id 7:[redacted]"
+redactor.redact("login t\u{0366}ken hunter2")            // "login tͦken [redacted]"
+redactor.redact("paid with 4111 1111 1111\u{2028}1111")  // "paid with [redacted]"
 ```
 
 The scan reads the text once, left to right, and stops at the first trigger. It keeps two
@@ -549,7 +566,13 @@ form, a multipart part, a URL and its host — and at least wherever 2.0.0 found
 or digit written in ASCII glues digits or a token to a word (`id4242…`, `xeyJ…`), while a letter
 written another way (`é`, `𝐚`) does not. A finding that runs over the point where free text is
 cut, such as a card number grouped with non-breaking spaces, is hidden whole with the rest of the
-text. An address after `:` shows no letter of its name, which may be the password of
+text. So is one written across a vertical tab, a form feed, U+0085, U+2028 or U+2029: each of them
+cuts free text, and the detectors read across them — as the white space between the groups of a
+card number or an IBAN, and as nothing inside an address or a token — so the text is hidden from
+the start of the finding (`paid with 4111 1111 1111` and a vertical tab before `1111` keeps
+`paid with `), as it is across a control character that the scanning copy leaves out. A line feed
+or carriage return written as such is a line break of the log and ends a finding. An address
+after `:` shows no letter of its name, which may be the password of
 `user:password@host` (`user:•••@example.com`), a token whose last dot was cut off (`eyJ….eyJ…`) is
 still a token, and a finding that runs over the end of a clean URL in a line, as a card number
 that starts in its path or a token whose dot ends the sentence, is hidden whole. Scanning and replacing take time
@@ -562,21 +585,17 @@ It cannot find a secret that has no label or a label it does not know, such as a
 language, or a value encoded as a whole that is shorter than 32 characters. In free text, when no
 trigger comes before it and no `=` or `:` follows a name, it does not read a name written wholly in
 another script that only looks Latin (Greek `ΡΙΝ`), one with two or more of its letters replaced
-by letters of the safe alphabet that have no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`, and
-in a URL passed to `redact(url:)` a path `/pɑsswoʀd/…` the segment after it) or written in them
-throughout (small capitals), one with a combining mark (Mn, U+0363 to U+036F: `ͣ`, `ͤ`, `ͥ`, `ͦ`,
-…) put in place of one of its letters (`login tͦken hunter2` shows `hunter2`, as do `pͥn`,
-`passwͦrd` and `sͤcret` in a JSON string, a multipart part, a text/plain body and a URL path
-segment `/t%CD%A6ken/…`; with a separator, as a name and value pair or in an array of two it is
-hidden), one written
-with a space between its letters (`p a s s w o r d`), one spelled with digits and symbols
+by letters of the safe alphabet that have no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`) or
+written in them throughout (small capitals), one written with a space between its letters
+(`p a s s w o r d`), one spelled with digits and symbols
 (`p@ssword`, `passw0rd`), a value written before its name or glued to a flag (`-pSECRET`), a value
 after a flag or a name that is not on the list without a separator (`--user SECRET`), a name in
 another script as an element of an array of more than two (`["Şifre","…","…"]`), and a name and
 value in two different JSON objects or arrays. In structured input it shows a secret written into
 a key name, since structured key names are shown (`{"password hunter2":…}` in a JSON body hides
 the value and shows the name). It does not find card numbers grouped with dots,
-underscores or `+`, glued to ASCII letters or written as a JSON floating-point number, an IBAN
+underscores or `+`, split by a line break of the log (a line feed or carriage return), glued to
+ASCII letters or written as a JSON floating-point number, an IBAN
 written in lowercase, or a token split by `/` or `-` into pieces shorter than 32 characters. The value of
 an allowed key is shown, also when it is repeated (`status==…`).
 
