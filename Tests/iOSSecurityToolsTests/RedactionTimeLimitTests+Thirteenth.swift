@@ -21,6 +21,8 @@ extension RedactionTimeLimitTests {
         all += URLInTextShapes.text
         all += QuotedKeyShapes.text
         all += MarkupQuoteShapes.text
+        all += DenseFindingShapes.text
+        all += DenseFindingShapes.bodies(size: size, redactor: largeBodies)
         return all
     }()
 }
