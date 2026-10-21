@@ -70,15 +70,16 @@ struct RedactionMultiLineTests {
 
     @Test("a trigger on one line hides every line after it, and text without one stays")
     func cutOverLines() {
-        // `<key>` is itself the secret word `key`, so a property list is hidden from its first key.
-        #expect(redactor.redact("<key>CFBundleName</key>\n<string/>\nMyApp") == "<key>[redacted]")
-        #expect(redactor.redact("<key>password</key>\n<string>k-1</string>\nnext") == "<key>[redacted]")
-        #expect(redactor.redact("<string name=\"title\"></string>\nHello") == "<string name=[redacted]")
+        // Markup is never parsed in free text, so a property list is hidden from its first tag.
+        #expect(redactor.redact("<key>CFBundleName</key>\n<string/>\nMyApp") == "[redacted]")
+        #expect(redactor.redact("<key>password</key>\n<string>k-1</string>\nnext") == "[redacted]")
+        #expect(redactor.redact("<string name=\"title\"></string>\nHello") == "[redacted]")
         #expect(redactor.redact("status=[\n1,\n2\n] ok") == "status=[\n1,\n2\n] ok")
         #expect(redactor.redact("started\nstatus=200\ncount=3\ndone") == "started\nstatus=200\ncount=3\ndone")
         // After an allowed key that holds a name, a plain name is read on over the lines.
         let allowing = SensitiveDataRedactor(allowedTextKeys: ["name"])
-        #expect(allowing.redact("<string name=\"title\"></string>\nHello") == "<string name=\"title\"></string>\nHello")
+        #expect(allowing.redact("name=\"title\"\nHello") == "name=\"title\"\nHello")
+        #expect(allowing.redact("<string name=\"title\"></string>\nHello") == "[redacted]")
     }
 
     /// Generated layouts of a property list and of JSON after `name=`, with names that are secret

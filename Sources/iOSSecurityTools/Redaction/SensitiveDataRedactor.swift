@@ -71,13 +71,13 @@ import Foundation
 ///
 /// A log line has no grammar, so it is cut once: **in free text, the first secret name hides
 /// everything after it in that text; this over-hides on purpose.** Over-hiding is by design. A
-/// key that is not on ``allowedTextKeys`` (`x=hunter2`, `Error: …`), in quotes (`"user": …`), as
-/// the first string of a two-element array (`["user","…"]`) and as the tag of an element
-/// (`<user>…`), cuts it too, and
-/// so does the first character outside a safe alphabet — letters, marks and digits of any script,
-/// the ASCII space, tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or
-/// a control character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a
-/// word longer than 256 characters. No list of look-alike separators is kept. A URL in free text
+/// key that is not on ``allowedTextKeys`` (`x=hunter2`, `Error: …`), in quotes (`"user": …`) and as
+/// the first string of a two-element array (`["user","…"]`) cuts it too, and so does the first
+/// character outside a safe alphabet — letters, marks and digits of any script, the ASCII space,
+/// tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or a control
+/// character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a word longer
+/// than 256 characters. **In free text the first markup tag cuts the text** (`<user>…`, `</a>`,
+/// `<!--`), whatever the tag. No list of look-alike separators is kept. A URL in free text
 /// is shown only when it is clean, and any other URL cuts the text where it starts. Strings
 /// inside JSON, form values, allowed query values and multipart text parts are free text, each on
 /// its own. ``redact(_:)`` describes the rule.
@@ -262,7 +262,7 @@ public struct SensitiveDataRedactor: Sendable {
     private static let defaultAllowedTextFolds = allowableFolds(defaultAllowedTextKeys)
 
     /// Whether free text is read on after the key `name`, the one decision for every key of free
-    /// text (`key=value`, a quoted key, a JSON member name or pair in a line, a tag): it is plain
+    /// text (`key=value`, a quoted key, a JSON member name or pair in a line): it is plain
     /// ASCII without a space, names no secret and is on ``allowedTextKeys`` once folded. A key
     /// longer than ``PlainName/maximumKeyLength`` is turned down before it is read.
     func allowsTextKey(_ name: some Collection<Unicode.Scalar>) -> Bool {
@@ -289,7 +289,7 @@ public struct SensitiveDataRedactor: Sendable {
     /// redactor.redact("password hunter2")                         // "password [redacted]"
     /// ```
     ///
-    /// Five rules decide where the text is cut, and no list of variants is kept for any of them:
+    /// Six rules decide where the text is cut, and no list of variants is kept for any of them:
     ///
     /// - **A safe alphabet.** The text is read only as far as it is written in letters, marks and
     ///   digits of any script (the Unicode categories L, M and N), the ASCII space, tab, line feed
@@ -317,9 +317,12 @@ public struct SensitiveDataRedactor: Sendable {
     ///   ends in digits it is a separator (`user1:2345` cuts at `2345`). JSON in the text follows
     ///   the same rule member by member, a member name that is not allowed cutting it at its
     ///   opening quote, and the first string of a two-element array is a key too
-    ///   (`["user","bob"]` cuts at `"user"`). A tag is a key: the
-    ///   text of an element whose tag is not allowed cuts the text (`<user>bob</user>` keeps
-    ///   `<user>`), and a trigger inside a start tag cuts the text at its first attribute value.
+    ///   (`["user","bob"]` cuts at `"user"`).
+    /// - **Markup.** In free text the first markup tag cuts the text: markup is never parsed, and
+    ///   a `<` before a letter of any script, `/`, `!` or `?` cuts the text there, whatever the tag
+    ///   (`<user>`, `</a>`, `<!-- … -->`, `<![CDATA[…]]>`, `<?xml …?>`); no tag is allowed.
+    ///   `login <user>bob</user>` keeps `login `. A `<` before white space, a digit, `=` or other
+    ///   punctuation is a comparison (`a < b`, `<3`).
     /// - **Secret names.** A word that holds a secret name cuts the text after the name, with or
     ///   without a separator: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`.
     ///   Punctuation inside a word (`pass~word`) and a space or `|` between two words

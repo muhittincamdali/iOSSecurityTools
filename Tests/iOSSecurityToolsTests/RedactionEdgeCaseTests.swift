@@ -51,14 +51,14 @@ struct RedactionEdgeCaseTests {
         ("password[0]=a&password[1]=b", "password[redacted]"),
         ("user[password]=hunter2&user[name]=bob", "user[password]=[redacted]"),
         ("user[password][confirmation]=x", "user[password][redacted]"),
-        ("<password>hunter2</password><user>bob</user>", "<password>[redacted]"),
-        ("<ApiKey>\nk-1\n</ApiKey>", "<ApiKey>[redacted]"),
-        ("<token>unclosed\nnext line", "<token>[redacted]"),
-        ("<password type=\"text\">hunter2</password>", "<password [redacted]"),
-        ("<password >hunter2</password>", "<password >[redacted]"),
-        ("<Token\n  kind=\"a>b\">abc</Token>", "<Token[redacted]"),
-        ("<ns:password>hunter2</ns:password>", "<ns:[redacted]"),
-        ("<wsse:Password Type=\"PasswordText\">hunter2</wsse:Password>", "<wsse:[redacted]"),
+        ("<password>hunter2</password><user>bob</user>", "[redacted]"),
+        ("<ApiKey>\nk-1\n</ApiKey>", "[redacted]"),
+        ("<token>unclosed\nnext line", "[redacted]"),
+        ("<password type=\"text\">hunter2</password>", "[redacted]"),
+        ("<password >hunter2</password>", "[redacted]"),
+        ("<Token\n  kind=\"a>b\">abc</Token>", "[redacted]"),
+        ("<ns:password>hunter2</ns:password>", "[redacted]"),
+        ("<wsse:Password Type=\"PasswordText\">hunter2</wsse:Password>", "[redacted]"),
         ("password%3Dhunter2", "[redacted]"),
         ("q=password%3dhunter2", "q=[redacted]"),
         ("secret%3Ax", "[redacted]"),
@@ -154,21 +154,25 @@ struct RedactionEdgeCaseTests {
         #expect(redactor.redact("\(name)=x") == "\(name)=[redacted]")
     }
 
-    @Test("leaves markup without element text or a secret name", arguments: ["</password>", "<private>", "<br/> <p/>", "<a>\n  <b/>\n</a>"])
+    // Free text never parses markup: a tag cuts the text at its `<` even when it holds no text and
+    // names nothing (`<br/>`, `</password>`).
+    @Test("markup cuts free text at its first tag, also markup without element text", arguments: ["</password>", "<private>", "<br/> <p/>", "<a>\n  <b/>\n</a>"])
     func markup(input: String) {
-        #expect(redactor.redact(input) == input)
+        #expect(redactor.redact(input) == "[redacted]")
     }
 
-    // A tag is a key: the text of an element whose tag is not allowed is cut, also text after a
-    // `<` that only looks like a tag.
-    @Test("the text of an element cuts the text unless its tag is allowed", arguments: [
-        ("<br/> <p>hi</p>", "<br/> <p>[redacted]"),
-        ("if a<b && c>d then", "if a<b && c>[redacted]"),
-        ("<user>bob</user>", "<user>[redacted]"),
-        ("<dict>\n  <key>user</key>\n  <string>bob</string>\n</dict>", "<dict>\n  <key>[redacted]"),
-        ("<a status=\"1\">bob</a>", "<a status=\"1\">[redacted]"),
-        ("<status>200</status> done", "<status>200</status> done"),
-        ("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>", "<\u{540D}\u{524D}>[redacted]"),
+    // A `<` that only looks like a tag cuts the text too; no tag is allowed, whatever its name.
+    @Test("the first markup tag cuts the text at its `<`, whatever the tag", arguments: [
+        ("<br/> <p>hi</p>", "[redacted]"),
+        ("if a<b && c>d then", "if a[redacted]"),
+        ("<user>bob</user>", "[redacted]"),
+        ("<dict>\n  <key>user</key>\n  <string>bob</string>\n</dict>", "[redacted]"),
+        ("<a status=\"1\">bob</a>", "[redacted]"),
+        ("<status>200</status> done", "[redacted]"),
+        ("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>", "[redacted]"),
+        ("done <!-- note --> x", "done [redacted]"),
+        ("x <![CDATA[y]]>", "x [redacted]"),
+        ("<?xml version=\"1.0\"?>", "[redacted]"),
     ])
     func elementText(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -187,27 +191,28 @@ extension RedactionEdgeCaseTests {
         #expect(redactor.redact(input) == expected)
     }
 
-    // Free text is not parsed as XML, but a tag is a key: a tag that is not allowed, in any script,
-    // cuts the text at its element's text, and a tag that cannot be read cuts it at the tag.
-    @Test("an XML element is read as a key and its text")
+    // Free text is not parsed as XML: a tag in any script cuts the text at its `<`, and allowing a
+    // key never allows a tag of that name.
+    @Test("an XML element cuts free text at its tag, whatever keys are allowed")
     func xmlElements() {
-        #expect(redactor.redact("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>") == "<\u{540D}\u{524D}>[redacted]")
-        #expect(redactor.redact("<p\u{0430}ssword>bob</p\u{0430}ssword>") == "<[redacted]")
-        #expect(SensitiveDataRedactor(allowedTextKeys: ["user"]).redact("<user>bob</user>") == "<user>bob</user>")
+        #expect(redactor.redact("<\u{540D}\u{524D}>bob</\u{540D}\u{524D}>") == "[redacted]")
+        #expect(redactor.redact("<p\u{0430}ssword>bob</p\u{0430}ssword>") == "[redacted]")
+        #expect(SensitiveDataRedactor(allowedTextKeys: ["user"]).redact("<user>bob</user>") == "[redacted]")
+        #expect(SensitiveDataRedactor(allowedTextKeys: ["user"]).redact("status=200 user=bob <user>bob</user>") == "status=200 user=bob [redacted]")
     }
 
     // Free text keeps a value only after an allowed key, so comparisons, times and object
     // descriptions written as `key: value` are hidden unless the app allows their keys.
     @Test("pairs in free text keep their value only after an allowed key", arguments: [
-        ("<a href=\"x\">y</a>", "<a href=[redacted]"),
+        ("<a href=\"x\">y</a>", "[redacted]"),
         ("count>=5", "count>=[redacted]"),
         ("a <= b", "a <= [redacted]"),
         ("x == y", "x == [redacted]"),
         ("time: 12:30:45", "time: [redacted]"),
         ("Error: connection refused", "Error: [redacted]"),
-        ("<a:b:c>x</a:b:c>", "<a:[redacted]"),
+        ("<a:b:c>x</a:b:c>", "[redacted]"),
         ("finished: <NSHTTPURLResponse: 0x600> { URL: https://example.com/v2/items?id=7 } { Status Code: 200 }", "finished: [redacted]"),
-        ("<UIView: 0x7f8; frame = (0 0; 375 812); layer = <CALayer: 0x600>>", "<UIView: [redacted]"),
+        ("<UIView: 0x7f8; frame = (0 0; 375 812); layer = <CALayer: 0x600>>", "[redacted]"),
     ])
     func pairsInText(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -218,8 +223,9 @@ extension RedactionEdgeCaseTests {
         let allowing = SensitiveDataRedactor(allowedTextKeys: ["time", "error", "href", "a"])
         #expect(allowing.redact("time: 12:30:45") == "time: 12:30:45")
         #expect(allowing.redact("Error: connection refused") == "Error: connection refused")
-        #expect(allowing.redact("<a href=\"x\">y</a>") == "<a href=\"x\">y</a>")
-        #expect(SensitiveDataRedactor(allowedTextKeys: ["href"]).redact("<a href=\"x\">y</a>") == "<a href=\"x\">[redacted]")
+        #expect(allowing.redact("href=x a=y") == "href=x a=y")
+        // Markup is never read, whatever keys are allowed.
+        #expect(allowing.redact("<a href=\"x\">y</a>") == "[redacted]")
         // The value of an allowed key is still read: a secret name in it hides the rest.
         #expect(allowing.redact("error: wrong password hunter2") == "error: wrong password [redacted]")
     }

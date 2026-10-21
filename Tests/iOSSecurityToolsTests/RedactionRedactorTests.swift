@@ -42,7 +42,9 @@ struct SensitiveDataRedactorTests {
 
     @Test("finds email addresses", arguments: [
         ("contact alice@example.com.", "contact a•••@example.com."),
-        ("<bob.smith+news@mail.example.org>", "<b•••@mail.example.org>"),
+        ("(bob.smith+news@mail.example.org)", "(b•••@mail.example.org)"),
+        // Before a letter, `<` starts markup, which cuts free text: the address goes with it.
+        ("<bob.smith+news@mail.example.org>", "[redacted]"),
         ("fullwidth ａｌｉｃｅ@ｅｘａｍｐｌｅ.ｃｏｍ", "fullwidth a•••@example.com"),
         // `＠` is punctuation outside ASCII, which cuts the text: the address is hidden whole.
         ("fullwidth ａｌｉｃｅ＠ｅｘａｍｐｌｅ．ｃｏｍ", "fullwidth [redacted]"),

@@ -139,7 +139,7 @@ struct RedactionHeldNameTests {
         let fields = #"[{"label":"Şifre","value":"hunter2"},{"label":"ⓟⓘⓝ","value":"1234"},{"label":"status","value":"ok"}]"#
         #expect(json(fields) == #"[{"label":"Şifre","value":"[redacted]"},{"label":"[redacted]","value":"[redacted]"},{"label":"status","value":"ok"}]"#)
         #expect(json(#"{"name":"Ayşe","role":"admin"}"#) == #"{"name":"Ayşe","role":"[redacted]"}"#)
-        #expect(redactor.redact("<string name=\"password\" />\nhunter2") == "<string name=[redacted]")
+        #expect(redactor.redact("<string name=\"password\" />\nhunter2") == "[redacted]")
     }
 
     @Test("an allowed key that holds a name is read too, and a route under path stays")

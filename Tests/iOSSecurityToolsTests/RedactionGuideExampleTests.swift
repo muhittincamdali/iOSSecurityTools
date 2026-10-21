@@ -18,15 +18,15 @@ struct RedactionGuideExampleTests {
         ("contact alice%40example.com", "contact [redacted]"),
         (#"log [["X-User","bob"]]"#, #"log [[[redacted]"#),
         (#"cache miss for "session Qz9Wk7rX": refetching"#, "cache miss for [redacted]"),
-        ("<user>bob</user>", "<user>[redacted]"),
+        ("<user>bob</user>", "[redacted]"),
         ("password hunter2", "password [redacted]"),
         ("p\u{0430}ssword=hunter2", "p\u{0430}ssword=[redacted]"),
         ("login pa\u{115F}ssword hunter2", "login [redacted]"),
         ("password: 'abc\n  hunter2'", "password: [redacted]"),
         ("| password | hunter2 |", "| password [redacted]"),
         ("field name=\"password\" hunter2", "field name=[redacted]"),
-        (#"<string name="api_key">k-1</string>"#, "<string name=[redacted]"),
-        ("<key>password</key>\n<string>k-1</string>", "<key>[redacted]"),
+        (#"<string name="api_key">k-1</string>"#, "[redacted]"),
+        ("<key>password</key>\n<string>k-1</string>", "[redacted]"),
         ("upload ok status=200\n--B\r\nContent-Disposition: form-data; name=\"pin\"\r\n\r\n4831\r\n--B--",
          "upload ok status=200\n--B\r\nContent-Disposition: [redacted]"),
         (#"{"status":200,"user":"bob"} done"#, #"{"status":200,[redacted]"#),
@@ -38,7 +38,8 @@ struct RedactionGuideExampleTests {
         ("user1:2345678 at 12:30", "user1:[redacted]"),
         ("see https://x.example/a?q=1 ok", "see [redacted]"),
         ("Merhaba dünya \u{1F44B} bye", "Merhaba dünya [redacted]"),
-        ("Optional<String>(x)", "Optional<String>[redacted]"),
+        ("Optional<String>(x)", "Optional[redacted]"),
+        ("if a < b then", "if a < b then"),
     ])
     func freeText(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

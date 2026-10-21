@@ -99,12 +99,10 @@ extension FreeTextScanner {
         return k
     }
 
-    /// Whether byte `i` ends a word: white space, a separator, a quote, a boundary, and in a start
-    /// tag the `>` that ends it.
+    /// Whether byte `i` ends a word: white space, a separator, a quote or a boundary.
     func endsWord(_ i: Int) -> Bool {
         let byte = text.bytes[i]
         return text.isSpace(i) || text.isLineTerminator(i) || isSeparator(i) || byte == UInt8(ascii: "\"") || Self.boundaries.contains(byte)
-            || (byte == UInt8(ascii: ">") && isInStartTag)
     }
 
     /// The length of `&#NN;` or `&#xHH;` at `i`, also without the `;` (`&#61`) and behind `&amp;`
