@@ -1,12 +1,48 @@
 import Foundation
 
+/// Where a value detector puts what it finds. The detectors run twice: once into a sink that only
+/// counts, then into one that keeps the findings in an array of exactly that capacity. An array
+/// that grows while it is filled holds its old and its new storage at once, and a megabyte of
+/// short findings (`1:2@`, `a@b.cd`) took most of 16 MB that way; the replacement of a finding,
+/// such as the mask of an address, is made only when it is kept.
+struct SpanSink {
+    private(set) var spans: [SensitiveDataRedactor.Span] = []
+    private(set) var count = 0
+    private let keeps: Bool
+
+    /// A sink that counts what it is given.
+    init() {
+        keeps = false
+    }
+
+    /// A sink that keeps what it is given, in an array of `capacity`.
+    init(capacity: Int) {
+        keeps = true
+        spans.reserveCapacity(capacity)
+    }
+
+    mutating func add(_ span: @autoclosure () -> SensitiveDataRedactor.Span) {
+        count += 1
+        if keeps { spans.append(span()) }
+    }
+}
+
+/// The value detectors. Each takes `startLimit`, the byte where free text is cut (``count`` when
+/// it is not): no finding starts at or after it, since the cut hides what is there, and the text
+/// after it is read only to complete a finding that starts before it. A megabyte of addresses
+/// after a character that cuts the text at its start finds nothing and takes no memory for them.
 extension NormalizedText {
     // MARK: Card numbers
 
-    func cardSpans() -> [SensitiveDataRedactor.Span] {
-        var spans: [SensitiveDataRedactor.Span] = []
+    /// The most bytes a card number spans: 19 digits in groups of one or more, with up to three
+    /// spaces, tabs or dashes between them.
+    static let longestCard = 19 + 18 * 3
+
+    func cardSpans(startLimit: Int = .max, into spans: inout SpanSink) {
+                // No card number that starts before the limit runs past this byte.
+        let chainLimit = startLimit >= count ? count : min(count, startLimit + Self.longestCard)
         var i = 0
-        while i < count {
+        while i < min(count, startLimit) {
             guard isDigit(i), i == 0 || !gluesToWord(i - 1) else {
                 i += 1
                 continue
@@ -26,7 +62,7 @@ extension NormalizedText {
                 while separatorEnd < count, separatorEnd - j < 3, isCardSeparator(separatorEnd) {
                     separatorEnd += 1
                 }
-                guard separatorEnd > j, separatorEnd < count, isDigit(separatorEnd) else { break }
+                guard separatorEnd > j, separatorEnd < chainLimit, isDigit(separatorEnd) else { break }
                 window.append(groupStart..<j, into: &spans, in: self)
                 groupStart = separatorEnd
                 j = separatorEnd
@@ -36,7 +72,6 @@ extension NormalizedText {
             window.finish(last: runsIntoLetters ? nil : groupStart..<j, into: &spans, in: self)
             i = max(j, i + 1)
         }
-        return spans
     }
 
     private func isCardSeparator(_ i: Int) -> Bool {
@@ -52,7 +87,7 @@ extension NormalizedText {
         private var groups: [Range<Int>] = []
         private var first = 0
 
-        mutating func append(_ group: Range<Int>, into spans: inout [SensitiveDataRedactor.Span], in text: NormalizedText) {
+        mutating func append(_ group: Range<Int>, into spans: inout SpanSink, in text: NormalizedText) {
             groups.append(group)
             while first < groups.count, digitCount(from: first, to: groups.count - 1) > 19 {
                 read(into: &spans, in: text)
@@ -63,7 +98,7 @@ extension NormalizedText {
             }
         }
 
-        mutating func finish(last: Range<Int>?, into spans: inout [SensitiveDataRedactor.Span], in text: NormalizedText) {
+        mutating func finish(last: Range<Int>?, into spans: inout SpanSink, in text: NormalizedText) {
             if let last { groups.append(last) }
             while first < groups.count { read(into: &spans, in: text) }
         }
@@ -82,7 +117,7 @@ extension NormalizedText {
         /// start in. The Luhn sum of every run of groups from `first` is kept as it grows: the
         /// digits at even and at odd places from the start, each as written and doubled, so that
         /// either can be the last digit.
-        private mutating func read(into spans: inout [SensitiveDataRedactor.Span], in text: NormalizedText) {
+        private mutating func read(into spans: inout SpanSink, in text: NormalizedText) {
             var count = 0
             var even = (plain: 0, doubled: 0)
             var odd = (plain: 0, doubled: 0)
@@ -112,7 +147,7 @@ extension NormalizedText {
                 return
             }
             let range = groups[first].lowerBound..<groups[best].upperBound
-            spans.append(text.span(range, .cardNumbers, Mask.cardNumber(text.string(range))))
+            spans.add(text.span(range, .cardNumbers, Mask.cardNumber(text.string(range))))
             first = best + 1
         }
     }
@@ -123,9 +158,12 @@ extension NormalizedText {
     /// `-` (`ayşe.yılmaz`, `bjørn.dæhlie`, `张伟`), `@`, and a domain of such letters and digits,
     /// `.` and `-` that ends in a top-level domain of two or more letters (`example.com`,
     /// `例子.中国`). The whole address is one finding, shown with ``Mask/email(_:)``.
-    func emailSpans() -> [SensitiveDataRedactor.Span] {
-        var spans: [SensitiveDataRedactor.Span] = []
-        for at in 0..<count where bytes[at] == UInt8(ascii: "@") {
+    func emailSpans(startLimit: Int = .max, into spans: inout SpanSink) {
+                // An address whose `@` comes after the limit starts before it only when the name between
+        // them runs over it.
+        var reach = min(count, startLimit)
+        while reach < count, isLocalPart(reach) { reach += 1 }
+        for at in 0..<min(count, reach + 1) where bytes[at] == UInt8(ascii: "@") {
             var start = at
             while start > 0, isLocalPart(start - 1) { start -= 1 }
             while start < at, bytes[start] == UInt8(ascii: ".") { start += 1 }
@@ -135,10 +173,8 @@ extension NormalizedText {
             guard start < at, end > at + 1, isDomain(at + 1..<end) else { continue }
             // After a `:` the name may be the password of `user:password@host`: none of it is shown.
             let followsColon = start > 0 && bytes[start - 1] == UInt8(ascii: ":")
-            let mask = followsColon ? Mask.email("x@" + shown((at + 1)..<end)) : Mask.email(shown(start..<end))
-            spans.append(span(start..<end, .emailAddresses, mask))
+            spans.add(span(start..<end, .emailAddresses, followsColon ? Mask.email("x@" + shown((at + 1)..<end)) : Mask.email(shown(start..<end))))
         }
-        return spans
     }
 
     private func isLocalPart(_ i: Int) -> Bool {
@@ -153,11 +189,10 @@ extension NormalizedText {
 
     // MARK: JSON Web Tokens
 
-    func jsonWebTokenSpans() -> [SensitiveDataRedactor.Span] {
+    func jsonWebTokenSpans(startLimit: Int = .max, into spans: inout SpanSink) {
         let prefix = Array("eyJ".utf8)
-        var spans: [SensitiveDataRedactor.Span] = []
-        var i = 0
-        while i + 3 <= count {
+                var i = 0
+        while i + 3 <= count, i < startLimit {
             // A token glued to a word by `_` or `-` (`id_eyJ…`) is still a token.
             guard bytes[i] == prefix[0], bytes[i + 1] == prefix[1], bytes[i + 2] == prefix[2], i == 0 || !gluesToWord(i - 1) else {
                 i += 1
@@ -182,22 +217,20 @@ extension NormalizedText {
             let payload = i + segmentLengths[0] + 1
             let isCutToken = segments == 2 && segmentLengths[1] >= 4 && bytes[payload..<(payload + 3)].elementsEqual(prefix)
             if segments >= 3 || isCutToken, segmentLengths[0] >= 4, segmentLengths[1] >= 4 {
-                spans.append(span(i..<j, .jsonWebTokens, SensitiveDataRedactor.replacement))
+                spans.add(span(i..<j, .jsonWebTokens, SensitiveDataRedactor.replacement))
                 i = j
             } else {
                 i += max(segmentLengths[0], 1)
             }
         }
-        return spans
     }
 
     // MARK: Bearer tokens
 
-    func bearerSpans() -> [SensitiveDataRedactor.Span] {
+    func bearerSpans(startLimit: Int = .max, into spans: inout SpanSink) {
         let word = Array("bearer".utf8)
-        var spans: [SensitiveDataRedactor.Span] = []
-        var i = 0
-        while i < count {
+                var i = 0
+        while i < min(count, startLimit) {
             guard matches(word, at: i), isWordStart(i), i + word.count < count, isSpace(i + word.count) else {
                 i += 1
                 continue
@@ -207,10 +240,9 @@ extension NormalizedText {
             var end = start
             while end < count, isTokenCharacter(end) { end += 1 }
             if end - start >= 8 {
-                spans.append(span(start..<end, .bearerTokens, SensitiveDataRedactor.replacement))
+                spans.add(span(start..<end, .bearerTokens, SensitiveDataRedactor.replacement))
             }
             i = max(end, i + 1)
         }
-        return spans
     }
 }
