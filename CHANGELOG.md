@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   uploaded files are omitted the same way. The limit is 256 KiB (`defaultMaximumBodySize`)
   unless the app passes another to `SensitiveDataRedactor(maximumBodySize:)`; a body of 256 KiB
   takes less than 16 MB of memory in every shape tested, and the worst shapes take up to about
-  60 bytes for each byte, so a limit of 1 MiB can take 64 MB. A multipart part header name is
+  60 bytes for each byte, so a limit of 1 MiB can take 64 MB. A body of 256 MiB or more is
+  omitted whatever the limit. A multipart part header name is
   written only when it is one of the headers a part carries (`Content-Length`,
   `Content-Transfer-Encoding`, `Content-ID`, `Content-Description`, `Content-Language`,
   `Content-Location`, `Content-Encoding`); any other is `[redacted]` with its value.
@@ -95,7 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   secret word in a single pass. JSON in free text is parsed up to 64 Ki scalars, and longer JSON
   cuts the text at its first bracket; a test run in a process of its own checks that a megabyte of
   free text takes less than 16 MB more memory, and a body of 256 KiB less than 16 MB, in every
-  shape the reviews measured.
+  shape the reviews measured. The value detectors look for findings only before the point where
+  free text is cut, count them before they keep them and keep each in 24 bytes, the scanning copy
+  keeps the offsets of its bytes as runs, and `matches(in:)` finds string indices only at the
+  start and end of each match, so a megabyte dense with findings (`a@b.cd`, `1:2@`) takes less
+  than 13 MiB. Free text of 256 Mi scalars or more is hidden whole.
 - A reading budget bounds the time one redaction takes: the documents found inside an input
   (JSON in a line or a string, a URL in text, a multipart part) and the texts read inside them
   read at most four times the input's length in all. The input itself is read freely; a text past
@@ -118,14 +123,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     word is copied for reading at more than that length.
   - **The key rule in every shape.** A key that is not on `allowedTextKeys` cuts the text at its
     value: in `key=value` and `key: value` (also `x=hunter2` and `Error: …`, a separator without
-    a key and a key on the line before its separator). A quoted key (`"…": value`, `"…"=value`), a member name of JSON in
+    a key and a key on the line before its separator). A key in quotes of any kind (`"…": value`,
+    `'…'=value`, `` `…`: value ``), a member name of JSON in
     the text and the first string of a two-element array (`["user","…"]`, `[["X-User","…"]]`)
     cut it at their opening quote, so nothing written in them shows. A key with a space in it is
     never allowed in free text.
   - **Markup.** In free text the first markup tag cuts the text: markup is never parsed, and a
-    `<` before a letter of any script, `/`, `!` or `?` cuts the text there, whatever the tag
-    (`<user>`, `</a>`, `<br/>`, `<!--`, `<![CDATA[`, `<?xml`); no tag is allowed. A `<` before
-    white space, a digit, `=` or other punctuation is a comparison (`a < b`).
+    `<` cuts the text there unless an ASCII space, tab or line break, an ASCII digit, `=` or the
+    end of the text follows it, whatever follows it otherwise — a letter of any script, `_`, `:`,
+    `/`, `!`, `?`, other punctuation or a digit outside ASCII (`<user>`, `<_id>`, `</a>`, `<br/>`,
+    `<!--`, `<![CDATA[`, `<?xml`, `<०>`, `x << 1`); no tag is allowed. `a < b`, `1<2` and `<3`
+    are comparisons.
   - **Secret names**, with or without a separator, split by punctuation or a space, and names
     written as values (`name="password"`, `Content-Disposition: form-data; name="pin"`). A word is compared by its ASCII skeleton, one
     reading for every path: once the text is read in compatibility form, the letters that have
@@ -145,12 +153,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before it cuts the text, and no table of look-alikes is kept to chase it.
 - A URL in free text is shown only when it is clean — `scheme://host` and an optional path of
   ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or `\`),
-  whose host and segments name no secret, followed by white space, a line break or punctuation
-  that ends a sentence — and any other URL cuts the text where it starts; `allowedQueryParameters`
-  applies only to `redact(url:)`. A clean URL is written as `redact(url:)` writes it, with `:id`
-  for an identifier in its path (`GET https://api.example.com/users/12345678 200` keeps
-  `GET https://api.example.com/users/:id 200`), and one longer than 256 characters cuts the text
-  like any long word.
+  whose host and segments name no secret, followed by white space, a line break, the end of the
+  text or one `.`, `,`, `!` or `)` before one of those — and any other URL cuts the text where it
+  starts, also one that a quote, a backtick, `>`, `]`, `}` or a `?`, `#`, `;` or `:` follows;
+  `allowedQueryParameters` applies only to `redact(url:)`. A clean URL is written as
+  `redact(url:)` writes it, with `:id` for an identifier in its path
+  (`GET https://api.example.com/users/12345678 200` keeps
+  `GET https://api.example.com/users/:id 200`), its last segment is read with the next word, as
+  two words are (`…/to ken hunter2`), and one longer than 256 characters cuts the text like any
+  long word.
 - A secret name written as a value names what follows it. In free text it is a trigger; in a JSON
   object, a member whose value is such a name hides the values of the other members, apart from
   the members that hold names and a JSON Patch or SCIM `op`. A name that is not secret
@@ -394,6 +405,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every script, markup between a tag and its text and quotes around it, and of quoted keys with
   every line break, quote and separator, on every path; quotes of every style, a quote before a
   megabyte of escaped ones and comparisons written with `<` are measured for time and memory.
+- The eighteenth review got values past free text in three ways. The markup rule listed what may
+  start a tag (a letter, `/`, `!`, `?`), so a tag that starts with `_` or a digit outside ASCII
+  was read as a comparison and its element text showed (`<_id>Qx870</_id>` kept `<_id>Qx870`,
+  `<०>…`, `<١>…`), on all six free-text paths; the rule now names what a comparison is instead,
+  and every other `<` cuts the text. A URL ended at a quote, `>` or backtick and the text after it
+  was read on, so a `?`, `#` or `;` glued to that character was neither in the URL nor a cut
+  (`see https://example.com/a'#Qx31Sec`), while `redact(url:)` hid the fragment of the same URL;
+  a URL is now clean only before white space, a line break, the end of the text or one mark that
+  ends a sentence, and a test checks that free text never shows more of a URL than
+  `redact(url:)` does. A key in single quotes or backticks was read as words, so the value after
+  `'x status':` showed after the allowed `status`; a key in quotes of any kind now follows the
+  quoted-key rule. The last segment of a clean URL is read with the next word (`…/to ken`). The
+  same review measured 18.55 MiB for a megabyte of short addresses with one `ﬁ` on each line,
+  17.69 MiB for `matches(in:)` on short addresses after a `ﬁ`, and up to 17.6 MiB for addresses
+  after a zero-width space that hid them all: the scanning copy kept an offset for each byte once
+  one scalar was read as several, each finding took 40 bytes in an array that doubled as it grew,
+  the detectors read past the cut and `matches(in:)` kept a string index for each scalar. Those
+  shapes, and the densest findings the detectors have, now take less than 13 MiB and are measured
+  for time and memory. The review's 1,084 adversarial probes and the correctness review's 139
+  inputs, each on three paths, are kept as tests, checked claim by claim (53 of them shown by
+  design or as a documented limitation), with a property test of `<` before a character of
+  every general category on every path.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
