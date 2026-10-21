@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
+<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -59,7 +59,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 507 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 509 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -297,7 +297,7 @@ func redactionSample() -> (request: String, log: String) {
 которое распространённый серверный парсер мог бы разделить на поля иначе, например граница
 multipart после одиночного перевода строки или форма с `;`.
 Тело больше 256 КиБ тоже пропускается (`maximumBodySize`; приложение может поднять этот предел,
-ценой до примерно 60 байт памяти на каждый байт тела), а JSON читается не глубже 64 уровней
+ценой до примерно 40 байт памяти на каждый байт тела), а JSON читается не глубже 64 уровней
 объектов и массивов и не больше четырёх вложенных друг в друга документов, считая JSON внутри
 строк, что ограничивает стек, который может занять враждебный ввод; строка, в которой их больше,
 скрывается целиком.

@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 507 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 509 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -289,7 +289,7 @@ bodies are read with a parser, and a body it cannot parse completely is omitted 
 `[body omitted: N bytes, <type>]`, and so is a body that a common server parser could split into
 fields differently, such as a multipart boundary after a bare line feed or a form with a `;`.
 A body over 256 KiB is omitted too (`maximumBodySize`; an app may raise it, at a cost of up to
-about 60 bytes of memory for each byte of the body), and JSON is read at most 64 objects and arrays
+about 40 bytes of memory for each byte of the body), and JSON is read at most 64 objects and arrays
 deep and four documents one inside another, JSON in strings included, which bounds the stack that
 hostile input can use; a string that holds more is redacted whole.
 The documents found inside one input read at most four times its length in all, which bounds

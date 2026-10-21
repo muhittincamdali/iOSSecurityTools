@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
+<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 507 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 509 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -301,7 +301,7 @@ ve multipart gövdeleri bir ayrıştırıcıyla okunur; tamamen ayrıştıramad�
 farklı bölebileceği bir gövde de atlanır; örneğin tek başına bir satır sonundan sonra gelen
 multipart sınırı ya da `;` içeren bir form.
 256 KiB'tan büyük bir gövde de atlanır (`maximumBodySize`; uygulama bu sınırı yükseltebilir, bunun
-bedeli gövdenin her baytı için en fazla yaklaşık 60 bayt bellektir); JSON, dizelerin içindeki JSON
+bedeli gövdenin her baytı için en fazla yaklaşık 40 bayt bellektir); JSON, dizelerin içindeki JSON
 da sayılarak en fazla 64 nesne ve dizi derinliğinde ve iç içe en fazla dört belge olarak okunur,
 böylece kötü niyetli bir girdinin kullanabileceği yığın sınırlı kalır; daha fazlasını içeren bir
 dize bütünüyle maskelenir.

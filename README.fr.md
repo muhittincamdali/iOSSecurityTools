@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
+<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  507 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  509 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -302,7 +302,7 @@ analyseur ; un corps qu’il ne peut pas analyser entièrement est omis sous la 
 pourrait découper autrement en champs, comme une limite multipart après un saut de ligne seul
 ou un formulaire contenant `;`.
 Un corps de plus de 256 Kio est omis lui aussi (`maximumBodySize` ; une app peut relever la limite,
-au prix de jusqu’à environ 60 octets de mémoire pour chaque octet du corps), et le JSON est lu sur
+au prix de jusqu’à environ 40 octets de mémoire pour chaque octet du corps), et le JSON est lu sur
 64 niveaux d’objets et de tableaux au plus et sur quatre documents imbriqués au plus, JSON dans les
 chaînes compris, ce qui borne la pile qu’une entrée hostile peut occuper ; une chaîne qui en
 contient davantage est masquée en entier. Les documents trouvés dans une entrée lisent en tout au
