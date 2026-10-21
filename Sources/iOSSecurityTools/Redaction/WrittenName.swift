@@ -8,8 +8,10 @@
 /// ``FieldName``, as a key is: its name hides what goes with it unless it is plain ASCII and
 /// names no secret. A name in letters outside ASCII (`Şifre`, `Пароль`), in symbols with no letter
 /// or digit of their own (`ⓟⓘⓝ`, `🄿🄸🄽`, `🔑`, `𝐩𝐢𝐧`) or with punctuation (`Password:`) counts as
-/// secret, whatever it says. In every place, a name with a control character in it — a line
-/// feed, a carriage return, a tab or any other — counts as secret too (see
+/// secret, whatever it says, and so does a name with a control character in it — a line feed, a
+/// carriage return, a tab or any other. Elsewhere a name with a control character in it counts
+/// when it names a secret with its control characters left out or read as spaces, and a name of
+/// control characters and white space alone counts beside a field (see
 /// ``nameNamesSecret(_:byKeyRule:compatibility:)``, the one decision every place makes).
 enum WrittenName {
     /// Where a name is written, which decides how it is read.
@@ -50,17 +52,23 @@ enum WrittenName {
     }
 
     /// Whether a name written as a value names a secret: the one decision of every place that
-    /// reads a name. A name with a control character (Cc) in it names one, whatever it says — a
-    /// line feed or carriage return before, inside or after it (`DbPassword\n`, `\r\npin`,
-    /// `Db\nPassword`), a tab, a vertical tab or any other: the name it stands for cannot be told,
-    /// as one reader trims it and another splits it. With `byKeyRule`, for a field that holds a
-    /// name, so does a name that is not plain ASCII (see ``FieldName/hidesValue(_:)``). Any other
-    /// name names a secret when its words do, as free text reads them (see
-    /// ``FreeTextScanner/nameNamesSecret(_:compatibility:)``).
+    /// reads a name. With `byKeyRule`, for a field that holds a name or the name of a pair, a name
+    /// that is not plain ASCII names one (see ``FieldName/hidesValue(_:)``), and so does a name
+    /// with a control character (Cc) in it, whatever it says. Elsewhere a name names a secret when
+    /// its words do, as free text reads them (see ``FreeTextScanner/nameNamesSecret(_:compatibility:)``);
+    /// a name with a control character in it is read twice, with its control characters left out
+    /// and with each read as a space, as one reader trims or drops them and another splits there
+    /// (`DbPassword\n`, `\r\npin`, `Db\nPassword`, `pa\nssword`), and either reading counts. So a
+    /// name with a line break or a tab that names nothing either way (`Hello\nWorld`, `ok\n`,
+    /// `a\tb`) keeps what is beside it.
     static func nameNamesSecret(_ value: [Unicode.Scalar], byKeyRule: Bool, compatibility: CompatibilityText) -> Bool {
         if byKeyRule, FieldName.hidesValue(value) { return true }
-        if value.contains(where: isControl) { return true }
-        return FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+        guard value.contains(where: isControl) else { return FreeTextScanner.nameNamesSecret(value, compatibility: compatibility) }
+        if byKeyRule { return true }
+        let dropped = value.filter { !isControl($0) }
+        let split = value.map { isControl($0) ? " " : $0 }
+        return FreeTextScanner.nameNamesSecret(dropped, compatibility: compatibility)
+            || FreeTextScanner.nameNamesSecret(split, compatibility: compatibility)
     }
 
     /// The control characters, U+0000 to U+001F and U+007F to U+009F: the general category Cc.

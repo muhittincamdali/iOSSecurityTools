@@ -10,8 +10,9 @@ import Testing
 ///   knows to hold one, so a string there names a secret only when it is a name. A string with a
 ///   line feed or carriage return was not a name, so `{"ParameterKey":"DbPassword\n",
 ///   "ParameterValue":…}` showed the value, in JSON, a form, a multipart body and an allowed query
-///   (64 of the probes). A name with a control character now names a secret (see
-///   ``WrittenName/nameNamesSecret(_:byKeyRule:compatibility:)``).
+///   (64 of the probes). A name with a control character now names a secret when it does with
+///   its control characters left out or read as spaces, and whatever it says in a field that
+///   holds a name (see ``WrittenName/nameNamesSecret(_:byKeyRule:compatibility:)``).
 /// - **A finding cut by a line separator.** A card number, an IBAN, an email address or a token
 ///   with a vertical tab, a form feed, U+0085, U+2028 or U+2029 in it showed the part before it
 ///   (`paid with 4111 1111 1111` and the vertical tab, 28 of the probes): free text is cut there,
@@ -88,7 +89,7 @@ struct RedactionTwentyFourthReviewProbeTests {
         #expect(body(#"{"message":"Error: x\ny","code":"42"}"#) == #"{"message":"Error: [redacted]","code":"42"}"#)
     }
 
-    @Test("a name with any control character in it names a secret, on every path that reads a name")
+    @Test("a name with any control character in it, held by a field that holds a name, names a secret on every path")
     func controlCharacters() {
         let redactor = SensitiveDataRedactor()
         let controls: [Unicode.Scalar] = ["\n", "\r", "\t", "\u{0B}", "\u{0C}", "\u{00}", "\u{1B}", "\u{7F}", "\u{85}", "\u{9F}"]
@@ -97,10 +98,11 @@ struct RedactionTwentyFourthReviewProbeTests {
             for name in ["Db\(control)User", "\(control)region", "region\(control)"] {
                 let escaped = name.unicodeScalars.map { $0.isASCII && $0.value >= 0x20 && $0 != "\u{7F}" ? String($0) : String(format: "\\u%04x", $0.value) }.joined()
                 let bodies = [
-                    (#"{"ParameterKey":"\#(escaped)","ParameterValue":"98765"}"#, "application/json"),
-                    (#"[{"OptionName":"\#(escaped)","Value":"98765"}]"#, "application/json"),
-                    ("OptionName=\(SensitiveDataRedactor.formEncoded(name))&Value=98765", "application/x-www-form-urlencoded"),
-                    ("--B0und\r\nContent-Disposition: form-data; name=\"OptionName\"\r\n\r\n\(name)\r\n--B0und\r\n"
+                    (#"{"name":"\#(escaped)","value":"98765"}"#, "application/json"),
+                    (#"[{"label":"\#(escaped)","Value":"98765"}]"#, "application/json"),
+                    (#"[["\#(escaped)","98765"]]"#, "application/json"),
+                    ("label=\(SensitiveDataRedactor.formEncoded(name))&Value=98765", "application/x-www-form-urlencoded"),
+                    ("--B0und\r\nContent-Disposition: form-data; name=\"label\"\r\n\r\n\(name)\r\n--B0und\r\n"
                         + "Content-Disposition: form-data; name=\"Value\"\r\n\r\n98765\r\n--B0und--", "multipart/form-data; boundary=B0und"),
                 ]
                 for (body, type) in bodies where redactor.redact(body: Data(body.utf8), contentType: type).contains("98765") {

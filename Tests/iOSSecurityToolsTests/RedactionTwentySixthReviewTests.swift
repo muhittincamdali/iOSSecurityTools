@@ -42,6 +42,57 @@ struct RedactionTwentySixthReviewTests {
         #expect(shown.isEmpty, "\(shown)")
     }
 
+    @Test("a short string with a line break or a tab that names nothing keeps the members beside it")
+    func plainLinesKeepSiblings() {
+        let bodies = [
+            #"{"message":"Hello\nWorld","id":"7"}"#,
+            #"{"stdout":"ok\n","exit_code":0,"duration_ms":12}"#,
+            #"{"cols":"a\tb","row":7}"#,
+            #"{"cols":"a\tb\tc","row":7}"#,
+            #"{"id":1,"status":"ok","message":"line one\nline two","count":3}"#,
+            #"{"text":"a\r\nb","user":"alice"}"#,
+            #"[{"msg":"a\nb","user":"alice"}]"#,
+        ]
+        for body in bodies {
+            #expect(Self.json(body) == body)
+        }
+        #expect(Self.form("msg=hello%0A&user=alice") == "msg=hello%0A&user=alice")
+        #expect(Self.form("msg=a%09b&user=alice") == "msg=a%09b&user=alice")
+        #expect(!Self.multipart(name: "line one\nline two", beside: "msg").contains("[redacted]"))
+        #expect(!Self.multipart(name: "ok\n", beside: "msg").contains("[redacted]"))
+    }
+
+    @Test("a name with a control character that names a secret, left out or read as a space, hides the value")
+    func controlReadings() {
+        let s = Self.secret
+        let names = [
+            #"DbPassword\n"#, #"\nDBPassword"#, #"Db\nPassword"#, #"pa\nssword"#, #"api\nkey"#, #"\r\npin"#,
+            #"pass\u0000word"#, #"to\tken"#, #"Db\u001bPassword"#, #"session\u0085id"#, #"user\tpin"#,
+        ]
+        var shown: [String] = []
+        for name in names {
+            for body in [#"{"ParameterKey":"\#(name)","ParameterValue":"\#(s)"}"#, #"[{"OptionName":"\#(name)","Value":"\#(s)"}]"#]
+            where Self.json(body).contains(s) {
+                shown.append(body)
+            }
+        }
+        for name in ["pa%0Assword", "Db%0APassword", "%0D%0Apin", "to%09ken"] where Self.form("OptionName=\(name)&Value=\(s)").contains(s) {
+            shown.append(name)
+        }
+        for name in ["pa\nssword", "Db\tPassword", "\r\npin"] where Self.multipart(name: name, beside: "OptionName").contains(s) {
+            shown.append(name.debugDescription)
+        }
+        #expect(shown.isEmpty, "\(shown)")
+    }
+
+    @Test("a name with a control character held by a field that holds a name hides the value whatever it says")
+    func heldNamesWithControls() {
+        #expect(Self.json(#"{"name":"Hello\nWorld","value":"x"}"#) == #"{"name":"Hello\nWorld","value":"[redacted]"}"#)
+        #expect(Self.json(#"{"label":"ok\n","value":"x"}"#) == #"{"label":"ok\n","value":"[redacted]"}"#)
+        #expect(Self.json(#"[["a\tb","x"]]"#) == #"[["a\tb","[redacted]"]]"#)
+        #expect(Self.form("name=region%0A&value=x") == "name=region%0A&value=[redacted]")
+    }
+
     @Test("a name of spaces alone, or an empty one, beside a field that holds no name keeps the value")
     func spacesAlone() {
         #expect(Self.json(#"{"title":" ","data":"ok"}"#) == #"{"title":" ","data":"ok"}"#)
