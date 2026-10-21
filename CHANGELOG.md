@@ -37,7 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scheme, host and port are written.
 - `SensitiveDataRedactor.maximumPathSegments` (64) and `.maximumQueryParameters` (128): a URL
   with more path segments, or more query or path parameters, is recorded with its scheme, host
-  and port only, which bounds the work one URL can ask for.
+  and port only, which bounds the work one URL can ask for. So is a URL whose path servers resolve
+  differently: one with a dot segment (`/pin/./4831`), an escaped `.`, `/`, `\` or `%` (`%2E`,
+  `%2F`, `%5C`, `%25`) or a segment that is only parameters (`/token/;/…`).
 - `allowedTextKeys` and `defaultAllowedTextKeys` (`status`, `method`, `path`, `duration_ms`,
   `count`): the keys after which free text is read on.
 - `SensitiveDataRedactor.Kinds.ibans` and `.longTokens`, both in `.all`: IBANs that pass the
@@ -113,12 +115,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     digits of any script (L, M, N), the ASCII space, tab, line feed and carriage return, and
     printable ASCII. The first character outside it cuts the text: punctuation, a symbol or a
     space outside ASCII (`꞉`, `≔`, `→`, `·`, `＝`, `—`, `€`, `、`, an emoji, U+00A0, U+2028), a
-    control or format character and every default-ignorable code point. A modifier letter
-    (`ː`, `ー`) counts as a letter only after a letter or digit outside ASCII.
+    control or format character and every default-ignorable code point, and a letter or number
+    whose compatibility form, which the text is read as, holds punctuation, a space, a symbol or
+    a modifier letter (`🄁` is `0,`, `⑴` is `(1)`, `½` is `1⁄2`). A modifier letter (`ː`, `ー`)
+    counts as a letter only after a letter or digit outside ASCII.
   - **Escapes.** No escape is decoded in free text: `%XX`, `%uXXXX`, `&#…;`, a named HTML
     reference (`&colon;`, `&equals;`, `&amp;`, and `&` before a letter unless it starts the name
-    of a field before `=`), octal and CSS escapes (`\075`, `\3d`), `\xNN`, `\uNNNN`, `\u{…}`,
-    `\U…` and `\N{…}` cut the text at the start of the word they are in.
+    of a field before `=`) cut the text at the start of the word they are in. In free text every
+    backslash escape cuts the text: a backslash does, whatever follows it, unless an ASCII space,
+    tab or line break or the end of the text does (`\075`, `\x3D`, `\x{73}`, `\o{163}`, `\N{…}`,
+    `\q`); a Windows path in free text is hidden from its first backslash on, by design.
   - **Opaque words.** A word longer than 256 characters cuts the text where it starts, so no
     word is copied for reading at more than that length.
   - **The key rule in every shape.** A key that is not on `allowedTextKeys` cuts the text at its
@@ -438,6 +444,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without a box and the body is handed over as it came, so such a body takes less than 10 MiB,
   and the worst shape of a body about 40 bytes for each byte instead of 60; the tests hold these
   bodies to 12 MiB.
+- The twentieth review found secret names written with the braced escapes of C++23, Perl and
+  PCRE read as plain words in free text, so the value after them showed (`login pa\x{73}sword
+  hunter2`, `pa\o{163}sword`, `\x{70}\x{69}\x{6e}`), on all six paths that read free text: free
+  text listed the forms of backslash escapes, and the list left these out. A backslash now cuts
+  the text at the start of its word whatever follows it, unless an ASCII space, tab or line break
+  or the end of the text does, and the list is gone; backslash escapes are no longer decoded
+  anywhere, so a name held by a field with one (`\u0070assword`) names a secret. The review's
+  240 probes are kept as tests, with a property test of a backslash before a character of every
+  general category on every path.
+- A letter or number whose compatibility form holds punctuation (`🄁` is `0,`, `⒈` is `1.`, `⑴`
+  is `(1)`) was in the safe alphabet of free text, which judged a character by its general
+  category while the scanner read its compatibility form; and a quote glued to the word before
+  it started a quoted key, so `🄁"status": …`, `À"status": …` and `x"status": …` showed the
+  value. The alphabet is now decided by one function on the form the scanner reads, such a
+  character cuts the text, and a quote glued to a word cuts the text where the word starts. A
+  test puts every scalar from U+0080 to U+3FFFF before and into an allowed key in five shapes.
+- `redact(url:)` read a path segment by segment as written, while servers resolve dot segments
+  and decode escapes before routing: `/pin/./4831` showed `4831`, and `/token/x/../…` the value
+  after `..`. A path with a dot segment, an escaped `.`, `/`, `\` or `%`, or a segment that is
+  only parameters now records only the scheme, host and port.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
