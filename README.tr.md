@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@c7c9a7923be9feec86b2755388a0341a8b855508 status=reviewed -->
+<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 559 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 572 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -321,6 +321,9 @@ bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk
 harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com` olur).
 ASCII dışı adlar, değer olarak yazıldıklarında da gizli sayılır: ad taşıyan bir alanın (`name`,
 `label`, `type`, `id`, …) yanındaki değer, ad `Şifre`, `ⓟⓘⓝ` ya da `🔑` gibiyse maskelenir.
+İçinde satır sonu ya da başka bir kontrol karakteri bulunan bir ad, nerede olursa olsun gizli
+sayılır (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`); `redact(url:)` içinde de düz ASCII
+bir ad olmayan bir yol segmentinden sonraki segment `:id` olur (`/şifre/…`, `/a,b/…`).
 Serbest metinde ilk gizli ad, o metinde kendisinden sonra gelen her şeyi gizler; bu bilerek fazla
 gizler. Fazla gizleme tasarımdır. Metnin nerede kesileceğini altı kural belirler ve hiçbiri bir
 varyant listesi tutmaz: güvenli bir alfabenin (her yazı sisteminin harfleri, işaretleri ve
@@ -340,10 +343,10 @@ ilk işaretleme etiketi metni keser, etiket ne olursa olsun (`<user>`, `<_id>`, 
 ardından ASCII boşluk, sekme, satır sonu ya da rakam, `=` veya metnin sonu gelmeyen her `<` metni
 keser; ve ayraçlı ya da
 ayraçsız, `name="password"` gibi değer olarak yazılmış olanı da dahil bir gizli ad. Bir kelime
-ASCII iskeletiyle karşılaştırılır: ASCII karşılığı olmayan harfler atılır, böylece `piꞏn`,
-`tokeın` ve `tokenꞏs`, `pin`, `token` ve `tokens` olarak okunur; bir ad, harf atılan yerde bir
-harfi eksik olarak da sayılır, yani adın bir harfinin yerine konan tek bir harf (L*) bulunur
-(`pɑssword`). Aynı satırda kapanmayan bir tırnak metni tırnağın
+ASCII iskeletiyle, tek bir joker kuralıyla karşılaştırılır: ASCII karşılığı olmayan, ASCII dışı
+bir harf, işaret ya da rakam hiçbir şey ya da herhangi bir harf sayılır; böylece `piꞏn`, `tokeın`
+ve `tokenꞏs`, `pin`, `token` ve `tokens` olarak okunur ve adın bir harfinin yerine konan böyle tek
+bir karakter bulunur (`pɑssword`, `tͦken`, `passw〇rd`). Aynı satırda kapanmayan bir tırnak metni tırnağın
 başından keser; böylece içinde satır sonu olan tırnaklı bir anahtardan hiçbir şey görünmez. Metin yalnız satırın sonuna kadar değil, sonuna kadar kesilir:
 `login user=bob status=401`, `login user=[redacted]` olur; log'a yazılmış bir multipart gövdesi ilk
 başlığından, bir property list ise ilk etiketinden itibaren gizlenir.
@@ -354,18 +357,19 @@ ad taşımaz ve ardından boşluk, satır sonu, metnin sonu ya da bunlardan biri
 gelen URL de, metni başladığı yerde keser (`see https://x.example/a?page=2 ok` ve
 `see https://x.example/a'#token`, `see [redacted]` olur;
 `allowedQueryParameters` yalnızca `redact(url:)` için geçerlidir). Rakamlar arasındaki bir `:`
-yalnızca bir sayıdan sonra sayının parçasıdır (`12:30`, `10.0.0.1:8080`); rakamla biten bir
-anahtardan (`user1:2345`) sonra ise
-ayraçtır.
+yalnızca iki yanı da aynı biçimde bir sayıysa sayının parçasıdır (`12:30:45`, `10.0.0.1:8080`,
+`42:10`); rakamla biten bir anahtardan (`user1:2345`) sonra, bir harften önce (`id 7:9hunter2`)
+ya da beş veya daha fazla rakamdan önce (`1:482913`) ise ayraçtır. Dikey sekme, sayfa sonu ya da
+bir Unicode satır ayırıcısı üzerinden yazılmış bir kart numarası, IBAN, e-posta adresi ya da
+token bütün olarak bulunur ve metin onun başından itibaren gizlenir.
 Maskeleme bir güvenlik
 ağıdır, garanti değildir: yanlışlıkla loglanan sırlar için tasarlanmıştır. Yapılandırılmış girdi
 (JSON, formlar, multipart gövdeleri ve parça başlıkları, URL'ler ve host'ları) varsayılan olarak
 güvenlidir; maskeleyicinin orada anlamadığı şey maskelenir, yapılandırılmış anahtar adları ise
 gösterilir ve yalnız altlarındaki değerler gizlenir. Serbest metinde ayraç olmadan yazılmış ve iki
-ya da daha fazla harfi benzer harflerle değiştirilmiş bir ad (`pɑsswoʀd hunter2`) ya da bir harfinin
-yerine birleşik işaret (Mn) konmuş bir ad (`tͦken hunter2`), önünde metni kesen bir şey yoksa
-bulunacağı garanti edilmez: ikisi de kasıtlı gizlemedir; bir harfin yerine konan tek bir harf (L*)
-ise bulunur.
+ya da daha fazla harfi benzer harflerle değiştirilmiş bir adın (`pɑsswoʀd hunter2`), önünde metni
+kesen bir şey yoksa bulunacağı garanti edilmez: bu kasıtlı gizlemedir; bir harfin yerine konan tek
+bir harf, işaret ya da rakam ise bulunur (`tͦken hunter2`).
 [Loglama rehberi](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 serbest metin kurallarını, bedellerini ve neleri bulmadıklarını anlatır.
 

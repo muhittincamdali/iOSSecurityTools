@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 559 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 572 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -307,6 +307,9 @@ shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com
 `a•••@gmail.com`).
 Non-ASCII names count as secret even when they are written as values: the value beside a field that
 holds a name (`name`, `label`, `type`, `id`, …) such as `Şifre`, `ⓟⓘⓝ` or `🔑` is redacted.
+A name with a line break or another control character in it counts as secret wherever it is
+(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), and in `redact(url:)` the segment after a
+path segment that is not a plain-ASCII name becomes `:id` (`/şifre/…`, `/a,b/…`).
 In free text, the first secret name hides everything after it in that text; this over-hides on
 purpose. Over-hiding is by design. Six rules set where the text is cut, and none keeps a list of
 variants: the first character outside a safe alphabet (letters, marks and digits of any script,
@@ -323,10 +326,10 @@ kind (`"`, `'`, a backtick), where it cuts the text at the opening quote (`cache
 free text the first markup tag cuts the text, whatever the tag (`<user>`, `<_id>`, `</a>`, `<!--`):
 a `<` cuts it unless an ASCII space, tab, line break or digit, `=` or the end of the text follows
 it; and a
-secret name, with or without a separator, also one written as a value such as `name="password"`. A word is compared by its ASCII skeleton: the letters that have no ASCII form
-are left out, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and a name
-also counts with one letter missing where one was left out, so one letter (L*) put in place of a
-letter is found (`pɑssword`). A quote that does not
+secret name, with or without a separator, also one written as a value such as `name="password"`. A word is compared by its ASCII skeleton with one wildcard
+rule: a letter, mark or number outside ASCII that has no ASCII form counts as nothing or as any
+one letter, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and one such
+character put in place of a letter is found (`pɑssword`, `tͦken`, `passw〇rd`). A quote that does not
 close on its line cuts the text at the quote, so a quoted key with a line break in it shows
 nothing. The text is cut to its
 end and not only to the end of the line: `login user=bob status=401` becomes
@@ -338,16 +341,19 @@ space, a line break, the end of the text or one `.`, `,`, `!` or `)` before one 
 other URL cuts the text where it starts, also one that a quote, `>`, a backtick or a `?`, `#` or `;`
 follows (`see https://x.example/a?page=2 ok` and `see https://x.example/a'#token` become
 `see [redacted]`; `allowedQueryParameters`
-applies only to `redact(url:)`). A `:` between digits is part of a number only after a number
-(`12:30`, `10.0.0.1:8080`); after a key that ends in digits (`user1:2345`) it is a separator.
+applies only to `redact(url:)`). A `:` between digits is part of a number only when both sides
+are numbers of one shape (`12:30:45`, `10.0.0.1:8080`, `42:10`); after a key that ends in digits
+(`user1:2345`), before a letter (`id 7:9hunter2`) or before five or more digits (`1:482913`) it
+is a separator. A card number, an IBAN, an email address or a token written across a vertical
+tab, a form feed or a Unicode line separator is found whole, and the text is hidden from its
+start.
 Redaction is a safety net, not a guarantee: it is built for secrets logged by accident.
 Structured input (JSON, forms, multipart bodies and their part headers, URLs and their hosts) is
 default-safe, and what the redactor does not understand there is redacted; structured key names
 are shown, and only the values under them are hidden. In free text, a name written without a
-separator with two or more of its letters replaced by look-alike letters (`pɑsswoʀd hunter2`), or
-with a combining mark (Mn) put in place of one of its letters (`tͦken hunter2`), is not
-guaranteed to be found when nothing before it cuts the text: both are deliberate disguise, while
-one letter (L*) put in place of a letter is found. The
+separator with two or more of its letters replaced by look-alike letters (`pɑsswoʀd hunter2`) is
+not guaranteed to be found when nothing before it cuts the text: that is deliberate disguise,
+while one letter, mark or number put in place of a letter is found (`tͦken hunter2`). The
 [logging guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describes the rules for free text, what they cost and what they do not find.
 

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@c7c9a7923be9feec86b2755388a0341a8b855508 status=reviewed -->
+<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  559 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  572 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -321,6 +321,10 @@ nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser `a•••
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
 `Şifre`, `ⓟⓘⓝ` o `🔑`.
+Un nombre con un salto de línea u otro carácter de control dentro cuenta como secreto esté donde
+esté (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), y en `redact(url:)` el segmento que
+sigue a un segmento de ruta que no es un nombre ASCII simple pasa a ser `:id` (`/şifre/…`,
+`/a,b/…`).
 En texto libre, el primer nombre secreto oculta todo lo que le sigue en ese texto; esto oculta de
 más a propósito. Ocultar de más es una decisión de diseño. Seis reglas fijan dónde se corta el
 texto, y ninguna guarda una lista de variantes: el primer carácter fuera de un alfabeto seguro
@@ -343,10 +347,10 @@ primera etiqueta de marcado corta el texto, sea cual sea la etiqueta (`<user>`, 
 ASCII, de `=` o del final del texto lo corta; y
 un nombre secreto,
 con o sin separador, también escrito como valor como `name="password"`. Una palabra se compara
-por su esqueleto ASCII: las letras que no tienen forma ASCII se omiten, así que `piꞏn`, `tokeın` y
-`tokenꞏs` se leen como `pin`, `token` y `tokens`, y un nombre cuenta también con una letra de
-menos donde se omitió una, así que se encuentra una letra (L*) puesta en lugar de una letra
-(`pɑssword`). Una comilla que no se cierra en su línea corta el texto en
+por su esqueleto ASCII con una única regla de comodín: una letra, marca o número fuera de ASCII
+que no tiene forma ASCII cuenta como nada o como una letra cualquiera, así que `piꞏn`, `tokeın` y
+`tokenꞏs` se leen como `pin`, `token` y `tokens`, y se encuentra uno de esos caracteres puesto en
+lugar de una letra (`pɑssword`, `tͦken`, `passw〇rd`). Una comilla que no se cierra en su línea corta el texto en
 la comilla, así que de una clave entre comillas con un salto de línea dentro no se ve nada. El texto se corta hasta su
 final y no solo hasta el final de la línea: `login user=bob status=401` queda como
 `login user=[redacted]`, y un cuerpo multipart escrito en un log se oculta
@@ -358,17 +362,20 @@ ellos—, y cualquier otra URL corta el texto donde empieza, también una seguid
 un acento grave o un `?`, `#` o `;` (`see https://x.example/a?page=2 ok` y
 `see https://x.example/a'#token` se convierten en `see [redacted]`;
 `allowedQueryParameters` solo se aplica a `redact(url:)`). Un
-`:` entre dígitos forma parte de un número solo después de un número (`12:30`, `10.0.0.1:8080`);
-después de una clave que termina en dígitos (`user1:2345`) es un separador.
+`:` entre dígitos forma parte de un número solo cuando los dos lados son números de una misma
+forma (`12:30:45`, `10.0.0.1:8080`, `42:10`); después de una clave que termina en dígitos
+(`user1:2345`), antes de una letra (`id 7:9hunter2`) o antes de cinco o más dígitos (`1:482913`)
+es un separador. Un número de tarjeta, un IBAN, una dirección de correo o un token escrito a
+través de un tabulador vertical, un salto de página o un separador de línea Unicode se encuentra
+entero, y el texto se oculta desde su inicio.
 La ocultación es una red de seguridad, no una garantía: está
 hecha para secretos registrados por accidente. La entrada estructurada (JSON, formularios, cuerpos
 multipart con las cabeceras de sus partes, URL con sus hosts) es segura por defecto, y lo que el
 redactor no entiende allí se oculta; los nombres de las claves estructuradas se muestran y solo se
 ocultan los valores bajo ellos. En texto libre no se garantiza encontrar un nombre escrito sin
-separador con dos o más de sus letras sustituidas por letras parecidas (`pɑsswoʀd hunter2`), ni uno
-con una marca combinante (Mn) en lugar de una de sus letras (`tͦken hunter2`), cuando nada antes de
-él corta el texto: ambos son disfraces deliberados, mientras que una letra (L*) puesta en lugar de
-una letra sí se encuentra. La
+separador con dos o más de sus letras sustituidas por letras parecidas (`pɑsswoʀd hunter2`) cuando
+nada antes de él corta el texto: es un disfraz deliberado, mientras que una letra, marca o número
+puesto en lugar de una letra sí se encuentra (`tͦken hunter2`). La
 [guía de registros](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 describe las reglas para texto libre, lo que cuestan y lo que no encuentran.
 

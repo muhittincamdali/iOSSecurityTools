@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@c7c9a7923be9feec86b2755388a0341a8b855508 status=reviewed -->
+<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  559 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  572 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -323,6 +323,10 @@ adresse e-mail ne montre que la première lettre de son nom, dans n’importe qu
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
 valeurs : la valeur à côté d’un champ qui porte un nom (`name`, `label`, `type`, `id`, …) comme
 `Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée.
+Un nom qui contient un saut de ligne ou un autre caractère de contrôle compte comme secret où qu’il
+soit (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), et dans `redact(url:)` le segment qui
+suit un segment de chemin qui n’est pas un nom en ASCII simple devient `:id` (`/şifre/…`,
+`/a,b/…`).
 Dans le texte libre, le premier nom secret masque tout ce qui le suit dans ce texte ; cela masque
 trop, volontairement. Masquer trop est un choix de conception. Six règles fixent où le texte est
 coupé, et aucune ne tient de liste de variantes : le premier caractère hors d’un alphabet sûr
@@ -345,10 +349,10 @@ balise coupe le texte, quelle qu’elle soit (`<user>`, `<_id>`, `</a>`, `<!--`)
 n’est suivi ni d’une espace, d’une tabulation, d’un saut de ligne ou d’un chiffre ASCII, ni de `=`,
 ni de la fin du texte le coupe ; et un nom secret,
 avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Un mot est comparé par
-son squelette ASCII : les lettres sans forme ASCII sont omises, si bien que `piꞏn`, `tokeın` et
-`tokenꞏs` se lisent `pin`, `token` et `tokens`, et un nom compte aussi avec une lettre en moins là
-où une lettre a été omise, si bien qu’une lettre (L*) mise à la place d’une lettre est trouvée
-(`pɑssword`). Un guillemet qui ne se ferme pas sur sa ligne coupe le
+son squelette ASCII avec une seule règle de joker : une lettre, un signe ou un nombre hors ASCII
+sans forme ASCII compte pour rien ou pour une lettre quelconque, si bien que `piꞏn`, `tokeın` et
+`tokenꞏs` se lisent `pin`, `token` et `tokens`, et qu’un tel caractère mis à la place d’une lettre
+est trouvé (`pɑssword`, `tͦken`, `passw〇rd`). Un guillemet qui ne se ferme pas sur sa ligne coupe le
 texte à ce guillemet, si bien que rien n’apparaît d’une clé entre guillemets contenant un saut de
 ligne. Le texte est
 coupé jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401`
@@ -360,17 +364,21 @@ nomment aucun secret, suivie d’une espace, d’un saut de ligne, de la fin du 
 `,`, `!` ou `)` avant l’un d’eux — et toute autre URL coupe le texte là où elle commence, aussi celle
 que suit un guillemet, `>`, un accent grave ou un `?`, `#` ou `;` (`see https://x.example/a?page=2 ok`
 et `see https://x.example/a'#token` deviennent `see [redacted]` ; `allowedQueryParameters` ne s’applique qu’à `redact(url:)`). Un `:`
-entre des chiffres ne fait partie d’un nombre qu’après un nombre (`12:30`, `10.0.0.1:8080`) ; après
-une clé qui se termine par des chiffres (`user1:2345`), c’est un séparateur.
+entre des chiffres ne fait partie d’un nombre que si ses deux côtés sont des nombres d’une même
+forme (`12:30:45`, `10.0.0.1:8080`, `42:10`) ; après une clé qui se termine par des chiffres
+(`user1:2345`), avant une lettre (`id 7:9hunter2`) ou avant cinq chiffres ou plus (`1:482913`),
+c’est un séparateur. Un numéro de carte, un IBAN, une adresse e-mail ou un jeton écrit à travers
+une tabulation verticale, un saut de page ou un séparateur de ligne Unicode est trouvé en entier,
+et le texte est masqué à partir de son début.
 Le masquage est un filet de
 sécurité, pas une garantie : il est conçu pour les secrets journalisés par accident. L’entrée
 structurée (JSON, formulaires, corps multipart et en-têtes de leurs parties, URL et leurs hôtes)
 est sûre par défaut, et ce qu’il n’y comprend pas est masqué ; les noms des clés structurées sont
 affichés et seules les valeurs qu’elles portent sont masquées. Dans le texte libre, un nom écrit
 sans séparateur dont deux lettres ou plus sont remplacées par des lettres ressemblantes
-(`pɑsswoʀd hunter2`), ou dont une lettre est remplacée par un signe combinant (Mn)
-(`tͦken hunter2`), n’est pas forcément trouvé quand rien avant lui ne coupe le texte : ce sont
-deux déguisements délibérés, alors qu’une lettre (L*) mise à la place d’une lettre est trouvée. Le
+(`pɑsswoʀd hunter2`) n’est pas forcément trouvé quand rien avant lui ne coupe le texte : c’est un
+déguisement délibéré, alors qu’une lettre, un signe ou un nombre mis à la place d’une lettre est
+trouvé (`tͦken hunter2`). Le
 [guide des journaux](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 décrit les règles pour le texte libre, ce qu’elles coûtent et ce qu’elles ne trouvent pas.
 
