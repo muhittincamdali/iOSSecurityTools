@@ -30,20 +30,25 @@ extension SensitiveDataRedactor {
         scanner.run()
         if scanner.hidesWholeText { return whole }
         let cut = scanner.cut.flatMap { $0 < scalars.count ? [Span(start: $0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] : nil } ?? []
+        // The detectors look for findings only before the cut, which hides the rest.
+        let startLimit = scanner.cut.map(text.byteIndex(atOrAfter:)) ?? text.count
         // JSON and URLs were redacted by their own rules; the detectors do not read them again.
         let regions = scanner.regions
-        // The findings are collected in the array of the value detectors, which is the largest:
-        // a megabyte of addresses finds forty thousand of them.
+        // The findings are collected in the array of the value detectors, which is the largest (a
+        // megabyte of addresses finds a hundred thousand of them), made with room for the rest.
         var found: [Span]
         if regions.isEmpty || detectsInRegions {
-            found = detectorSpans(in: text)
+            found = detectorSpans(in: text, startLimit: startLimit, extra: scanner.spans.count + cut.count)
         } else {
-            found = detectorSpans(in: text.masking(regions))
-            found += Self.crossing(detectorSpans(in: text), regions)
+            let crossing = Self.crossing(detectorSpans(in: text, startLimit: startLimit), regions)
+            found = detectorSpans(in: text.masking(regions), startLimit: startLimit, extra: crossing.count + scanner.spans.count + cut.count)
+            found += crossing
         }
         found += scanner.spans
         found += cut
-        return Self.merged(found)
+        // Handed over, not copied: an unoptimized build would otherwise keep `found` and copy it
+        // when the spans are sorted.
+        return Self.merged(consume found)
     }
 
     /// The longest text that is read: one whose scalar offsets fit in the 28 bits a ``Span`` keeps
@@ -91,21 +96,25 @@ extension SensitiveDataRedactor {
         return PlainName(bytes: bytes, maximumLength: nil)?.namesSecret == false
     }
 
-    /// The findings of the value detectors this redactor's kinds turn on.
-    func detectorSpans(in text: NormalizedText) -> [Span] {
-        var found: [Span] = []
-        // The first detector that finds anything hands over its array instead of a copy.
-        func add(_ spans: [Span]) {
-            if found.isEmpty { found = spans } else { found += spans }
-        }
-        if kinds.contains(.secretFields) { add(text.userInfoPasswordSpans()) }
-        if kinds.contains(.bearerTokens) { add(text.bearerSpans()) }
-        if kinds.contains(.jsonWebTokens) { add(text.jsonWebTokenSpans()) }
-        if kinds.contains(.emailAddresses) { add(text.emailSpans()) }
-        if kinds.contains(.cardNumbers) { add(text.cardSpans()) }
-        if kinds.contains(.ibans) { add(text.ibanSpans()) }
-        if kinds.contains(.longTokens) { add(text.longTokenSpans()) }
-        return found
+    /// The findings of the value detectors this redactor's kinds turn on that start before byte
+    /// `startLimit`, where free text is cut (see ``NormalizedText``'s detectors), in an array with
+    /// room for `extra` more. The detectors run twice, first to count (see ``SpanSink``).
+    func detectorSpans(in text: NormalizedText, startLimit: Int = .max, extra: Int = 0) -> [Span] {
+        var counter = SpanSink()
+        runDetectors(on: text, startLimit: startLimit, into: &counter)
+        var sink = SpanSink(capacity: counter.count + extra)
+        if counter.count > 0 { runDetectors(on: text, startLimit: startLimit, into: &sink) }
+        return sink.spans
+    }
+
+    private func runDetectors(on text: NormalizedText, startLimit: Int, into sink: inout SpanSink) {
+        if kinds.contains(.secretFields) { text.userInfoPasswordSpans(startLimit: startLimit, into: &sink) }
+        if kinds.contains(.bearerTokens) { text.bearerSpans(startLimit: startLimit, into: &sink) }
+        if kinds.contains(.jsonWebTokens) { text.jsonWebTokenSpans(startLimit: startLimit, into: &sink) }
+        if kinds.contains(.emailAddresses) { text.emailSpans(startLimit: startLimit, into: &sink) }
+        if kinds.contains(.cardNumbers) { text.cardSpans(startLimit: startLimit, into: &sink) }
+        if kinds.contains(.ibans) { text.ibanSpans(startLimit: startLimit, into: &sink) }
+        if kinds.contains(.longTokens) { text.longTokenSpans(startLimit: startLimit, into: &sink) }
     }
 
     /// The text redacted as free text, and what was found in it; nil when nothing was.

@@ -86,10 +86,11 @@ extension SensitiveDataRedactor {
     /// partly overlap are joined into one ``replacement``.
     ///
     /// The spans are sorted and joined in the array passed in, which a text of many findings (a
-    /// megabyte of addresses) otherwise copied twice.
+    /// megabyte of addresses) otherwise copied twice, and sorted without a buffer (see
+    /// ``sortRuns(_:)``).
     static func merged(_ spans: consuming [Span]) -> [Span] {
         var spans = spans
-        spans.sort { $0.start != $1.start ? $0.start < $1.start : $0.end > $1.end }
+        sortRuns(&spans)
         var count = 0
         for index in spans.indices {
             let span = spans[index]
@@ -109,5 +110,15 @@ extension SensitiveDataRedactor {
         }
         spans.removeLast(spans.count - count)
         return spans
+    }
+}
+
+extension Array {
+    /// Appends `element`, growing the capacity by a quarter when it is full instead of doubling it:
+    /// the findings of the JSON in a megabyte of text would otherwise leave up to as much capacity
+    /// unused as they take.
+    mutating func appendGrowingByAQuarter(_ element: Element) {
+        if count == capacity { reserveCapacity(count + count / 4 + 16) }
+        append(element)
     }
 }

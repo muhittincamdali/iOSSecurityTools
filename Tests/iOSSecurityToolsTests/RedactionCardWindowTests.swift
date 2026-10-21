@@ -83,7 +83,7 @@ struct RedactionCardWindowTests {
             }
             if Int.random(in: 0..<4, using: &random) == 0 { text += "4242424242424242" }
             let normalized = NormalizedText(Array(text.unicodeScalars), compatibility: CompatibilityText())
-            let spans = normalized.cardSpans().map { normalized.byteIndex(atOrAfter: $0.start)..<normalized.byteIndex(atOrAfter: $0.end) }
+            let spans = Self.cards(in: normalized).map { normalized.byteIndex(atOrAfter: $0.start)..<normalized.byteIndex(atOrAfter: $0.end) }
             #expect(spans == Self.reference(normalized), "\(text.debugDescription)")
         }
     }
@@ -92,6 +92,13 @@ struct RedactionCardWindowTests {
     func longChains() {
         let text = String(repeating: "4242 ", count: 200_000)
         let normalized = NormalizedText(Array(text.unicodeScalars), compatibility: CompatibilityText())
-        #expect(normalized.cardSpans().count == 50_000)
+        #expect(Self.cards(in: normalized).count == 50_000)
+    }
+
+    /// The card numbers the detector finds in a whole text.
+    static func cards(in text: NormalizedText) -> [SensitiveDataRedactor.Span] {
+        var sink = SpanSink(capacity: 0)
+        text.cardSpans(into: &sink)
+        return sink.spans
     }
 }

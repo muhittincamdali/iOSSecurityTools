@@ -291,7 +291,7 @@ struct FreeTextScanner {
     }
 
     mutating func record(spans found: [SensitiveDataRedactor.Span], region: Range<Int>) {
-        spans += found
+        for span in found { spans.appendGrowingByAQuarter(span) }
         regions.append(region)
     }
 }
