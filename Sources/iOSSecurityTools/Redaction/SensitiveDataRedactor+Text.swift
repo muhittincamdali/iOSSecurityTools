@@ -132,16 +132,16 @@ extension SensitiveDataRedactor {
     }
 
     /// A text inside a document (a form value, a query value, a multipart header), redacted as
-    /// free text with the document's nesting.
-    func redact(_ text: String, nesting: Nesting) -> String {
+    /// free text with the document's nesting and the document's readings table.
+    func redact(_ text: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
         let scalars = Array(text.unicodeScalars)
-        let spans = textSpans(in: scalars, compatibility: CompatibilityText(), nesting: nesting)
+        let spans = textSpans(in: scalars, compatibility: compatibility, nesting: nesting)
         return spans.isEmpty ? text : Self.replacing(spans, in: scalars)
     }
 
     /// A key that is written out (a form or multipart field name, a query parameter name) read as
     /// free text in the ``FreeTextScanner/Role/name`` role.
-    func redactedName(_ name: String, nesting: Nesting) -> String {
-        redactedText(Array(name.unicodeScalars), compatibility: CompatibilityText(), role: .name, nesting: nesting)?.text ?? name
+    func redactedName(_ name: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
+        redactedText(Array(name.unicodeScalars), compatibility: compatibility, role: .name, nesting: nesting)?.text ?? name
     }
 }

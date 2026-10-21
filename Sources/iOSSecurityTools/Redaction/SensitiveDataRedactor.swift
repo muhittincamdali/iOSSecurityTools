@@ -383,14 +383,15 @@ public struct SensitiveDataRedactor: Sendable {
     /// (`…/to ken hunter2`), and one longer than 256 characters cuts the text like any long word.
     /// `see https://x.example/a?page=2 ok` keeps `see `, with `page` allowed or not.
     public func redact(_ text: String) -> String {
-        redact(text, nesting: .text(length: text.unicodeScalars.count))
+        let length = text.unicodeScalars.count
+        return redact(text, nesting: .text(length: length), compatibility: CompatibilityText(length: length))
     }
 
     /// Returns the sensitive data found in a text, in order, without overlaps.
     public func matches(in text: String) -> [Match] {
         var spans = {
             let scalars = Array(text.unicodeScalars)
-            return textSpans(in: scalars, compatibility: CompatibilityText(), nesting: .text(length: scalars.count))
+            return textSpans(in: scalars, compatibility: CompatibilityText(length: scalars.count), nesting: .text(length: scalars.count))
         }()
         spans.removeAll { $0.kind.isEmpty }
         // The spans are in order and do not overlap, so one walk through the scalars finds the

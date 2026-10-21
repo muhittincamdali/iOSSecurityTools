@@ -46,37 +46,42 @@ extension SensitiveDataRedactor {
     /// ```
     public func redact(url: URL) -> String {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return Self.unparsedURL }
-        return redacted(components, nesting: .document(length: url.absoluteString.unicodeScalars.count))
+        let length = url.absoluteString.unicodeScalars.count
+        return redacted(components, nesting: .document(length: length), compatibility: CompatibilityText(length: length))
     }
 
     /// A URL written in text, recorded as ``redact(url:)`` records it. `nesting` is the URL's own:
-    /// its query values and path segments are read as text inside it.
-    func redactedURL(_ text: String, nesting: Nesting) -> String {
+    /// its query values and path segments are read as text inside it; `compatibility` is the
+    /// readings table of the text.
+    func redactedURL(_ text: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
         guard let components = URLComponents(string: text) else { return Self.unparsedURL }
-        return redacted(components, nesting: nesting)
+        return redacted(components, nesting: nesting, compatibility: compatibility)
     }
 
-    private func redacted(_ components: URLComponents, nesting: Nesting) -> String {
+    /// The URL; one readings table serves its host, every path segment and every parameter.
+    private func redacted(_ components: URLComponents, nesting: Nesting, compatibility: CompatibilityText) -> String {
         guard let scheme = components.scheme, let host = components.percentEncodedHost else { return Self.unparsedURL }
-        guard showsHost(host) else { return scheme + "://" + Self.replacement }
+        guard showsHost(host, compatibility: compatibility) else { return scheme + "://" + Self.replacement }
         var result = scheme + "://" + host
         if let port = components.port { result += ":\(port)" }
         let path = components.percentEncodedPath
         guard urlDetail == .full, !Self.exceedsLimits(components), !Self.resolvesDifferently(path: path) else { return result }
         let hidesByName = kinds.contains(.secretFields)
-        result += hidesByName ? redacted(path: path, nesting: nesting) : scanned(path: path, nesting: nesting)
+        result += hidesByName
+            ? redacted(path: path, nesting: nesting, compatibility: compatibility)
+            : scanned(path: path, nesting: nesting, compatibility: compatibility)
         if let query = components.percentEncodedQuery, !Self.isStrictForm(query) { return result + "?" + Self.replacement }
         if let items = components.percentEncodedQueryItems {
             // `?label=Password&value=…`: a parameter that names a secret hides the others.
             let field = { (item: URLQueryItem) in Self.namingField(name: Self.formDecoded(item.name) ?? "", value: item.value.flatMap(Self.formDecoded)) }
-            let naming = hidesByName ? NamingFields(items.lazy.map(field), compatibility: CompatibilityText()) : nil
+            let naming = hidesByName ? NamingFields(items.lazy.map(field), compatibility: compatibility) : nil
             let parameters = items.indices.map { index in
                 hidesByName
                     ? redacted(
                         parameter: items[index].name, value: items[index].value, hidesValue: naming?.hidesValue(at: index, of: field(items[index])) == true,
-                        nesting: nesting
+                        nesting: nesting, compatibility: compatibility
                     )
-                    : scanned(parameter: items[index].name, value: items[index].value, nesting: nesting)
+                    : scanned(parameter: items[index].name, value: items[index].value, nesting: nesting, compatibility: compatibility)
             }
             result += "?" + parameters.joined(separator: "&")
         }
@@ -85,11 +90,11 @@ extension SensitiveDataRedactor {
 
     /// Whether a host is written: empty, as in `file:///…`, or an address, in which the value
     /// detectors find nothing.
-    func showsHost(_ host: String) -> Bool {
+    func showsHost(_ host: String, compatibility: CompatibilityText) -> Bool {
         guard !host.isEmpty else { return true }
         let bytes = Array(host.utf8)
         guard Self.isHostName(bytes) || Self.isIPv4Address(bytes) || Self.isIPv6Literal(bytes) else { return false }
-        return detectorSpans(in: NormalizedText(Array(host.unicodeScalars), compatibility: CompatibilityText())).isEmpty
+        return detectorSpans(in: NormalizedText(Array(host.unicodeScalars), compatibility: compatibility)).isEmpty
     }
 
     /// The longest host name, in bytes, and the longest label in it.
@@ -163,23 +168,23 @@ extension SensitiveDataRedactor {
 
     /// The path when only the value detectors run: a segment in which they find something, or that
     /// does not decode, becomes `:id`.
-    private func scanned(path: String, nesting: Nesting) -> String {
+    private func scanned(path: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
         path.split(separator: "/", omittingEmptySubsequences: false)
-            .map { holdsSecret(String($0), nesting: nesting) ? Self.identifierPlaceholder : String($0) }
+            .map { holdsSecret(String($0), nesting: nesting, compatibility: compatibility) ? Self.identifierPlaceholder : String($0) }
             .joined(separator: "/")
     }
 
     /// A query parameter when only the value detectors run.
-    private func scanned(parameter rawName: String, value rawValue: String?, nesting: Nesting) -> String {
-        let name = scanned(rawName, nesting: nesting)
-        return rawValue.map { name + "=" + scanned($0, nesting: nesting) } ?? name
+    private func scanned(parameter rawName: String, value rawValue: String?, nesting: Nesting, compatibility: CompatibilityText) -> String {
+        let name = scanned(rawName, nesting: nesting, compatibility: compatibility)
+        return rawValue.map { name + "=" + scanned($0, nesting: nesting, compatibility: compatibility) } ?? name
     }
 
     /// A percent-encoded query name or value with what the value detectors find in it replaced;
     /// `[redacted]` when it does not decode.
-    private func scanned(_ raw: String, nesting: Nesting) -> String {
+    private func scanned(_ raw: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
         guard let decoded = Self.formDecoded(raw) else { return Self.replacement }
-        let redacted = redact(decoded, nesting: nesting)
+        let redacted = redact(decoded, nesting: nesting, compatibility: compatibility)
         return redacted == decoded ? raw : Self.formEncoded(redacted)
     }
 
@@ -187,7 +192,7 @@ extension SensitiveDataRedactor {
     /// (`/pin/4831`, `/password-reset/…`, `/token/…/info`) is a value, so it becomes `:id`
     /// whatever it looks like. A segment that comes again is not read again. The path has no `;`
     /// (see ``resolvesDifferently(path:)``).
-    private func redacted(path: String, nesting: Nesting) -> String {
+    private func redacted(path: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
         let classifier = SensitiveDataRedactor(self, kinds: .all)
         var readings: [Substring: PathSegmentReading] = [:]
         var segments: [String] = []
@@ -197,7 +202,7 @@ extension SensitiveDataRedactor {
                 segments.append("")
                 continue
             }
-            let reading = readings[segment] ?? classifier.read(pathSegment: segment, nesting: nesting)
+            let reading = readings[segment] ?? classifier.read(pathSegment: segment, nesting: nesting, compatibility: compatibility)
             readings[segment] = reading
             segments.append(followsLabel || reading.hides ? Self.identifierPlaceholder : String(segment))
             followsLabel = reading.isLabel
@@ -216,13 +221,12 @@ extension SensitiveDataRedactor {
     /// Reads a path segment once: it is decoded and scanned a single time, and the free-text rule,
     /// every value detector and the word reading all run on that scan. A segment that does not
     /// decode is both.
-    private func read(pathSegment segment: Substring, nesting: Nesting) -> PathSegmentReading {
+    private func read(pathSegment segment: Substring, nesting: Nesting, compatibility: CompatibilityText) -> PathSegmentReading {
         guard let decoded = segment.removingPercentEncoding else { return PathSegmentReading(hides: true, isLabel: true) }
         let scalars = Array(decoded.unicodeScalars)
         guard !scalars.isEmpty else { return PathSegmentReading(hides: false, isLabel: false) }
         let isIdentifier = UUID(uuidString: decoded) != nil || Self.isIdentifierShaped(scalars)
         guard !Self.isQuietWord(scalars) else { return PathSegmentReading(hides: isIdentifier, isLabel: false) }
-        let compatibility = CompatibilityText()
         let text = NormalizedText(scalars, compatibility: compatibility)
         let holdsSecret = !textSpans(in: scalars, text: text, compatibility: compatibility, nesting: nesting, detectsInRegions: true).isEmpty
         let isLabel = FreeTextScanner.mentionsSecret(scalars, text: text, compatibility: compatibility)
@@ -230,21 +234,24 @@ extension SensitiveDataRedactor {
     }
 
     /// Whether the decoded segment holds something the free-text rule hides, or does not decode.
-    private func holdsSecret(_ segment: String, nesting: Nesting) -> Bool {
+    private func holdsSecret(_ segment: String, nesting: Nesting, compatibility: CompatibilityText) -> Bool {
         guard let decoded = segment.removingPercentEncoding else { return true }
-        return redact(decoded, nesting: nesting) != decoded
+        return redact(decoded, nesting: nesting, compatibility: compatibility) != decoded
     }
 
     /// `name=value` from a query, both percent-encoded. The value is kept only when the name is
     /// allowed and no other parameter names a secret (`hidesValue`).
-    private func redacted(parameter rawName: String, value rawValue: String?, hidesValue: Bool, nesting: Nesting) -> String {
+    private func redacted(
+        parameter rawName: String, value rawValue: String?, hidesValue: Bool, nesting: Nesting, compatibility: CompatibilityText
+    ) -> String {
         let name = Self.formDecoded(rawName)
-        let shownName = name.map { PlainName($0.unicodeScalars) != nil && redactedName($0, nesting: nesting) == $0 } == true ? rawName : Self.replacement
+        let shownName = name.map { PlainName($0.unicodeScalars) != nil && redactedName($0, nesting: nesting, compatibility: compatibility) == $0 } == true
+            ? rawName : Self.replacement
         let allowed = name.flatMap { FieldName.allowableFold($0.unicodeScalars) }.map(allowedQueryParameters.contains) ?? false
         guard let rawValue else { return allowed ? shownName : Self.replacement }
         guard !rawValue.isEmpty else { return shownName + "=" }
         guard allowed, !hidesValue, let value = Self.formDecoded(rawValue) else { return shownName + "=" + Self.replacement }
-        let redactedValue = redact(value, nesting: nesting)
+        let redactedValue = redact(value, nesting: nesting, compatibility: compatibility)
         return shownName + "=" + (redactedValue == value ? rawValue : Self.formEncoded(redactedValue))
     }
 
