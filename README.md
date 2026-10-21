@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 572 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 582 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -329,7 +329,9 @@ it; and a
 secret name, with or without a separator, also one written as a value such as `name="password"`. A word is compared by its ASCII skeleton with one wildcard
 rule: a letter, mark or number outside ASCII that has no ASCII form counts as nothing or as any
 one letter, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and one such
-character put in place of a letter is found (`pɑssword`, `tͦken`, `passw〇rd`). A quote that does not
+character put in place of a letter is found (`pɑssword`, `tͦken`, `passw〇rd`,
+and `t၀ken`: a decimal digit of another script is such a number).
+A quote that does not
 close on its line cuts the text at the quote, so a quoted key with a line break in it shows
 nothing. The text is cut to its
 end and not only to the end of the line: `login user=bob status=401` becomes

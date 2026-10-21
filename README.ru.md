@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
+<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -59,7 +59,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 572 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 582 теста
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -346,7 +346,9 @@ multipart после одиночного перевода строки или �
 ASCII-скелету с одним правилом подстановочного знака: буква, знак или число вне ASCII без формы в
 ASCII считается ничем или любой одной буквой, так что `piꞏn`, `tokeın` и `tokenꞏs` читаются как
 `pin`, `token` и `tokens`, а один такой символ, поставленный вместо буквы имени, находится
-(`pɑssword`, `tͦken`, `passw〇rd`). Кавычка, которая не закрывается в своей строке, обрезает текст по этой
+(`pɑssword`, `tͦken`, `passw〇rd`
+и `t၀ken`: десятичная цифра другой письменности — тоже такое число).
+Кавычка, которая не закрывается в своей строке, обрезает текст по этой
 кавычке, так что от ключа в кавычках с переводом строки внутри ничего не видно. Текст
 обрезается до его конца, а не только до конца строки: `login user=bob status=401` превращается в
 `login user=[redacted]`, а тело multipart, записанное в лог, скрывается начиная

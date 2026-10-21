@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
+<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 572
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 582
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -345,7 +345,9 @@ ou sem separador, também escrito como valor, como `name="password"`. Uma palavr
 seu esqueleto ASCII com uma única regra de curinga: uma letra, marca ou número fora do ASCII sem
 forma ASCII conta como nada ou como uma letra qualquer, de modo que `piꞏn`, `tokeın` e `tokenꞏs`
 são lidos como `pin`, `token` e `tokens`, e um desses caracteres posto no lugar de uma letra é
-encontrado (`pɑssword`, `tͦken`, `passw〇rd`). Uma aspa que não fecha na sua linha corta o texto na aspa, de
+encontrado (`pɑssword`, `tͦken`, `passw〇rd`
+e `t၀ken`: um dígito decimal de outra escrita é um desses números).
+Uma aspa que não fecha na sua linha corta o texto na aspa, de
 modo que nada aparece de uma chave entre aspas com uma quebra de linha dentro. O texto é cortado até o
 fim dele e não só até o fim da linha: `login user=bob status=401` vira `login user=[redacted]`, e um
 corpo multipart escrito em um log é ocultado a partir do primeiro cabeçalho, e uma property list a

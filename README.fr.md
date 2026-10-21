@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
+<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  572 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  582 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -352,7 +352,9 @@ avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Un 
 son squelette ASCII avec une seule règle de joker : une lettre, un signe ou un nombre hors ASCII
 sans forme ASCII compte pour rien ou pour une lettre quelconque, si bien que `piꞏn`, `tokeın` et
 `tokenꞏs` se lisent `pin`, `token` et `tokens`, et qu’un tel caractère mis à la place d’une lettre
-est trouvé (`pɑssword`, `tͦken`, `passw〇rd`). Un guillemet qui ne se ferme pas sur sa ligne coupe le
+est trouvé (`pɑssword`, `tͦken`, `passw〇rd`
+et `t၀ken` : un chiffre décimal d’une autre écriture est un tel nombre).
+Un guillemet qui ne se ferme pas sur sa ligne coupe le
 texte à ce guillemet, si bien que rien n’apparaît d’une clé entre guillemets contenant un saut de
 ligne. Le texte est
 coupé jusqu’à sa fin et pas seulement jusqu’à la fin de la ligne : `login user=bob status=401`
