@@ -6,8 +6,8 @@ import Testing
 /// tenth and twelfth, and the correctness repros of the twelfth review's second lens — run
 /// against the free-text rule of one cut. Each probe the documentation says is hidden is hidden,
 /// apart from the limitations that "What it does not find" names. The probes of the thirteenth
-/// to fifteenth reviews are in the same resource and checked claim by claim in suites of their
-/// own.
+/// to sixteenth and the eighteenth reviews are in the same resource and checked claim by claim in
+/// suites of their own; the large ones of every review are checked here.
 @Suite("SensitiveDataRedactor review probe sets")
 struct RedactionReviewProbeSetTests {
     static let reviews = ["a-3", "a-5", "a-7", "a-9", "a-10", "a-12", "c-12"]
@@ -34,10 +34,11 @@ struct RedactionReviewProbeSetTests {
         let counts = Dictionary(grouping: ReviewProbes.all, by: \.review).mapValues(\.count)
         #expect(counts == [
             "a-3": 453, "a-5": 452, "a-7": 560, "a-9": 353, "a-10": 475, "a-12": 613, "a-13": 579, "c-12": 66, "c-13": 245,
-            "a-14": 758, "a-14b": 402, "a-14q": 60, "a-15": 300, "a-15q": 15, "c-15": 315, "a-16": 381, "c-16": 98,
+            "a-14": 758, "a-14b": 402, "a-14q": 60, "a-15": 300, "a-15q": 15, "c-15": 315, "a-16": 381, "c-16": 98, "a-18": 1_084,
+            "c-18": 417,
         ])
         #expect(Self.documentedLimitations.count == 33)
-        #expect(Self.large.count == 79)
+        #expect(Self.large.count == 100)
     }
 
     /// The probes of up to a few megabytes, each a test case of its own so that they run side by side.
