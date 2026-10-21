@@ -156,8 +156,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the scan keeps a fixed number of positions and stops at the trigger. Free text is a best
   effort, as the threat model in the README and the logging guide now says: a name written
   without a separator in letters of the safe alphabet with two or more of its letters replaced by
-  letters that have no ASCII form (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing
-  before it cuts the text, and no table of look-alikes is kept to chase it.
+  letters that have no ASCII form (`pɑsswoʀd hunter2`), or with a combining mark (Mn) in place of
+  one of its letters (`tͦken hunter2`), is not guaranteed to be found when nothing before it cuts
+  the text, and no table of look-alikes is kept to chase it. One letter (L*) put in place of a
+  letter of a name is found (`pɑssword`, `tøken`).
 - A URL in free text is shown only when it is clean — `scheme://host` and an optional path of
   ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or `\`),
   whose host and segments name no secret, followed by white space, a line break, the end of the
@@ -481,12 +483,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a dictionary that kept one for every scalar, each reading with an array of its own, about 80
   bytes for each, and the scanning copy read and cached the whole text, also past a control
   character that cut it at its start, so a text that came out as `[redacted]` took 17.4 MiB. The
-  readings are now cached in a table of at most 4,096, each reading in 16 bytes with its bytes
-  in place, and the scanning copy of free text ends after the line of the first character outside
+  readings are now cached in a table of a fixed size (see the next entry), each reading in 16
+  bytes with its bytes in place, and the scanning copy of free text ends after the line of the
+  first character outside
   the safe alphabet and the next line that is not blank, as far as the scan and the value
   detectors read; a test checks on every text probe of the reviews and on 20,000 random texts
   that both copies find the same. Such a megabyte now takes about 2 MiB, and the memory tests
   hold these shapes to 16 MiB and 4 MB of them to four times that.
+- The twenty-second review found that the readings table of that fix doubled on every collision
+  while it had fewer than 4,096 slots, however empty it was, and chose a slot with a fixed hash:
+  `丆幛` met in every size from 64 to 4,096 slots and `Âۿ` in every size from 64 to 2,048, so
+  seven of them in turn took a new table to 4,096 slots, and a table was made for every call,
+  form field, multipart part, path segment and query value. Against the release before that fix,
+  a megabyte of log lines `msg ÂۿÂۿÂۿÂ`, each its own call, took 1.77 s instead of 0.19 s, a
+  form of such fields without `=` 0.94 s/MB instead of 0.24, a multipart body of 999 such parts
+  0.59 instead of 0.12 and a URL of 127 allowed `q` parameters 0.85 instead of 0.26. A table now
+  has a size fixed when it is made, about one slot for each scalar of the text, body or URL it
+  serves, from 16 to 8,192 slots of 24 bytes, and never grows; its slots are in sets of two, a
+  scalar's set is chosen with Swift's `Hasher`, seeded at random in every process, ideographs and
+  Hangul syllables are read without Foundation, and one table serves a whole call, body or URL.
+  These shapes now take 0.10 to 0.23 s per megabyte, no more than before that fix, and the tests
+  time them for both pairs and check that the pairs are worked out once each in tables of every
+  size.
+- The same review found that `redact(url:)` showed the value after a host that names a secret:
+  with a scheme of the app's own, `URLComponents` reads the first part after `//` as the host, so
+  `myapp://pin/4831`, `myapp://token/…?source=mail`, `com.example.app://auth/…`,
+  `myapp://user@pin/…`, `myapp://pin:8080/…`, `myapp://reset.password/…`, `https://token/…` and
+  `http://pin/…` showed it, 75 of 75 probes, while free text, JSON strings, forms, multipart parts
+  and text/plain bodies hid the same URLs. A host that names a secret, by the key rule or as a
+  word, now records the scheme, host and port only; an address names nothing, and a host such as
+  `auth.example.com` hides its whole path on purpose. The review's probes are kept as tests, with
+  a differential test of the six paths and generated secret hosts.
+- The same review put a combining Latin small letter (Mn, U+0363 to U+036F) in place of one letter
+  of a secret name (`login tͦken X`, `pͥn X`, `passwͦrd X`), which free text without a separator
+  did not read as the name, in 54 of 56 variants of 12 names. This is documented as a limit, not
+  changed: a mark is left out of the ASCII skeleton like any mark, one letter (L*) put in place of
+  a letter is found, and a mark put in place of a letter is deliberate disguise that is not
+  guaranteed to be found (threat model, "What it does not find"). The review's 91 probes are kept
+  as tests of the limit as it reads today.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
