@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
+<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 507
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 509
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -298,7 +298,7 @@ consegue analisar por completo é omitido como `[body omitted: N bytes, <type>]`
 corpo que um analisador de servidor comum poderia dividir em campos de outro jeito, como um limite
 multipart depois de uma quebra de linha solta ou um formulário com `;`.
 Um corpo maior que 256 KiB também é omitido (`maximumBodySize`; um app pode aumentar o limite, ao
-custo de até cerca de 60 bytes de memória para cada byte do corpo), e o JSON é lido com no máximo
+custo de até cerca de 40 bytes de memória para cada byte do corpo), e o JSON é lido com no máximo
 64 níveis de objetos e arrays e quatro documentos um dentro do outro, contando o JSON dentro de
 strings, o que limita a pilha que uma entrada hostil pode ocupar; uma string que contenha mais é
 ocultada por inteiro.

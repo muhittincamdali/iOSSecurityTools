@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
+<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  507 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  509 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -301,7 +301,7 @@ mit einem Parser gelesen; einen Body, den es nicht vollständig parsen kann, lä
 anders in Felder aufteilen könnte, etwa mit einer Multipart-Grenze nach einem einzelnen
 Zeilenvorschub oder als Formular mit `;`.
 Ein Body über 256 KiB wird ebenfalls ausgelassen (`maximumBodySize`; eine App kann die Grenze
-anheben, was bis zu etwa 60 Byte Speicher für jedes Byte des Bodys kostet), und JSON wird höchstens
+anheben, was bis zu etwa 40 Byte Speicher für jedes Byte des Bodys kostet), und JSON wird höchstens
 64 Objekte und Arrays tief und vier Dokumente ineinander gelesen, JSON in Strings mitgezählt, was
 den Stack begrenzt, den feindliche Eingaben belegen können; ein String, der mehr enthält, wird
 ganz geschwärzt.

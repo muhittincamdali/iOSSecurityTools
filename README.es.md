@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
+<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  507 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  509 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -300,7 +300,7 @@ que no puede analizar por completo se omite como `[body omitted: N bytes, <type>
 un cuerpo que un analizador de servidor habitual podría dividir en campos de otra forma, como un
 límite multipart tras un salto de línea suelto o un formulario con `;`.
 También se omite un cuerpo de más de 256 KiB (`maximumBodySize`; una app puede subir el límite, con
-un coste de hasta unos 60 bytes de memoria por cada byte del cuerpo), y el JSON se lee hasta 64
+un coste de hasta unos 40 bytes de memoria por cada byte del cuerpo), y el JSON se lee hasta 64
 niveles de objetos y arrays y hasta cuatro documentos uno dentro de otro, contando el JSON dentro
 de cadenas, lo que limita la pila que puede ocupar una entrada hostil; una cadena que contiene más
 se oculta entera.
