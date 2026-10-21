@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@72c6a3c0d9670618c43accdb704574b6810e25b5 status=reviewed -->
+<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 493 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 507 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -324,10 +324,12 @@ rakamları, ASCII boşluk, sekme ve satır sonları ile yazdırılabilir ASCII) 
 yani `꞉` ya da `→` gibi benzer görünen bir ayraç, bir emoji ya da bir kontrol karakteri metni
 keser; hiçbir zaman çözülmeyen her kaçış dizisi (`%3D`, `&colon;`, `\075`); 256 karakterden uzun
 bir kelime; izin verilmeyen bir anahtar (`status`, `method`, `path`, `duration_ms`, `count` ve
-sizin verdiğiniz anahtarlar dışındaki her anahtar), tırnak içinde de (burada metni açılış
+sizin verdiğiniz anahtarlar dışındaki her anahtar), her türden tırnak (`"`, `'`, ters tırnak) içinde de (burada metni açılış
 tırnağında keser: `cache miss for "session Qz9Wk7rX": refetching`, `cache miss for [redacted]`
 olur), ya da iki elemanlı bir dizinin ilk dizesi olarak da; bir işaretleme etiketi, çünkü serbest metinde
-ilk işaretleme etiketi metni keser, etiket ne olursa olsun (`<user>`, `</a>`, `<!--`); ve ayraçlı ya da
+ilk işaretleme etiketi metni keser, etiket ne olursa olsun (`<user>`, `<_id>`, `</a>`, `<!--`):
+ardından ASCII boşluk, sekme, satır sonu ya da rakam, `=` veya metnin sonu gelmeyen her `<` metni
+keser; ve ayraçlı ya da
 ayraçsız, `name="password"` gibi değer olarak yazılmış olanı da dahil bir gizli ad. Bir kelime
 ASCII iskeletiyle karşılaştırılır: ASCII karşılığı olmayan harfler atılır, böylece `piꞏn`,
 `tokeın` ve `tokenꞏs`, `pin`, `token` ve `tokens` olarak okunur; bir ad, harf atılan yerde bir
@@ -337,8 +339,10 @@ başından keser; böylece içinde satır sonu olan tırnaklı bir anahtardan hi
 başlığından, bir property list ise ilk etiketinden itibaren gizlenir.
 Serbest metindeki bir URL yalnızca temizse gösterilir — `scheme://host` ve isteğe bağlı olarak ASCII
 harf, rakam, `.`, `_`, `-` ve `/` karakterlerinden oluşan bir yol; host'u ve segmentleri gizli bir
-ad taşımaz ve ardından boşluk, satır sonu ya da cümleyi bitiren bir noktalama gelir — ve başka her
-URL metni başladığı yerde keser (`see https://x.example/a?page=2 ok`, `see [redacted]` olur;
+ad taşımaz ve ardından boşluk, satır sonu, metnin sonu ya da bunlardan birinden önce tek bir `.`,
+`,`, `!` veya `)` gelir — ve başka her URL, ardından tırnak, `>`, ters tırnak ya da `?`, `#` veya `;`
+gelen URL de, metni başladığı yerde keser (`see https://x.example/a?page=2 ok` ve
+`see https://x.example/a'#token`, `see [redacted]` olur;
 `allowedQueryParameters` yalnızca `redact(url:)` için geçerlidir). Rakamlar arasındaki bir `:`
 yalnızca bir sayıdan sonra sayının parçasıdır (`12:30`, `10.0.0.1:8080`); rakamla biten bir
 anahtardan (`user1:2345`) sonra ise
