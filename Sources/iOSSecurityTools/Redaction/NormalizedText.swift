@@ -49,12 +49,12 @@ struct NormalizedText {
             index += 1
         }
         guard index < scalars.count else {
-            self.init(bytes: bytes, offsets: ScalarOffsets(storage: nil), source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
+            self.init(bytes: bytes, offsets: ScalarOffsets(), source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
             return
         }
-        var offsets: [UInt32] = []
-        offsets.reserveCapacity(scalars.count)
-        offsets.append(contentsOf: (0..<UInt32(clamping: index)))
+        // Up to the scalar the fast loop stopped at, each byte came from the scalar at its own
+        // index: one run, which the builder starts with.
+        var offsets = ScalarOffsets.Builder()
         // The scalar the fast loop stopped at is read again here, and the alphabet with it, which
         // reads it the same way.
         for offset in index..<scalars.count {
@@ -64,19 +64,19 @@ struct NormalizedText {
                 if offset > index { alphabet.read(ascii: byte, at: offset) }
                 // Control characters other than tab and line terminators hide like format ones.
                 guard !ASCII.isHidingControl(byte) else { continue }
+                offsets.add(byte: bytes.count, from: offset)
                 bytes.append(byte)
-                offsets.append(UInt32(clamping: offset))
                 continue
             }
             let reading = compatibility.reading(scalar)
             if offset > index { alphabet.read(reading.alphabet, at: offset) }
             guard !reading.isInvisible else { continue }
             for byte in reading.bytes {
+                offsets.add(byte: bytes.count, from: offset)
                 bytes.append(byte)
-                offsets.append(UInt32(clamping: offset))
             }
         }
-        self.init(bytes: bytes, offsets: ScalarOffsets(storage: offsets), source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
+        self.init(bytes: bytes, offsets: offsets.offsets, source: scalars, firstUnsafeOffset: alphabet.firstUnsafe)
     }
 
     private init(bytes: [UInt8], offsets: ScalarOffsets, source: [Unicode.Scalar], firstUnsafeOffset: Int?) {
@@ -91,11 +91,12 @@ struct NormalizedText {
     /// masked copy takes only its bytes.
     func masking(_ regions: [Range<Int>]) -> NormalizedText {
         var masked = bytes
-        var pending = regions.sorted { $0.lowerBound < $1.lowerBound }[...]
-        for k in masked.indices {
-            let offset = offsets[k]
-            while let region = pending.first, region.upperBound <= offset { pending = pending.dropFirst() }
-            if let region = pending.first, region.contains(offset) { masked[k] = Self.masked }
+        // The offsets only grow from byte to byte, so the bytes of a region are the ones from the
+        // first at or after its start to the first at or after its end.
+        for region in regions {
+            let start = byteIndex(atOrAfter: region.lowerBound)
+            let end = max(start, byteIndex(atOrAfter: region.upperBound))
+            for k in start..<end { masked[k] = Self.masked }
         }
         return NormalizedText(bytes: masked, offsets: offsets, source: source, firstUnsafeOffset: firstUnsafeOffset)
     }
@@ -210,17 +211,64 @@ struct NormalizedText {
     }
 }
 
-/// The offset in the original scalars of each byte of a scanning copy, stored in 32 bits: the
-/// copy of a megabyte of text holds a million of them. Free text of more scalars than 32 bits
-/// count is hidden whole before a copy is made (see ``SensitiveDataRedactor/maximumTextLength``).
-/// When each byte comes from the scalar at its own index, as in printable ASCII, nothing is
-/// stored.
+/// The offset in the original scalars of each byte of a scanning copy, kept as runs, not one for
+/// each byte. In a run, each byte comes from the scalar after the one the byte before it came from,
+/// so a run is stored as the byte it starts at and the offset of that byte's scalar, in 32 bits
+/// each. A run starts where that stops: at the second byte of a scalar read as several (`ﬁ` is
+/// read as `fi`) and at the byte after scalars that the copy leaves out. When each byte comes from
+/// the scalar at its own index, as in printable ASCII, nothing is stored, and a megabyte of log
+/// lines with one `ﬁ` each stores one run for each line: the eighteenth review measured 4 MB of
+/// offsets, one for each byte, which pushed such text over 16 MB of memory. Free text of 2^28
+/// scalars or more is hidden whole before a copy is made (see
+/// ``SensitiveDataRedactor/maximumTextLength``).
 struct ScalarOffsets {
-    fileprivate let storage: [UInt32]?
+    /// The byte each run starts at, in order; empty when each byte comes from the scalar at its
+    /// own index.
+    private let starts: [UInt32]
+    /// The offset of the scalar that the first byte of each run came from.
+    private let firstOffsets: [UInt32]
 
+    init() {
+        starts = []
+        firstOffsets = []
+    }
+
+    fileprivate init(starts: [UInt32], firstOffsets: [UInt32]) {
+        self.starts = starts
+        self.firstOffsets = firstOffsets
+    }
+
+    /// The offset of the scalar byte `i` came from, found among the runs by binary search.
     subscript(i: Int) -> Int {
-        guard let storage else { return i }
-        return Int(storage[i])
+        guard !starts.isEmpty else { return i }
+        var low = 0
+        var high = starts.count
+        while high - low > 1 {
+            let middle = (low + high) / 2
+            if Int(starts[middle]) <= i { low = middle } else { high = middle }
+        }
+        return Int(firstOffsets[low]) + (i - Int(starts[low]))
+    }
+
+    /// Collects the runs while the bytes of a copy are written in order, starting with a run at
+    /// byte 0 from scalar 0.
+    struct Builder {
+        private var starts: [UInt32] = [0]
+        private var firstOffsets: [UInt32] = [0]
+
+        /// Records that byte `byte`, the next one written, comes from the scalar at `offset`.
+        mutating func add(byte: Int, from offset: Int) {
+            let last = starts.count - 1
+            guard Int(firstOffsets[last]) + (byte - Int(starts[last])) != offset else { return }
+            if Int(starts[last]) == byte {
+                firstOffsets[last] = UInt32(clamping: offset)
+            } else {
+                starts.append(UInt32(clamping: byte))
+                firstOffsets.append(UInt32(clamping: offset))
+            }
+        }
+
+        var offsets: ScalarOffsets { ScalarOffsets(starts: starts, firstOffsets: firstOffsets) }
     }
 }
 
