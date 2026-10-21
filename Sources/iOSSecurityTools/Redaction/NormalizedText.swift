@@ -161,6 +161,10 @@ struct NormalizedText {
 
     var count: Int { bytes.count }
 
+    /// Whether some byte did not come from the scalar at its own index: the copy left scalars
+    /// out, or read one as several bytes. When not, no scalar was left out anywhere.
+    var leavesOutScalars: Bool { !offsets.isIdentity || bytes.count != source.count }
+
     func span(_ range: Range<Int>, _ kind: SensitiveDataRedactor.Kinds, _ replacement: String) -> SensitiveDataRedactor.Span {
         SensitiveDataRedactor.Span(start: offsets[range.lowerBound], end: offsets[range.upperBound - 1] + 1, kind: kind, replacement: replacement)
     }
@@ -308,6 +312,9 @@ struct ScalarOffsets {
         self.starts = starts
         self.firstOffsets = firstOffsets
     }
+
+    /// Whether each byte comes from the scalar at its own index.
+    var isIdentity: Bool { starts.isEmpty }
 
     /// The offset of the scalar byte `i` came from, found among the runs by binary search.
     subscript(i: Int) -> Int {
