@@ -20,6 +20,9 @@ struct RedactionURLInTextPropertyTests {
         { random in RedactionSafeAlphabetPropertyTests.escapes.randomElement(using: &random)! },
         { random in ["?", "#", ";", "?#", ";/", "#!", "#)", ";#,", "?page=2", "#page=2", ";page=2", "?q=", "?page=2&q=", "#access_token="].randomElement(using: &random)! },
         { random in ["=", ":", "%3D", "%3A", "%253A", "%3A%22", "@", "\\", "%", "~", "+", "*", "$", "(", "'"].randomElement(using: &random)! },
+        // The nineteenth review: a quote, a backtick or a closing bracket ends the URL, and the URL
+        // before it is not clean, wherever it is.
+        { random in ["'", "\"", "`", ">", "<", "]", "}", ")", "'#", "\"?", "`;", ">#", ").", ".."].randomElement(using: &random)! },
     ]
 
     /// A URL that is not clean, and where in it the value goes.
@@ -74,7 +77,7 @@ struct RedactionURLInTextPropertyTests {
         for _ in 0..<200 {
             let segments = (0..<Int.random(in: 0...4, using: &random)).map { _ in Self.words.randomElement(using: &random)! }
             let url = Self.schemes.randomElement(using: &random)! + "://" + Self.hosts.randomElement(using: &random)! + segments.map { "/" + $0 }.joined()
-            let (before, after) = [("GET ", " 200"), ("see ", ". status=200"), ("(", ") ok"), ("[docs](", ")."), ("", ", done"), ("", "\nnext")]
+            let (before, after) = [("GET ", " 200"), ("see ", ". status=200"), ("(", ") ok"), ("[docs](", ") ok"), ("", ", done"), ("", "\nnext"), ("see ", "!")]
                 .randomElement(using: &random)!
             let line = before + url + after
             for redactor in redactors {

@@ -87,7 +87,8 @@ struct RedactionDetectorDifferentialTests {
         // The URL ends before the dot that ends a sentence, and an unsigned token ends in a dot: the
         // token is found in the path without it and in the text with it, and both are hidden.
         ("see https://h.example/p/eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0.", "see [redacted]"),
-        ("see https://h.example/p/eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0..", "see [redacted]."),
+        // Two dots after a URL leave its end open, so the text is cut where it starts.
+        ("see https://h.example/p/eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0..", "see [redacted]"),
         // A card number that starts in the path and goes on after the URL.
         ("see https://h.example/p/4242 4242 4242 4242 ok", "see https://h.example/p/[redacted] ok"),
         // A URL with a query is not clean: the text is cut where it starts.

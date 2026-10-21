@@ -63,11 +63,11 @@ extension FreeTextScanner {
     ///   nothing (see ``SensitiveDataRedactor/showsHost(_:)``);
     /// - neither the host nor any path segment names a secret by the key rule
     ///   (``FieldName/hidesValue(_:)``), which also hides a segment without a letter or digit;
-    /// - what follows it is the end of the text, white space, a line break or one of
-    ///   ``cleanURLFollowers`` — not the character outside the safe alphabet where the scan ends.
+    /// - it ends cleanly (see ``endsCleanly(at:)``), and not at the character outside the safe
+    ///   alphabet where the scan ends.
     private func isCleanURL(to end: Int) -> Bool {
         if end == scanEnd, scanEnd < text.count { return false }
-        if end < text.count, !text.isSpace(end), !text.isLineTerminator(end), !Self.cleanURLFollowers.contains(text.bytes[end]) { return false }
+        guard endsCleanly(at: end) else { return false }
         let range = position..<end
         guard !isOpaque(range) else { return false }
         var bytes: [UInt8] = []
@@ -86,10 +86,27 @@ extension FreeTextScanner {
         return !rest[host.endIndex...].split(separator: UInt8(ascii: "/")).contains(where: Self.namesSecret)
     }
 
-    /// What may follow a clean URL besides white space and a line break: the punctuation that
-    /// ends a sentence or closes a quote or bracket. A `:`, `;`, `?` or `=` after a URL is left
-    /// for the text after it to complete (`/token: hunter2`), so it is not among them.
-    static let cleanURLFollowers = ByteSet(".,!)]}>\"'`")
+    /// Whether a URL that ends at byte `end` ends cleanly: the end of the text, white space or a
+    /// line break follows it, or one of ``sentenceEnds`` and then the end of the text, white space
+    /// or a line break (`see https://x.example/a. Next`, `(https://x.example/a) ok`). Any other
+    /// character after a URL — a quote, a backtick, `>`, `]`, `}`, two marks (`).`), or a `?`, `#`,
+    /// `;` or `:`, which start a query, a fragment, path parameters or a port — leaves open where
+    /// the URL ends: a URL parser reads `https://x.example/a'#token` and
+    /// `https://x.example/a>?token` on past it, and `…/a? token` has an empty query. Such a URL is
+    /// not clean, so the text is cut where it starts.
+    func endsCleanly(at end: Int) -> Bool {
+        guard end < text.count, !isBlank(end) else { return true }
+        guard Self.sentenceEnds.contains(text.bytes[end]) else { return false }
+        return end + 1 == text.count || isBlank(end + 1)
+    }
+
+    /// The one mark that may end a sentence right after a clean URL: `.`, `,`, `!` or `)`. None of
+    /// them starts a part of a URL.
+    static let sentenceEnds = ByteSet(".,!)")
+
+    private func isBlank(_ i: Int) -> Bool {
+        text.isSpace(i) || text.isLineTerminator(i)
+    }
 
     /// The characters of a clean URL after its scheme: ASCII letters, digits, `.`, `_`, `-`, `/`.
     private static func isCleanURLCharacter(_ byte: UInt8) -> Bool {
