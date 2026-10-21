@@ -50,7 +50,9 @@ extension SensitiveDataRedactor {
         guard !body.isEmpty else { return "" }
         let mediaType = contentType.flatMap(MediaType.init)
         let described = contentType == nil ? "no content type" : mediaType?.essence ?? "unreadable content type"
-        guard body.count <= maximumBodySize else { return Self.omitted(body.count, described) }
+        // The offsets of what is found are kept in 28 bits (see ``Span``), so no larger body is read,
+        // whatever the limit.
+        guard body.count <= min(maximumBodySize, Self.maximumTextLength) else { return Self.omitted(body.count, described) }
         let nesting = Nesting.document(length: Self.scalarCount(body))
         let result = contentType == nil
             ? redactedJSON(body, allowsFragments: false, nesting: nesting)

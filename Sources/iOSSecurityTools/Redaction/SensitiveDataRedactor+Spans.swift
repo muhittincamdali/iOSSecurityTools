@@ -1,38 +1,84 @@
 /// Replacements: where findings are, how they join, and the text they make.
 extension SensitiveDataRedactor {
-    /// A replacement, in offsets of the original scalars, and the kinds of what it hides.
+    /// A replacement, in offsets of the original scalars, and the kinds of what it hides. The two
+    /// offsets and the kinds are packed into 64 bits, so a span takes 24 bytes, not 40: a megabyte
+    /// of short findings (`a@b.cd `, `1:2@`) holds up to a quarter of a million of them. Every
+    /// text that is read has fewer than 2^28 scalars (see ``maximumTextLength``).
     struct Span {
-        var start: Int
-        var end: Int
-        var kind: Kinds
         var replacement: String
+        /// The start in the low 28 bits, the end in the next 28 and the kinds in the top 8.
+        private var packed: UInt64
+
+        init(start: Int, end: Int, kind: Kinds, replacement: String) {
+            self.replacement = replacement
+            packed = Self.offset(start) | Self.offset(end) << 28 | UInt64(UInt8(truncatingIfNeeded: kind.rawValue)) << 56
+        }
+
+        private static let offsetMask: UInt64 = (1 << 28) - 1
+
+        private static func offset(_ value: Int) -> UInt64 {
+            UInt64(clamping: value) & offsetMask
+        }
+
+        var start: Int {
+            get { Int(packed & Self.offsetMask) }
+            set { packed = packed & ~Self.offsetMask | Self.offset(newValue) }
+        }
+
+        var end: Int {
+            get { Int(packed >> 28 & Self.offsetMask) }
+            set { packed = packed & ~(Self.offsetMask << 28) | Self.offset(newValue) << 28 }
+        }
+
+        var kind: Kinds { Kinds(rawValue: Int(packed >> 56)) }
     }
 
-    /// The scalars with every span replaced; `spans` are in order and do not overlap.
+    /// The scalars with every span replaced; `spans` are in order and do not overlap. The UTF-8 of
+    /// the output is counted first and written once into the string, so the output is never held
+    /// twice.
     static func replacing(_ spans: [Span], in scalars: [Unicode.Scalar]) -> String {
         // Appending to a String.UnicodeScalarView piece by piece copies what is already there,
-        // which made many matches take quadratic time; collect the UTF-8 and build the string
-        // once. UTF-8 takes a quarter of the memory of the scalars for ASCII text.
-        var output: [UInt8] = []
-        output.reserveCapacity(scalars.count + spans.reduce(0) { $0 + $1.replacement.utf8.count })
-        func append(_ range: Range<Int>) {
-            for index in range {
-                let scalar = scalars[index]
-                if scalar.isASCII {
-                    output.append(UInt8(scalar.value))
-                } else {
-                    UTF8.encode(scalar) { output.append($0) }
-                }
-            }
+        // which made many matches take quadratic time.
+        func utf8Count(_ range: Range<Int>) -> Int {
+            var count = 0
+            for index in range { count += UTF8.width(scalars[index]) }
+            return count
         }
+        var length = 0
         var position = 0
         for span in spans {
-            append(position..<span.start)
-            output.append(contentsOf: span.replacement.utf8)
+            length += utf8Count(position..<span.start) + span.replacement.utf8.count
             position = span.end
         }
-        append(position..<scalars.count)
-        return String(decoding: output, as: UTF8.self)
+        length += utf8Count(position..<scalars.count)
+        return String(unsafeUninitializedCapacity: length) { output in
+            var written = 0
+            func append(_ range: Range<Int>) {
+                for index in range {
+                    let scalar = scalars[index]
+                    if scalar.isASCII {
+                        output[written] = UInt8(scalar.value)
+                        written += 1
+                    } else {
+                        UTF8.encode(scalar) { byte in
+                            output[written] = byte
+                            written += 1
+                        }
+                    }
+                }
+            }
+            var position = 0
+            for span in spans {
+                append(position..<span.start)
+                for byte in span.replacement.utf8 {
+                    output[written] = byte
+                    written += 1
+                }
+                position = span.end
+            }
+            append(position..<scalars.count)
+            return written
+        }
     }
 
     /// The spans in order and without overlaps. A span inside a mask (an address, a card number)
