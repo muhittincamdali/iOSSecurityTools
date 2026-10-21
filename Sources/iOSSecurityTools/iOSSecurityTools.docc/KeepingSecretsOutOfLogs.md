@@ -243,12 +243,14 @@ the query. With it, a query parameter keeps its value only when its name is plai
 ``SensitiveDataRedactor/allowedQueryParameters``, which is empty by default. A path segment
 that looks like an identifier or a secret becomes `:id`, and so does the segment after one that
 names a secret. A URL whose path has more than ``SensitiveDataRedactor/maximumPathSegments`` (64)
-segments, or whose query or path has more than ``SensitiveDataRedactor/maximumQueryParameters``
-(128) parameters, is recorded with its scheme, host and port only, and so is a URL whose path
-servers resolve to other segments than it is written with: one with a dot segment
-(`/pin/./4831`, `/token/x/../…`), a `.`, `/`, `\` or `%` written as an escape (`%2E`, `%2F`,
-`%5C`, `%25`, in either case) or a segment that is only parameters (`/token/;/…`), since which
-segment follows a secret name would depend on the server:
+segments, or whose query has more than ``SensitiveDataRedactor/maximumQueryParameters`` (128)
+parameters, is recorded with its scheme, host and port only, and so is a URL whose path servers
+resolve to other segments than it is written with: one with a dot segment (`/pin/./4831`,
+`/token/x/../…`), a `;` anywhere in it (`/a;pin/4831`, `/cart;jsessionid=…`), or a `.`, `/`,
+`\`, `;` or `%` written as an escape (`%2E`, `%2F`, `%5C`, `%3B`, `%25`, in either case), since
+which segment follows a secret name would depend on the server. A Java servlet reads what follows
+a `;` in a segment as parameters, while Express, Go, Rails, Django and ASP.NET Core keep it in the
+segment, so the parameters after a `;` are not read at all:
 
 ```swift
 redactor.redact(url: URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")!)
@@ -258,6 +260,8 @@ redactor.redact(url: URL(string: "https://example.com/v1/cards/4242/pin/4831")!)
 redactor.redact(url: URL(string: "https://example.com" + String(repeating: "/a", count: 65))!)
 // https://example.com
 redactor.redact(url: URL(string: "https://example.com/pin/./4831")!)
+// https://example.com
+redactor.redact(url: URL(string: "https://example.com/a;pin/4831")!)
 // https://example.com
 redactor.redact(url: URL(string: "https://h.example;password=hunter2/db")!)
 // https://[redacted]
@@ -326,7 +330,15 @@ scalar. The densest findings the detectors have — a user info password every f
 (`1:2@`) — take less than 13 MiB for a megabyte. A body of 256 KiB of arrays 63 deep, a JSON value
 for nearly every two bytes, took 15.65 MiB; the JSON reader now keeps each value in 16 bytes,
 without a box of its own, and a JSON body goes to `JSONSerialization` as it came, not encoded
-again, so it takes less than 10 MiB, and the tests hold it to 12 MiB. Memory is measured until the
+again, so it takes less than 10 MiB, and the tests hold it to 12 MiB. A megabyte in which nearly
+every character is a different one outside ASCII — every scalar from U+30000 on, each with a space
+after it, or every scalar from U+0080 on — took up to 17.39 MiB, and 4 MB took 68.15 MiB: the
+reading of each character was cached, one for every character, each with an array of its own,
+and the scanning copy read the whole text, also past a control character that cut it at its
+start. The readings are now cached in a table of at most 4,096, each held in 16 bytes, and the
+scanning copy ends after the line of the first character outside the safe alphabet and the next
+line that is not blank, as far as the scan and the value detectors read; such a megabyte takes
+about 2 MiB, and the tests hold 4 MB to four times the limit of one. Memory is measured until the
 thread that redacts has ended, so what it releases only then counts too.
 
 ### Free text is cut at its first trigger

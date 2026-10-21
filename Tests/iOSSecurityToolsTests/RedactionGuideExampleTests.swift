@@ -65,6 +65,7 @@ struct RedactionGuideExampleTests {
             == "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\n[redacted]: [redacted]\r\nContent-Length: 1\r\n\r\nx\r\n--B0und--")
         #expect(redactor.redact(url: try #require(URL(string: "https://h.example;password=hunter2/db"))) == "https://[redacted]")
         #expect(redactor.redact(url: try #require(URL(string: "https://example.com/pin/./4831"))) == "https://example.com")
+        #expect(redactor.redact(url: try #require(URL(string: "https://example.com/a;pin/4831"))) == "https://example.com")
         #expect(redactor.redact(url: try #require(URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")))
             == "https://example.com/users/:id/reset?code=[redacted]")
         let body = Data(("{\"a\":\"" + String(repeating: "abc ", count: 70_000) + "\"}").utf8)
