@@ -182,8 +182,8 @@ a parser chosen by the content type. A body it cannot parse completely — cut o
 another type such as XML, or larger than ``SensitiveDataRedactor/maximumBodySize`` — is omitted.
 The limit is 256 KiB by default, so that reading a body takes less than 16 MB, whatever its
 shape; an app may raise it with `SensitiveDataRedactor(maximumBodySize:)`, at a cost of up to
-about 60 bytes of memory for each byte of the body in the worst shapes, such as JSON arrays nested
-60 levels deep. A part header name is a key of the part: the redactor writes it only when it is
+about 40 bytes of memory for each byte of the body in the worst shapes, such as JSON arrays nested
+63 levels deep. A part header name is a key of the part: the redactor writes it only when it is
 one of the headers a part carries (`Content-Length`, `Content-Transfer-Encoding`, `Content-ID`,
 `Content-Description`, `Content-Language`, `Content-Location`, `Content-Encoding`), and
 `[redacted]` otherwise, so a card number or a token in a header name never shows:
@@ -316,8 +316,11 @@ detectors look for findings only before the cut and count them before they keep 
 array of exactly that size; a finding takes 24 bytes; findings are put in order in place; and
 `matches(in:)` finds the index of each start and end in one walk, without an index for each
 scalar. The densest findings the detectors have — a user info password every four bytes
-(`1:2@`) — take less than 13 MiB for a megabyte. Memory is measured until the thread that redacts
-has ended, so what it releases only then counts too.
+(`1:2@`) — take less than 13 MiB for a megabyte. A body of 256 KiB of arrays 63 deep, a JSON value
+for nearly every two bytes, took 15.65 MiB; the JSON reader now keeps each value in 16 bytes,
+without a box of its own, and a JSON body goes to `JSONSerialization` as it came, not encoded
+again, so it takes less than 10 MiB, and the tests hold it to 12 MiB. Memory is measured until the
+thread that redacts has ended, so what it releases only then counts too.
 
 ### Free text is cut at its first trigger
 
