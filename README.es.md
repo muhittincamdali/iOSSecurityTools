@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
+<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  509 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  529 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -311,8 +311,11 @@ en una operación JSON Patch o SCIM sobre `/password` o en `[["Authorization","�
 todo su valor cuando el nombre es secreto o no es ASCII simple. Un host de URL que no es un nombre
 de etiquetas ASCII ni una dirección, o que lleva un número de tarjeta o un token, se escribe como
 `scheme://[redacted]`, y el nombre de una cabecera de parte multipart solo se escribe cuando es una
-de las que lleva una parte. Una URL con más de 64 segmentos de ruta o 128 parámetros se registra
-solo con su esquema y su host, y de una dirección de correo solo se muestra la primera letra del
+de las que lleva una parte. Una URL con más de 64 segmentos de ruta o 128 parámetros,
+o con una ruta que los servidores resuelven de forma distinta (un segmento de punto como en
+`/pin/./4831`, un `.`, `/`, `\` o `%`
+escapado, un segmento que solo tiene parámetros), se registra solo con su esquema y su host,
+y de una dirección de correo solo se muestra la primera letra del
 nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser `a•••@gmail.com`).
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
@@ -322,8 +325,13 @@ más a propósito. Ocultar de más es una decisión de diseño. Seis reglas fija
 texto, y ninguna guarda una lista de variantes: el primer carácter fuera de un alfabeto seguro
 (letras, marcas y dígitos de cualquier escritura, el espacio ASCII, el tabulador y los saltos de
 línea, y el ASCII imprimible), de modo que un separador parecido como `꞉` o `→`, un emoji o un
-carácter de control lo cortan; cualquier secuencia de escape (`%3D`, `&colon;`, `\075`), que nunca
-se decodifica; una palabra de más de 256 caracteres; una clave que no está permitida (cualquiera
+carácter de control lo cortan, igual que una letra o un número cuya forma de compatibilidad no
+está en ese alfabeto (`🄁` es `0,`); cualquier secuencia de escape (`%3D`, `&colon;`, `\075`),
+que nunca se decodifica — en texto libre toda secuencia de escape con barra invertida corta el
+texto, es decir, toda barra invertida a la que no siga un espacio, un tabulador o un salto de
+línea ASCII (`login pa\x{73}sword hunter2` conserva `login `, y una ruta de Windows como
+`\\nas\backup` se oculta desde su primera barra invertida);
+una palabra de más de 256 caracteres; una clave que no está permitida (cualquiera
 salvo `status`, `method`, `path`, `duration_ms`, `count` y las claves que usted pase), también
 entre comillas de cualquier tipo (`"`, `'`, acento grave), donde corta el texto en la comilla de
 apertura

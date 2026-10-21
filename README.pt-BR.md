@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@0c4ae08045ea7cc7956e136345f052171d59271a status=reviewed -->
+<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 509
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 529
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -309,8 +309,11 @@ em uma operação JSON Patch ou SCIM sobre `/password` ou em `[["Authorization",
 ocultado por inteiro quando o nome é secreto ou não é ASCII simples. Um host de URL que não é um
 nome de rótulos ASCII nem um endereço, ou que carrega um número de cartão ou um token, é escrito
 como `scheme://[redacted]`, e o nome de um cabeçalho de parte multipart só é escrito quando é um
-dos que uma parte carrega. Uma URL com mais de 64 segmentos de caminho ou 128 parâmetros é
-registrada apenas com o esquema e o host, e um endereço de e-mail mostra só a primeira letra do
+dos que uma parte carrega. Uma URL com mais de 64 segmentos de caminho ou 128 parâmetros,
+ou com um caminho que servidores resolvem de forma diferente (um segmento de ponto como em
+`/pin/./4831`, um `.`, `/`, `\` ou `%`
+escapado, um segmento só com parâmetros), é registrada apenas com o esquema e o host,
+e um endereço de e-mail mostra só a primeira letra do
 nome, em qualquer escrita (`ayşe.yılmaz@gmail.com` vira `a•••@gmail.com`).
 Nomes que não são ASCII simples contam como secretos mesmo quando escritos como valores: o valor ao
 lado de um campo que guarda um nome (`name`, `label`, `type`, `id`, …), como `Şifre`, `ⓟⓘⓝ` ou `🔑`,
@@ -320,8 +323,13 @@ demais de propósito. Ocultar demais é uma decisão de projeto. Seis regras def
 cortado, e nenhuma mantém uma lista de variantes: o primeiro caractere fora de um alfabeto seguro
 (letras, marcas e dígitos de qualquer escrita, o espaço ASCII, a tabulação e as quebras de linha, e
 o ASCII imprimível), de modo que um separador parecido como `꞉` ou `→`, um emoji ou um caractere de
-controle o cortam; qualquer sequência de escape (`%3D`, `&colon;`, `\075`), que nunca é
-decodificada; uma palavra com mais de 256 caracteres; uma chave que não é permitida (qualquer chave
+controle o cortam, assim como uma letra ou um número cuja forma de compatibilidade não está nesse
+alfabeto (`🄁` é `0,`); qualquer sequência de escape (`%3D`, `&colon;`, `\075`), que nunca é
+decodificada — em texto livre, toda sequência de escape com barra invertida corta o texto, ou
+seja, toda barra invertida que não seja seguida de espaço, tabulação ou quebra de linha ASCII
+(`login pa\x{73}sword hunter2` mantém `login `, e um caminho do Windows como `\\nas\backup`
+é ocultado a partir da primeira barra invertida);
+uma palavra com mais de 256 caracteres; uma chave que não é permitida (qualquer chave
 além de `status`, `method`, `path`, `duration_ms`, `count` e das chaves que você passar), também
 entre aspas de qualquer tipo (`"`, `'`, crase), onde corta o texto na aspa de abertura
 (`cache miss for "session Qz9Wk7rX": refetching` vira `cache miss for [redacted]`), ou como
