@@ -15,12 +15,12 @@ struct RedactionFifteenthReviewProbeTests {
     static let reviews = ["a-15", "a-15q", "c-15"]
 
     /// The probes that show their secret by design or as a limitation that "What it does not
-    /// find" names, by review and number.
+    /// find" names, by review and number. None does: `a-15#142` and `a-15#147`
+    /// (`2026-10-19T12:30:2345678901`, `at 10.0.0.1:8080/…`) showed what follows a `:` after a
+    /// number, which is a separator now unless a number of the same shape follows it.
     static let shown: [String: String] = {
         var shown: [String: String] = [:]
-        let byReason: [(String, [String])] = [
-            ("a `:` between digits after a number is part of the number", ["a-15#142", "a-15#147"]),
-        ]
+        let byReason: [(String, [String])] = []
         for (reason, names) in byReason {
             for name in names { shown[name] = reason }
         }
