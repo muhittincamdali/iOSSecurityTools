@@ -50,8 +50,10 @@ import Foundation
 /// `field`, `label`, `type`, `header`, `param`, `path` with every part between `/`, `id`, `k`,
 /// `n`, or a member whose own name is not plain ASCII) is read by the key rule, so non-ASCII
 /// names count as secret even when they are written as values: `Şifre`, `ⓟⓘⓝ`, `🔑`, an empty
-/// name, or an array or object there. When such a name or a secret one is held, or any member's
-/// value is a name that names a secret or cannot be read (`{"type":"password","input":…}`), the
+/// name, or an array or object there. A name with a line break or any other control character in
+/// it counts as secret wherever it is (`{"ParameterKey":"DbPassword\n",…}`). When such a name or a
+/// secret one is held, or any member's value is a name that names a secret or cannot be read
+/// (`{"type":"password","input":…}`), the
 /// values of the other members of the object are hidden whole, apart from the names of pairs
 /// (`name`, `key`, `field`, `header`, `param`, `path`, `k`, `n`) and a JSON Patch or SCIM `op`.
 /// The second element of a two-element array whose first is such a name is hidden whole
@@ -108,7 +110,10 @@ import Foundation
 /// They are found after Unicode compatibility decomposition without marks, format characters,
 /// default-ignorable code points and control characters, so full-width digits, zero-width
 /// characters, fillers such as U+3164, `DEL` and Unicode spaces do not hide them, and the same way
-/// on every path: free text, bodies, JSON strings and names, forms and URLs. Only a letter or
+/// on every path: free text, bodies, JSON strings and names, forms and URLs. They read across a
+/// vertical tab, a form feed, U+0085, U+2028 and U+2029, which cut free text, so a finding written
+/// across one is hidden from its start (`paid with 4111 1111 1111` and U+2028 before `1111` keeps
+/// `paid with `); a line feed or carriage return written as such ends a finding. Only a letter or
 /// digit written in ASCII glues digits or a token to a word (`id4242…`); `é` or `𝐚` before them
 /// does not. When two findings overlap, the whole stretch they cover becomes `[redacted]`, and so
 /// does a finding that runs over the end of a URL in a line. Scanning takes time linear
@@ -332,9 +337,12 @@ public struct SensitiveDataRedactor: Sendable {
     ///   quote glued to the word before it starts no quoted key: the text is cut where that word
     ///   starts (`x"status": 200` keeps nothing).
     ///   The separators are `=` and `:` and runs of
-    ///   them (`:=`, `==`, `=>`); a `:` between two digits is part of a number only after a
-    ///   number, as in `12:30:45`, `2026-10-19T12:30` and `10.0.0.1:8080`, and after a key that
-    ///   ends in digits it is a separator (`user1:2345` cuts at `2345`). JSON in the text follows
+    ///   them (`:=`, `==`, `=>`); a `:` between two digits is part of a number only when both
+    ///   sides have the whole shape of one — a time, a date and time, an address and its port or a
+    ///   line and column, as in `12:30:45`, `2026-10-19T12:30:45Z`, `10.0.0.1:8080` and `42:10`,
+    ///   and then the end of the word. A letter after the digits (`7:9hunter2` cuts at
+    ///   `9hunter2`), five or more digits right after the `:` (`1:482913`) and a key that ends in
+    ///   digits (`user1:2345`) make it a separator. JSON in the text follows
     ///   the same rule member by member, a member name that is not allowed cutting it at its
     ///   opening quote, and the first string of a two-element array is a key too
     ///   (`["user","bob"]` cuts at `"user"`).
@@ -348,15 +356,16 @@ public struct SensitiveDataRedactor: Sendable {
     /// - **Secret names.** A word that holds a secret name cuts the text after the name, with or
     ///   without a separator: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`.
     ///   Punctuation inside a word (`pass~word`) and a space or `|` between two words
-    ///   (`pass word`) are read as a separator. A word is compared by its ASCII skeleton: every
-    ///   letter that has no ASCII form (`ꞏ`, `ı`, `ɑ`) is left out, and what remains is compared
-    ///   with the secret names, a plural `s` included (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`); a
-    ///   name also counts with one of its letters missing where a letter was left out, so one
-    ///   letter (L*) put in place of a letter is found (`pɑssword`, `user_pın`). A word of another
-    ///   language that reads as a name this way hides what follows it (Turkish `yapın` reads as
-    ///   `pin`), on purpose. A name written without a separator with two or more of its letters
-    ///   replaced so (`pɑsswoʀd hunter2`), or with a combining mark (Mn) in place of a letter
-    ///   (`tͦken hunter2`), is not found: both are deliberate disguise.
+    ///   (`pass word`) are read as a separator. A word is compared by its ASCII skeleton, with
+    ///   one wildcard rule: a letter, mark or number outside ASCII that has no ASCII form (`ꞏ`,
+    ///   `ı`, `ɑ`, a combining mark such as U+0366, `〇`) counts as nothing or as any one letter.
+    ///   It is left out, and what remains is compared with the secret names, a plural `s` included
+    ///   (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`); a name also counts with one of its letters missing
+    ///   where such a character stands, so one put in place of a letter is found (`pɑssword`,
+    ///   `user_pın`, `tͦken`, `passw〇rd`). A word of another language that reads as a name this
+    ///   way hides what follows it (Turkish `yapın` reads as `pin`), on purpose. A name written
+    ///   without a separator with two or more of its letters replaced so (`pɑsswoʀd hunter2`) is
+    ///   not found: that is deliberate disguise.
     ///   After an allowed key that holds a name (`id=`, `type=`, … but not `path=`, the route of a
     ///   request), a secret name or one that is not plain ASCII cuts the text after it, as in JSON
     ///   (`type="Пароль"`), and so does JSON there.

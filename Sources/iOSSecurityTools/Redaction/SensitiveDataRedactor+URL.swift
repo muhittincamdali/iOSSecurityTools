@@ -25,8 +25,10 @@ extension SensitiveDataRedactor {
     /// - **Path:** a segment that looks like an identifier or a secret becomes `:id`: a UUID, a
     ///   number of six or more digits, a token of 16 or more letters and digits, a run of 32 or more
     ///   hex or base64 characters, a JSON Web Token, anything the value detectors find, and text
-    ///   the free-text rule would change. The segment after one that names a secret is a value
-    ///   too and becomes `:id` whatever it looks like (`/pin/4831`, `/token/…/info`).
+    ///   the free-text rule would change. The segment after one that names a secret, or is not a
+    ///   plain-ASCII name of ASCII letters, digits, `_`, `-`, `.` and spaces, is a value too and
+    ///   becomes `:id` whatever it looks like (`/pin/4831`, `/token/…/info`, `/şifre/…`,
+    ///   `/p%0Ain/…`, `/a,b/…`).
     /// - **A path that servers resolve differently** — with a dot segment (`/pin/./4831`,
     ///   `/token/x/../…`), a `;` anywhere (`/a;pin/4831`, `/cart;jsessionid=…`), or an escaped
     ///   `.`, `/`, `\`, `;` or `%` (`%2E`, `%2F`, `%5C`, `%3B`, `%25`) — is not written: only the
