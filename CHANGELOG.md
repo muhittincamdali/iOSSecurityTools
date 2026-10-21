@@ -36,10 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unparsedURL`. With `URLDetail.hostOnly` (the `urlDetail` argument of the initializer) only the
   scheme, host and port are written.
 - `SensitiveDataRedactor.maximumPathSegments` (64) and `.maximumQueryParameters` (128): a URL
-  with more path segments, or more query or path parameters, is recorded with its scheme, host
-  and port only, which bounds the work one URL can ask for. So is a URL whose path servers resolve
-  differently: one with a dot segment (`/pin/./4831`), an escaped `.`, `/`, `\` or `%` (`%2E`,
-  `%2F`, `%5C`, `%25`) or a segment that is only parameters (`/token/;/…`).
+  with more path segments or query parameters is recorded with its scheme, host and port only,
+  which bounds the work one URL can ask for. So is a URL whose path servers resolve differently:
+  one with a dot segment (`/pin/./4831`), a `;` anywhere in it (`/a;pin/4831`), or an escaped
+  `.`, `/`, `\`, `;` or `%` (`%2E`, `%2F`, `%5C`, `%3B`, `%25`); the parameters after a `;` are
+  not read.
 - `allowedTextKeys` and `defaultAllowedTextKeys` (`status`, `method`, `path`, `duration_ms`,
   `count`): the keys after which free text is read on.
 - `SensitiveDataRedactor.Kinds.ibans` and `.longTokens`, both in `.all`: IBANs that pass the
@@ -464,6 +465,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and decode escapes before routing: `/pin/./4831` showed `4831`, and `/token/x/../…` the value
   after `..`. A path with a dot segment, an escaped `.`, `/`, `\` or `%`, or a segment that is
   only parameters now records only the scheme, host and port.
+- The twenty-first review found that `redact(url:)` showed the segment after one whose `;`
+  parameter named a secret: `https://api.example.com/a;pin/hunterzoo` became
+  `https://api.example.com/a;[redacted]/hunterzoo`, as did `/login;password/…`,
+  `/v1/users;pin/…/info`, `/a;b=1;token/…`, `/a;pin%3D/…`, `/a;p%69n/…` and `/a;pin=/…`, with a
+  port and with a query, while `/a%3Bpin/…` and `/a,pin/…` made the next segment `:id`. The path
+  parameters were read like query parameters, but Express, Go, Rails, Django and ASP.NET Core
+  read `a;pin` as one segment, and only a Java servlet reads `pin` as a parameter. A path with a
+  `;`, raw or escaped as `%3B` in either case, now records only the scheme, host and port, and
+  path parameters are no longer read. The review's 28 probes are kept as tests, with generated
+  paths of secret names, ways of writing the `;` and places in the path.
+- The same review measured 17.08 to 17.39 MiB for a megabyte of free text of about 200,000
+  different scalars outside ASCII (every scalar from U+30000 on, each with a space after it, or
+  every scalar from U+0080 on), and 68.15 MiB for 4 MB: the reading of each scalar was cached in
+  a dictionary that kept one for every scalar, each reading with an array of its own, about 80
+  bytes for each, and the scanning copy read and cached the whole text, also past a control
+  character that cut it at its start, so a text that came out as `[redacted]` took 17.4 MiB. The
+  readings are now cached in a table of at most 4,096, each reading in 16 bytes with its bytes
+  in place, and the scanning copy of free text ends after the line of the first character outside
+  the safe alphabet and the next line that is not blank, as far as the scan and the value
+  detectors read; a test checks on every text probe of the reviews and on 20,000 random texts
+  that both copies find the same. Such a megabyte now takes about 2 MiB, and the memory tests
+  hold these shapes to 16 MiB and 4 MB of them to four times that.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
