@@ -16,7 +16,9 @@ import iOSSecurityTools
 /// quoted keys copied (see ``QuotedKeyShapes``). The quotes of the seventeenth review's shapes are
 /// read in a pass of their own (see ``MarkupQuoteShapes``). The eighteenth measured up to 18.55 MiB
 /// for a megabyte dense with findings (see ``DenseFindingShapes``), and the nineteenth 15.65 MiB for
-/// a body of arrays 63 deep (see ``DeepArrayShapes``), which are now held to 12 MiB.
+/// a body of arrays 63 deep (see ``DeepArrayShapes``), which are now held to 12 MiB. The
+/// twenty-first measured 17.39 MiB for a megabyte of different scalars and 68.15 MiB for 4 MB (see
+/// ``DistinctScalarShapes``); 4 MB of them are held to four times the limit of one.
 @Suite("SensitiveDataRedactor peak memory", .serialized)
 struct RedactionPeakMemoryTests {
     static let limit = 16 * 1_048_576
@@ -39,13 +41,16 @@ struct RedactionPeakMemoryTests {
         }, redact: redactor.redact),
     ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor) + FourteenthReviewShapes.text
         + URLInTextShapes.text + QuotedKeyShapes.text + MarkupQuoteShapes.text + DenseFindingShapes.text
-        + DenseFindingShapes.bodies(size: bodySize, redactor: redactor) + deepArrayShapes
+        + DenseFindingShapes.bodies(size: bodySize, redactor: redactor) + deepArrayShapes + DistinctScalarShapes.text
+        + DistinctScalarShapes.bodies(size: bodySize, redactor: redactor) + [DistinctScalarShapes.large]
 
     static let deepArrayShapes = DeepArrayShapes.bodies(size: bodySize, redactor: redactor)
 
-    /// The limit of the shape with this description.
+    /// The limit of the shape with this description: four megabytes may take four times the
+    /// memory of one, no more.
     static func limit(for description: String) -> Int {
-        deepArrayShapes.contains { $0.testDescription == description } ? deepArrayLimit : limit
+        if description == DistinctScalarShapes.large.testDescription { return DistinctScalarShapes.largeFactor * limit }
+        return deepArrayShapes.contains { $0.testDescription == description } ? deepArrayLimit : limit
     }
 
     /// Bodies just under ``SensitiveDataRedactor/defaultMaximumBodySize``.
@@ -165,7 +170,9 @@ struct RedactionPeakMemoryTests {
 
     @Test("every body shape is read, not omitted, at the default limit")
     func bodiesAreRead() {
-        for input in ThirteenthReviewShapes.bodies(size: Self.bodySize, redactor: Self.redactor) + Self.deepArrayShapes {
+        let bodies = ThirteenthReviewShapes.bodies(size: Self.bodySize, redactor: Self.redactor) + Self.deepArrayShapes
+            + DistinctScalarShapes.bodies(size: Self.bodySize, redactor: Self.redactor)
+        for input in bodies {
             let text = input.make()
             #expect(text.utf8.count <= SensitiveDataRedactor.defaultMaximumBodySize, "\(input.testDescription)")
             #expect(!input.redact(text).hasPrefix("[body omitted"), "\(input.testDescription)")
