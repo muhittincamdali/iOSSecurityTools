@@ -15,7 +15,9 @@ struct RedactionReviewProbeSetTests {
     /// The probes that show their secret, by review and number, with the limitation each one is.
     static let documentedLimitations: [String: String] = {
         var limitations: [String: String] = [:]
-        let twoLookAlikeLetters = Array(1...14) + Array(23...25) + Array(27...29) + Array(37...43) + [336]
+        // `a-10#43` writes the name as a URL path segment, which is not a plain-ASCII name, so the
+        // segment after it is a value.
+        let twoLookAlikeLetters = Array(1...14) + Array(23...25) + Array(27...29) + Array(37...42) + [336]
         let byReason: [(String, [String])] = [
             ("a value written before its name", ["a-3#311"]),
             ("the value of an allowed query parameter, also repeated or in another case", ["a-3#379", "a-3#381"]),
@@ -37,7 +39,7 @@ struct RedactionReviewProbeSetTests {
             "a-14": 758, "a-14b": 402, "a-14q": 60, "a-15": 300, "a-15q": 15, "c-15": 315, "a-16": 381, "c-16": 98, "a-18": 1_084,
             "c-18": 417, "a-20": 240,
         ])
-        #expect(Self.documentedLimitations.count == 33)
+        #expect(Self.documentedLimitations.count == 32)
         #expect(Self.large.count == 104)
     }
 

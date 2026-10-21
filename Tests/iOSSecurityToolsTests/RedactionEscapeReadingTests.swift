@@ -167,8 +167,9 @@ struct RedactionEscapeReadingTests {
 
     @Test("a name that names no secret keeps the value beside it", arguments: Path.allCases.filter { $0 != .allowedQuery })
     func plainNamesKeepValue(path: Path) {
-        // A `%25` in a URL path is a double encoding, which records the scheme and host only.
-        for name in ["status", "region", "page", "Debit", "#xbox", "%users", "50%off"] where path != .urlPath || !name.contains("%") {
+        // A `%25` in a URL path is a double encoding, which records the scheme and host only, and
+        // a segment that is not a plain-ASCII name (`#xbox`) is a label, as a secret name is.
+        for name in ["status", "region", "page", "Debit", "#xbox", "%users", "50%off"] where path != .urlPath || PlainName(name.unicodeScalars) != nil {
             let output = Self.redacted(name, path: path)
             #expect(output.contains(Self.value), "\(path.rawValue): \(name) -> \(output.debugDescription)")
         }

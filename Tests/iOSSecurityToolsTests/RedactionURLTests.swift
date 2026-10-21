@@ -18,7 +18,7 @@ struct RedactionURLTests {
         ("https://example.com/orders/550e8400-e29b-41d4-a716-446655440000", "https://example.com/orders/:id", nil),
         ("https://example.com/files/0123456789abcdef0123456789abcdef", "https://example.com/files/:id", nil),
         ("https://example.com/s/aB3dE5fG7hJ9kL1m", "https://example.com/s/:id", nil),
-        ("https://example.com/u/alice@example.com/x", "https://example.com/u/:id/x", "GET [redacted]"),
+        ("https://example.com/u/alice@example.com/x", "https://example.com/u/:id/:id", "GET [redacted]"),
         ("https://example.com/cart;jsessionid=abc/view", "https://example.com", "GET [redacted]"),
         ("https://example.com/a?flag&q=", "https://example.com/a?[redacted]&q=", "GET [redacted]"),
         ("https://example.com/a?p%61ssword=x&%E2%80%8Btoken=y", "https://example.com/a?p%61ssword=[redacted]&[redacted]=[redacted]", "GET [redacted]"),
@@ -132,6 +132,9 @@ struct RedactionURLTests {
     @Test("a segment read once keeps its reading where it comes again, after a label or not")
     func repeatedSegments() throws {
         let url = try #require(URL(string: "https://example.com/pin/pin/users/4831/users/pin/4831/a%40b.com/a%40b.com/users"))
-        #expect(redactor.redact(url: url) == "https://example.com/pin/:id/:id/4831/users/pin/:id/:id/:id/users")
+        // `a@b.com` is not a plain-ASCII name, so the segment after it is a value, as after `pin`.
+        #expect(redactor.redact(url: url) == "https://example.com/pin/:id/:id/4831/users/pin/:id/:id/:id/:id")
+        let plain = try #require(URL(string: "https://example.com/pin/pin/users/4831/users/v1/v1/users"))
+        #expect(redactor.redact(url: plain) == "https://example.com/pin/:id/:id/4831/users/v1/v1/users")
     }
 }
