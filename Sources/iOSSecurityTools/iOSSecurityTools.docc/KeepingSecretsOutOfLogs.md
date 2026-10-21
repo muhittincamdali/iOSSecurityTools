@@ -86,10 +86,11 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   and multipart fields are written as they are and only the values under them are hidden, so a
   secret written into a name (`{"password hunter2":…}` in a body) shows.
 - **Free text is cut at its first trigger.** A log line has no grammar, so everything after the
-  first trigger is hidden, to the end of the text. Five rules set the triggers, and none of them
-  keeps a list of variants: the first character outside a safe alphabet, any escape, a word
-  longer than 256 characters, a key that is not on the allowlist in any of its shapes, and a
-  secret name with or without a separator. A URL is shown only when it is clean; any other URL
+  first trigger is hidden, to the end of the text. Six rules set the triggers, and none of them
+  keeps a list of variants: the first character outside a safe alphabet, any escape (every
+  backslash before anything but white space among them), a word longer than 256 characters, a
+  key that is not on the allowlist in any of its shapes, a markup tag, and a secret name with or
+  without a separator. A URL is shown only when it is clean; any other URL
   cuts the text where it starts. Over-hiding is by design. A value written with a
   separator, ASCII or not, is always hidden. The one limit applies only when no trigger comes
   before a secret: a name written without a separator in letters of the safe alphabet with two or
@@ -243,7 +244,11 @@ the query. With it, a query parameter keeps its value only when its name is plai
 that looks like an identifier or a secret becomes `:id`, and so does the segment after one that
 names a secret. A URL whose path has more than ``SensitiveDataRedactor/maximumPathSegments`` (64)
 segments, or whose query or path has more than ``SensitiveDataRedactor/maximumQueryParameters``
-(128) parameters, is recorded with its scheme, host and port only:
+(128) parameters, is recorded with its scheme, host and port only, and so is a URL whose path
+servers resolve to other segments than it is written with: one with a dot segment
+(`/pin/./4831`, `/token/x/../…`), a `.`, `/`, `\` or `%` written as an escape (`%2E`, `%2F`,
+`%5C`, `%25`, in either case) or a segment that is only parameters (`/token/;/…`), since which
+segment follows a secret name would depend on the server:
 
 ```swift
 redactor.redact(url: URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")!)
@@ -251,6 +256,8 @@ redactor.redact(url: URL(string: "https://bob:pw@example.com/users/12345678/rese
 redactor.redact(url: URL(string: "https://example.com/v1/cards/4242/pin/4831")!)
 // https://example.com/v1/cards/:id/pin/:id
 redactor.redact(url: URL(string: "https://example.com" + String(repeating: "/a", count: 65))!)
+// https://example.com
+redactor.redact(url: URL(string: "https://example.com/pin/./4831")!)
 // https://example.com
 redactor.redact(url: URL(string: "https://h.example;password=hunter2/db")!)
 // https://[redacted]
@@ -357,14 +364,25 @@ kept and reviews got past one variant at a time:
   (`—`), a currency sign (`€`), East Asian punctuation (`、`), an emoji, a non-breaking space,
   U+2028 — a control character (`DEL`, a vertical tab, U+0085), a format character such as a
   zero-width space, and every default-ignorable code point (U+3164). A character is judged by its
-  Unicode category alone. A modifier letter (`ː`, `ー`) is in the alphabet only after a letter or
-  digit outside ASCII, as in Japanese or Thai text; after ASCII it can stand for a colon.
+  Unicode category and by its compatibility form, which is what the text is read as: a letter or
+  number whose compatibility form holds punctuation, a space, a symbol or a modifier letter (`🄁`
+  is `0,`, `⒈` is `1.`, `⑴` is `(1)`, `½` is `1⁄2`, `ŉ` is `ʼn`) cuts the text too, so nothing
+  next to it is read as a key that the text does not hold (`🄁status=…`). A modifier letter
+  (`ː`, `ー`) is in the alphabet only after a letter or digit outside ASCII, as in Japanese or Thai
+  text; after ASCII it can stand for a colon.
 - **Escapes.** No escape is decoded in free text. One that can stand for any character cuts the
   text at the start of the word it is in: `%3D` and `%u003D`, `&#61;` and `&#x3D;`, a named
   reference such as `&colon;`, `&equals;` or `&amp;`, and `&` before a letter unless it starts the
-  name of a field before `=` (`&count=3`), `\075` and other octal escapes, `\3d`, `\x3D`,
-  `\u003D`, `\u{3D}`, `\U0000003D` and `\N{…}`. The value detectors cannot read through an escape
-  either, so the word goes whole (`alice%40example.com`).
+  name of a field before `=` (`&count=3`). In free text every backslash escape cuts the text: a
+  backslash cuts it at the start of its word whatever follows it, unless an ASCII space, tab or
+  line break or the end of the text does, so no list of the forms of backslash escapes is kept —
+  `\075`, `\3d`, `\x3D`, `\x{73}`, `\o{163}`, `\u{3D}`, `\N{…}`, `\q` and `\"` all cut it
+  (`login pa\x{73}sword hunter2` keeps `login `). An earlier design of 2.1.0 listed the forms, and
+  a review got past the list with the braced escapes of C++23, Perl and PCRE (`\x{73}`,
+  `\o{163}`). A Windows path or a regular expression in free text is hidden from the word of its
+  first backslash on (`copied to \\nas\backup` keeps `copied to `); over-hiding is by design. The
+  value detectors cannot read through an escape either, so the word goes whole
+  (`alice%40example.com`).
 - **Opaque words.** A word longer than 256 characters cannot be read as a name: it cuts the text
   where it starts. No word is copied for reading at more than that length.
 - **The key rule, in every shape.** In `key=value`, `key: value`, `key = value` and
@@ -382,6 +400,9 @@ kept and reviews got past one variant at a time:
   quotes shows: `cache miss for "session Qz9Wk7rX": refetching` keeps `cache miss for `,
   `"password hint": 1` keeps nothing, and `{'status': 200, 'last status': 'x'}` keeps
   `{'status': 200, `. A `'` opens a quote only at the start of a word, so `don't` holds none.
+  A quote glued to the word before it starts no quoted key: that word is part of the key, which
+  is then not plain, so the text is cut where the word starts (`x"status": 200` and
+  `🄁"status": 200` keep nothing).
   JSON in the text is parsed and its members follow the same rule, a member name that is not
   allowed cutting the text at its opening quote (`{"password hunter2": 1}` keeps `{`), as does the
   first string of a two-element array, as fetch headers and `URLSearchParams` entries write a pair
@@ -524,7 +545,8 @@ everything after the first key that is not allowed (`Error: connection refused` 
 `connection refused` and every line after it), after the first secret name, word it cannot read or
 quote that does not close on its line, after the first character outside the safe alphabet — an
 emoji, a dash, a currency sign or East Asian punctuation in a sentence (`Merhaba dünya 👋 bye`
-keeps only `Merhaba dünya `) — a whole word with an escape in it, a word longer than 256
+keeps only `Merhaba dünya `) — a whole word with an escape in it, a backslash before anything
+but white space among them (`pattern ^\d+$ matched` keeps `pattern `), a word longer than 256
 characters, everything from the first markup tag on, whatever the tag (`Optional<String>(x)` keeps
 `Optional`, and an email address written as `<bob@example.com>` goes whole), everything from a
 `<` that no ASCII space, tab, line break, digit or `=` follows (`x << 1` keeps `x `), a whole JSON string

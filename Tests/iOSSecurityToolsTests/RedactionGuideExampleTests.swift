@@ -41,6 +41,12 @@ struct RedactionGuideExampleTests {
         ("Optional<String>(x)", "Optional[redacted]"),
         ("note \"a\nhunter2\": 1", "note [redacted]"),
         ("if a < b then", "if a < b then"),
+        ("login pa\\x{73}sword hunter2", "login [redacted]"),
+        ("copied to \\\\nas\\backup", "copied to [redacted]"),
+        ("pattern ^\\d+$ matched", "pattern [redacted]"),
+        ("x\"status\": 200", "[redacted]"),
+        ("\u{1F101}\"status\": 200", "[redacted]"),
+        ("\u{1F101}status=200", "[redacted]"),
     ])
     func freeText(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
@@ -58,6 +64,7 @@ struct RedactionGuideExampleTests {
         #expect(redactor.redact(body: Data(part.utf8), contentType: "multipart/form-data; boundary=B0und")
             == "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\n[redacted]: [redacted]\r\nContent-Length: 1\r\n\r\nx\r\n--B0und--")
         #expect(redactor.redact(url: try #require(URL(string: "https://h.example;password=hunter2/db"))) == "https://[redacted]")
+        #expect(redactor.redact(url: try #require(URL(string: "https://example.com/pin/./4831"))) == "https://example.com")
         #expect(redactor.redact(url: try #require(URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")))
             == "https://example.com/users/:id/reset?code=[redacted]")
         let body = Data(("{\"a\":\"" + String(repeating: "abc ", count: 70_000) + "\"}").utf8)
