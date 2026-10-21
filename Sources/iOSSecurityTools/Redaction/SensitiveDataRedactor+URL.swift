@@ -12,7 +12,10 @@ extension SensitiveDataRedactor {
     ///   brackets, and the value detectors that ``kinds`` turns on find nothing in it (a card number,
     ///   a run of 32 hex digits, a token). Any other host — one with `=`, `;`, `%`, `_` or letters
     ///   outside ASCII, such as `password=hunter2` in `myapp://password=hunter2` — is written as
-    ///   `[redacted]` after the scheme, with nothing after it.
+    ///   `[redacted]` after the scheme, with nothing after it. A host that names a secret
+    ///   (see ``hostNamesSecret(_:compatibility:)``) is written with the scheme and port only, as
+    ///   the path after it is its value: `myapp://pin/4831` has the host `pin` and is written as
+    ///   `myapp://pin`.
     /// - **Query:** a parameter keeps its value only when its name, decoded, is plain ASCII and on
     ///   ``allowedQueryParameters``, which is empty by default; any other value is
     ///   `[redacted]`, and so is a parameter without `=` that is not on the list. A name that is not
@@ -67,6 +70,7 @@ extension SensitiveDataRedactor {
         let path = components.percentEncodedPath
         guard urlDetail == .full, !Self.exceedsLimits(components), !Self.resolvesDifferently(path: path) else { return result }
         let hidesByName = kinds.contains(.secretFields)
+        if hidesByName, Self.hostNamesSecret(host, compatibility: compatibility) { return result }
         result += hidesByName
             ? redacted(path: path, nesting: nesting, compatibility: compatibility)
             : scanned(path: path, nesting: nesting, compatibility: compatibility)
@@ -95,6 +99,17 @@ extension SensitiveDataRedactor {
         let bytes = Array(host.utf8)
         guard Self.isHostName(bytes) || Self.isIPv4Address(bytes) || Self.isIPv6Literal(bytes) else { return false }
         return detectorSpans(in: NormalizedText(Array(host.unicodeScalars), compatibility: compatibility)).isEmpty
+    }
+
+    /// Whether a host names a secret, by the key rule (``FieldName/hidesValue(_:)``) or as a word
+    /// that makes the path segment after it a value (``FreeTextScanner/mentionsSecret(_:compatibility:)``).
+    /// In `myapp://pin/4831` `URLComponents` reads `pin` as the host, so the path after it is
+    /// the value a segment `pin` would label: only the scheme, host and port are written. An
+    /// IPv4 or IPv6 address names nothing.
+    static func hostNamesSecret(_ host: String, compatibility: CompatibilityText) -> Bool {
+        let bytes = Array(host.utf8)
+        guard !bytes.isEmpty, !isIPv4Address(bytes), !isIPv6Literal(bytes) else { return false }
+        return FieldName.hidesValue(host.unicodeScalars) || FreeTextScanner.mentionsSecret(Array(host.unicodeScalars), compatibility: compatibility)
     }
 
     /// The longest host name, in bytes, and the longest label in it.
