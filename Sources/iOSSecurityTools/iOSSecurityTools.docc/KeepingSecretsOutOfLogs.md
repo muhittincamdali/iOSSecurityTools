@@ -92,10 +92,13 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   key that is not on the allowlist in any of its shapes, a markup tag, and a secret name with or
   without a separator. A URL is shown only when it is clean; any other URL
   cuts the text where it starts. Over-hiding is by design. A value written with a
-  separator, ASCII or not, is always hidden. The one limit applies only when no trigger comes
-  before a secret: a name written without a separator in letters of the safe alphabet with two or
-  more of its letters replaced on purpose by look-alike letters (`pɑsswoʀd hunter2`) is not
-  guaranteed to be found; <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits. No table of
+  separator, ASCII or not, is always hidden. The limits apply only when no trigger comes before a
+  secret and the name is written without a separator, and both are deliberate disguise: a name in
+  letters of the safe alphabet with two or more of its letters replaced on purpose by look-alike
+  letters (`pɑsswoʀd hunter2`), and a name with a combining mark (Mn) put in place of one of its
+  letters (`tͦken hunter2`, a small `o` written above the `t`), are not guaranteed to be found.
+  One letter (L*) put in place of a letter of a name is found (`pɑssword`, `tøken`);
+  <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits. No table of
   look-alikes is kept to chase them, since none is ever complete. Write logs with separators, or
   as structured data, and keep secrets out of them.
 
@@ -236,7 +239,11 @@ The host is a key of the URL: it is written only when it is a name of ASCII lett
 detectors find nothing in it. Any other host — `password=hunter2` in `myapp://password=hunter2`,
 `h.example;password=hunter2`, a card number or a run of 32 hex digits as a label, a host in
 letters outside ASCII — is written as `[redacted]` after the scheme, with nothing after it. In
-free text such a URL is not clean, so it cuts the text where it starts (see below).
+free text such a URL is not clean, so it cuts the text where it starts (see below). A host that
+names a secret, by the key rule or as a word, records the scheme, host and port only, since the
+path after it is its value: with a scheme of the app's own `URLComponents` reads the first part
+after `//` as the host, so `myapp://pin/4831` has the host `pin` and the path `/4831`. A host such
+as `auth.example.com` names `auth` too and hides its whole path, which over-hides on purpose.
 The user name, password and fragment are never written, whatever kinds the redactor looks for;
 without ``SensitiveDataRedactor/Kinds/secretFields`` only the value detectors run on the path and
 the query. With it, a query parameter keeps its value only when its name is plain ASCII and on
@@ -265,6 +272,8 @@ redactor.redact(url: URL(string: "https://example.com/a;pin/4831")!)
 // https://example.com
 redactor.redact(url: URL(string: "https://h.example;password=hunter2/db")!)
 // https://[redacted]
+redactor.redact(url: URL(string: "myapp://pin/4831")!)
+// myapp://pin
 ```
 
 ### Limits keep hostile input from exhausting the stack and the time
@@ -335,10 +344,18 @@ every character is a different one outside ASCII — every scalar from U+30000 o
 after it, or every scalar from U+0080 on — took up to 17.39 MiB, and 4 MB took 68.15 MiB: the
 reading of each character was cached, one for every character, each with an array of its own,
 and the scanning copy read the whole text, also past a control character that cut it at its
-start. The readings are now cached in a table of at most 4,096, each held in 16 bytes, and the
-scanning copy ends after the line of the first character outside the safe alphabet and the next
-line that is not blank, as far as the scan and the value detectors read; such a megabyte takes
-about 2 MiB, and the tests hold 4 MB to four times the limit of one. Memory is measured until the
+start. The readings are now cached in a table whose size is fixed when it is made, about one
+slot for each scalar of the text, body or URL it serves, from 16 to 8,192 slots of 24 bytes, and
+the scanning copy ends after the line of the first character outside the safe alphabet and the
+next line that is not blank, as far as the scan and the value detectors read; such a megabyte
+takes about 2 MiB, and the tests hold 4 MB to four times the limit of one. The table never grows:
+one that doubled whenever two characters met in a slot let seven characters that meet in every
+size (`丆幛丆幛丆幛丆`, `ÂۿÂۿÂۿÂ`) take each new table to 4,096 slots, so a megabyte of short log
+lines of them took 1.77 s and a form of such fields 0.94 s. The slots are in sets of two, a
+character's set is chosen with Swift's `Hasher`, seeded at random in every process, so no text
+can choose characters that meet, ideographs and Hangul syllables are read without Foundation, and
+one table serves a whole body or URL with every field, part and segment in it; the tests time
+these shapes too. Memory is measured until the
 thread that redacts has ended, so what it releases only then counts too.
 
 ### Free text is cut at its first trigger
@@ -439,10 +456,12 @@ kept and reviews got past one variant at a time:
   `ı`, `ɑ`, `ø`) is left out, and what remains is compared with the secret names, a plural `s`
   included. However many such letters are put in, the name is found: `piꞏn`, `tokeın`, `tokenꞏs`
   and `keyıs` read as `pin`, `token`, `tokens` and `keys`. A name also counts with one of its
-  letters missing where a letter was left out, so one letter put in place of a letter of the name
-  is found too (`pɑssword`, `user_pın`). A word of another language that reads as a name this way
-  hides what follows it — Turkish `yapın` reads as `pin` — which over-hides on purpose. A name with
-  two or more of its letters replaced is not read this way (see "What it does not find"). A name
+  letters missing where a letter was left out, so one letter (L*) put in place of a letter of the
+  name is found too (`pɑssword`, `user_pın`). A word of another language that reads as a name this
+  way hides what follows it — Turkish `yapın` reads as `pin` — which over-hides on purpose. A name
+  with two or more of its letters replaced is not read this way, and neither is one with a
+  combining mark (Mn) in place of a letter (`tͦken`): a mark is left out like any mark, so no
+  letter was left out where the name misses one (see "What it does not find"). A name
   written as a value is read too: `name=`, `key=`, `label=` and
   the other keys that hold a name are not allowed by default, so they cut the text at once
   (`name="password"`, `Content-Disposition: form-data; name="pin"`).
@@ -540,7 +559,11 @@ trigger comes before it and no `=` or `:` follows a name, it does not read a nam
 another script that only looks Latin (Greek `ΡΙΝ`), one with two or more of its letters replaced
 by letters of the safe alphabet that have no ASCII form (`pɑsswoʀd hunter2` shows `hunter2`, and
 in a URL passed to `redact(url:)` a path `/pɑsswoʀd/…` the segment after it) or written in them
-throughout (small capitals), one written
+throughout (small capitals), one with a combining mark (Mn, U+0363 to U+036F: `ͣ`, `ͤ`, `ͥ`, `ͦ`,
+…) put in place of one of its letters (`login tͦken hunter2` shows `hunter2`, as do `pͥn`,
+`passwͦrd` and `sͤcret` in a JSON string, a multipart part, a text/plain body and a URL path
+segment `/t%CD%A6ken/…`; with a separator, as a name and value pair or in an array of two it is
+hidden), one written
 with a space between its letters (`p a s s w o r d`), one spelled with digits and symbols
 (`p@ssword`, `passw0rd`), a value written before its name or glued to a flag (`-pSECRET`), a value
 after a flag or a name that is not on the list without a separator (`--user SECRET`), a name in

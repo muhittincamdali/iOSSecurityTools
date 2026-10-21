@@ -103,11 +103,14 @@ extension FreeTextScanner {
 /// `ø`) is then left out, and what remains is compared, lowercased, with the secret names, a
 /// plural `s` included (see ``PlainName/firstSecret(where:)``): `piꞏn`, `tokeın`, `tokenꞏs` and
 /// `keyıs` read as `pin`, `token`, `tokens` and `keys`, however many letters are left out. A name
-/// also counts with one of its letters missing where letters were left out, so a letter put in
-/// place of one of its letters is found too (`pɑssword`, `user_pın`), and a word of another
+/// also counts with one of its letters missing where letters were left out, so a letter (L*) put
+/// in place of one of its letters is found too (`pɑssword`, `user_pın`), and a word of another
 /// language that reads as a name this way is read as that name (Turkish `yapın` as `pin`),
 /// which hides more on purpose. Two or more letters put in place of letters of one name
-/// (`pɑsswoʀd`) are not found: no list of look-alikes is kept. Punctuation between letters is
+/// (`pɑsswoʀd`) are not found: no list of look-alikes is kept. Nor is a name with a combining
+/// mark (Mn) in place of one of its letters (`tͦken`): the mark is left out like any mark, so the
+/// letter the name misses is not where a letter was left out. Both are deliberate disguise, a
+/// documented limit of free text written without a separator. Punctuation between letters is
 /// read as a separator (`pass~word`), and a word read with the next one (`pass word`) holds a
 /// secret name across the space.
 struct LooseReading {
