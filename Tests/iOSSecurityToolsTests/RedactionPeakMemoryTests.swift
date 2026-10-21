@@ -13,7 +13,8 @@ import iOSSecurityTools
 /// whose trees `JSONSerialization` autoreleased, which an earlier version of this test did not see:
 /// it stopped measuring when the redaction returned, before its thread released them. The
 /// sixteenth measured 26 MB for a quoted key of a megabyte inside another, which the reading of
-/// quoted keys copied (see ``QuotedKeyShapes``).
+/// quoted keys copied (see ``QuotedKeyShapes``). The quotes of the seventeenth review's shapes are
+/// read in a pass of their own (see ``MarkupQuoteShapes``).
 @Suite("SensitiveDataRedactor peak memory", .serialized)
 struct RedactionPeakMemoryTests {
     static let limit = 16 * 1_048_576
@@ -33,7 +34,7 @@ struct RedactionPeakMemoryTests {
             RedactionTimeLimitTests.repeated("mail alice@example.com\n", to: RedactionTimeLimitTests.size)
         }, redact: redactor.redact),
     ] + ThirteenthReviewShapes.text + ThirteenthReviewShapes.bodies(size: bodySize, redactor: redactor) + FourteenthReviewShapes.text
-        + URLInTextShapes.text + QuotedKeyShapes.text
+        + URLInTextShapes.text + QuotedKeyShapes.text + MarkupQuoteShapes.text
 
     /// Bodies just under ``SensitiveDataRedactor/defaultMaximumBodySize``.
     static let bodySize = SensitiveDataRedactor.defaultMaximumBodySize - 144
