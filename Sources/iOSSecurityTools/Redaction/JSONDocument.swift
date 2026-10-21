@@ -21,16 +21,35 @@ struct JSONDocument {
         case overBudget
     }
 
+    /// A value and where it is, in 16 bytes. A body of arrays 63 deep holds a node for nearly every
+    /// two bytes of it, each in an array of its own: with `Range<Int>` offsets and every value
+    /// boxed, as an `indirect enum` boxes it, they took 15.6 MiB of a body of 256 KiB.
     struct Node {
-        /// The whole value in the text, quotes and brackets included.
-        let range: Range<Int>
+        private let start: UInt32
+        private let end: UInt32
         let value: Value
+
+        /// `range` is within a text of at most ``maximumLength`` scalars.
+        init(range: Range<Int>, value: Value) {
+            start = UInt32(truncatingIfNeeded: range.lowerBound)
+            end = UInt32(truncatingIfNeeded: range.upperBound)
+            self.value = value
+        }
+
+        /// The whole value in the text, quotes and brackets included.
+        var range: Range<Int> { Int(start)..<Int(end) }
     }
 
-    indirect enum Value {
-        case object([Member])
-        case array([Node])
-        case string(StringToken)
+    /// The longest text that is read, so that the offsets of a ``Node`` fit in 32 bits.
+    static let maximumLength = Int(UInt32.max)
+
+    /// One word, with no box for an object or array: only a string is boxed. The arrays are
+    /// `ContiguousArray`s, since an enum of an `Array`, which may bridge to an `NSArray`, and a box
+    /// needs a ninth byte for its case, and a node seven more to align it.
+    enum Value {
+        case object(ContiguousArray<Member>)
+        case array(ContiguousArray<Node>)
+        indirect case string(StringToken)
         case number
         case boolean
         case null
@@ -60,6 +79,7 @@ struct JSONDocument {
     ///     an object or array.
     ///   - nesting: The nesting of the document itself.
     init(_ scalars: [Unicode.Scalar], allowsFragments: Bool, nesting: Nesting) throws(ReadError) {
+        guard scalars.count <= Self.maximumLength else { throw .invalid }
         var reader = Reader(scalars: scalars, depthLimit: nesting.depthLeft)
         guard let root = reader.document() else { throw reader.failure }
         guard allowsFragments || root.isContainer else { throw .invalid }
@@ -75,6 +95,7 @@ struct JSONDocument {
     /// - Parameter lengthLimit: The most scalars the object or array may take; one that goes on
     ///   past them is not read (``ReadError/overBudget``).
     init(_ scalars: [Unicode.Scalar], at start: Int, nesting: Nesting, lengthLimit: Int = .max) throws(ReadError) {
+        guard scalars.count <= Self.maximumLength else { throw .invalid }
         let (limit, overflow) = start.addingReportingOverflow(lengthLimit)
         let end = overflow ? scalars.count : min(scalars.count, limit)
         var reader = Reader(scalars: scalars, position: start, end: end, depthLimit: nesting.depthLeft)
@@ -136,7 +157,7 @@ struct JSONDocument {
 
     /// Names are compared as UTF-16, as `NSString` compares them: Swift's `String` equality would
     /// treat canonically equivalent names (`é` and `e` with a combining accent) as one.
-    private static func agrees(_ members: [Member], with dictionary: NSDictionary, in scalars: [Unicode.Scalar]) -> Bool {
+    private static func agrees(_ members: ContiguousArray<Member>, with dictionary: NSDictionary, in scalars: [Unicode.Scalar]) -> Bool {
         var counts: [[UInt16]: Int] = [:]
         for member in members { counts[utf16(member.name, in: scalars), default: 0] += 1 }
         guard counts.count == dictionary.count else { return false }
@@ -233,7 +254,7 @@ extension JSONDocument {
         private mutating func object(depth: Int) -> Value? {
             position += 1
             skipWhitespace()
-            var members: [Member] = []
+            var members: ContiguousArray<Member> = []
             if consume("}") { return .object(members) }
             repeat {
                 skipWhitespace()
@@ -251,7 +272,7 @@ extension JSONDocument {
         private mutating func array(depth: Int) -> Value? {
             position += 1
             skipWhitespace()
-            var elements: [Node] = []
+            var elements: ContiguousArray<Node> = []
             if consume("]") { return .array(elements) }
             repeat {
                 skipWhitespace()
