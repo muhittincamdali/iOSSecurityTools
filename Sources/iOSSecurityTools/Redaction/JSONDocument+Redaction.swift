@@ -72,7 +72,7 @@ extension JSONDocument {
     /// The members of an object, inside the objects and arrays that `nesting` counts. A value is
     /// hidden whole when its name hides it or when another member names a secret.
     private func collectMembers(
-        _ members: [Member], nesting: Nesting, into spans: inout [SensitiveDataRedactor.Span], redactor: SensitiveDataRedactor,
+        _ members: ContiguousArray<Member>, nesting: Nesting, into spans: inout [SensitiveDataRedactor.Span], redactor: SensitiveDataRedactor,
         compatibility: CompatibilityText
     ) {
         let readsNames = redactor.kinds.contains(.secretFields)
