@@ -33,7 +33,8 @@ extension FreeTextScanner {
 
     /// The URL from ``position`` to byte `end`. A clean URL is recorded as
     /// ``SensitiveDataRedactor/redact(url:)`` records it, so a path segment that looks like an
-    /// identifier becomes `:id`, and the text after it is read on. Any other URL cuts the text
+    /// identifier becomes `:id`, and the text after it is read on; its last segment is read with
+    /// the next word, as a word is. Any other URL cuts the text
     /// where it starts. A clean URL one level too many, or longer than the reading budget leaves,
     /// hides the whole text it is in when the text is inside a document, and cuts it at the URL
     /// otherwise.
@@ -51,7 +52,20 @@ extension FreeTextScanner {
         let redacted = redactor.redactedURL(written, nesting: inner)
         let span = SensitiveDataRedactor.Span(start: region.lowerBound, end: region.upperBound, kind: .secretFields, replacement: redacted)
         record(spans: redacted == written ? [] : [span], region: region)
+        // The last segment and the word after the URL may spell a secret name across the space,
+        // as two words do (`https://x.example/to ken hunter2`).
+        if role == .text, let segment = lastSegment(before: end), let secretEnd = secretEndAcrossSpace(after: segment) {
+            cut(atByte: valueStart(after: secretEnd))
+        }
         position = end
+    }
+
+    /// The bytes of the last path segment of the URL from ``position`` to byte `end`, or of its
+    /// host when it has no path; nil when the URL ends in `/`.
+    private func lastSegment(before end: Int) -> Range<Int>? {
+        var start = end
+        while start > position, text.bytes[start - 1] != UInt8(ascii: "/") { start -= 1 }
+        return start < end ? start..<end : nil
     }
 
     /// Whether the URL from ``position`` to byte `end` is clean, so that it is shown:

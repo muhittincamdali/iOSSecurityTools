@@ -31,7 +31,7 @@ struct RedactionURLEndTests {
         "see https://user:Qx31Sec@example.com/", "see https://Qx31Sec@example.com/", "see https://exa_mple.com/Qx31Sec",
         "see https://example.com/a;jsessionid=Qx31Sec", "see https://example.com/a#access_token=Qx31Sec",
         "see https://example.com/a?page=2&token=Qx31Sec", "see https://example.com/a?page=Qx31Sec", "see https://example.com/Qx31Sec?",
-        "see https://example.com/a:Qx31Sec", "see https://example.com/pass word Qx31Sec",
+        "see https://example.com/a:Qx31Sec", "see https://example.com/to ken Qx31Sec", "see https://example.com/pass word Qx31Sec",
         "see https://example.com/pwd/Qx31Sec", "(https://example.com/a)?Qx31Sec", "[docs](https://example.com/a)#Qx31Sec",
         "see https://example.com/a>?Qx31Sec", "see https://example.com/a]#Qx31Sec", "see https://example.com/a}?Qx31Sec",
         "see https://example.com/a).Qx31Sec", "see https://example.com/a)#Qx31Sec tail", "see https://example.com/a!?Qx31Sec",
@@ -124,4 +124,13 @@ struct RedactionURLEndTests {
         #expect(compared > 300)
     }
 
+    @Test("the last segment of a clean URL and the word after it are read as one, as two words are")
+    func lastSegmentWithNextWord() {
+        let redactor = SensitiveDataRedactor()
+        #expect(redactor.redact("see https://example.com/to ken Qx31Sec") == "see https://example.com/to ken [redacted]")
+        #expect(redactor.redact("see https://to ken Qx31Sec") == "see https://to ken [redacted]")
+        #expect(redactor.redact("see https://example.com/a/pass word Qx31Sec") == "see [redacted]")
+        #expect(redactor.redact("see https://example.com/to day ok") == "see https://example.com/to day ok")
+        #expect(redactor.redact("see https://example.com/to/ ken ok") == "see https://example.com/to/ ken ok")
+    }
 }
