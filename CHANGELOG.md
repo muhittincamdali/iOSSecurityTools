@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0] - Unreleased
+## [2.1.0] - 2026-10-21
 
 ### Added
 
@@ -622,6 +622,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the other limits the review left under "Known limitations".
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
+
+### Security
+
+- `SensitiveDataRedactor` in 2.0.0 could be bypassed, and 2.0.0 should not be relied on to keep
+  secrets out of logs. The classes of input that got a secret through were: key names disguised
+  with look-alike or styled letters, escapes, separators, marks or format characters; a secret
+  name written as a value (`{"label":"Password","value":…}`, `<string name="api_key">…`); values
+  under a secret name that was an array or an object; and request and response bodies and URLs,
+  which had no parser of their own (`redact(body:contentType:)` and `redact(url:)` are new in
+  this release).
+  2.1.0 hides non-ASCII keys by default, reads bodies with real parsers and omits what it cannot
+  parse (see Changed). Two independent reviews of the redesign left only the limitations below;
+  the probes and property tests are listed under Fixed. Upgrade from 2.0.0.
+
+#### Known limitations
+
+These are documented and not changed in 2.1.0. The first and the third hide more than they need
+to; the second shows values and needs `@Redacted`.
+
+- [#22](https://github.com/muhittincamdali/iOSSecurityTools/issues/22): a name with a control
+  character hides the members beside it (`{"name":"Hello\nWorld","value":"x"}` hides `value`).
+- [#23](https://github.com/muhittincamdali/iOSSecurityTools/issues/23): `token` and `secret` count
+  only as a word or at the end of a key and `pw` only as a word, so `tokenvalue`, `secretvalue`
+  and `dbpw` show their values; mark such properties with `@Redacted`.
+- [#24](https://github.com/muhittincamdali/iOSSecurityTools/issues/24): a short string of control
+  characters and white space alone hides every member beside it (`{"title":"\n","data":"x"}`
+  hides `data`).
 
 ## [2.0.0] - 2026-10-15
 
