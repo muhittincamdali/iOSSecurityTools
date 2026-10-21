@@ -521,6 +521,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a letter is found, and a mark put in place of a letter is deliberate disguise that is not
   guaranteed to be found (threat model, "What it does not find"). The review's 91 probes are kept
   as tests of the limit as it reads today.
+- The twenty-third review found that a name written as a value with `%` or `&` in it was read only
+  with its escapes decoded, and that decoding takes the hex letters that start a name for digits
+  of the escape: `%card` decoded to U+FFFD and `rd`, `&#xcvv` to U+000C and `vv`, so neither named
+  a secret while `~card` did. The value beside `{"ParameterKey":"%card"}` showed, and so did the
+  values after `&#xcvv`, `&#xauth`, `&#xcookie`, `&#xcredential` and `%cardnumber` in JSON pairs,
+  arrays, forms, multipart parts and allowed query parameters, and the URL path segment after
+  `/%26%23xcvv/`. Such a name is now read as written, with the `x` of `&#x` and the `u` of `%u`
+  read as punctuation, and decoded, and the reading that hides most counts; the `;` that ends a
+  character reference no longer keeps a name such as `p&#97;ssword` or `&amp;#xauth` from being
+  read as one beside a field that holds no name. A test checks every secret name in both cases
+  after `%`, `&#x`, `&#X`, `&#x0`, `x%`, `%u`, `%U`, `&#` and `&amp;#x` against the same name
+  after `~`, and on nine paths.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
