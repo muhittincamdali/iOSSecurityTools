@@ -85,8 +85,9 @@ struct RedactionURLTests {
         #expect(redactor.redact("go https://example.com/%ZZ?code=1") == "go [redacted]")
         #expect(redactor.redact("go https://example.jp/パス ok") == "go [redacted]")
         #expect(redactor.redact("go https://例え.jp/a ok") == "go [redacted]")
-        // `redact(url:)` writes such a URL as `URLComponents` encodes it.
-        #expect(redactor.redact(url: try #require(URL(string: "https://example.com/%ZZ?code=1"))) == "https://example.com/%25ZZ?code=[redacted]")
+        // `URLComponents` encodes the bare `%` as `%25`, which a server that decodes twice reads
+        // as another escape, so `redact(url:)` writes only the scheme and host.
+        #expect(redactor.redact(url: try #require(URL(string: "https://example.com/%ZZ?code=1"))) == "https://example.com")
     }
 
     @Test("without secret fields the user info and fragment are still dropped and the detectors still run")
