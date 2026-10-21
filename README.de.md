@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  582 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  589 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -322,8 +322,12 @@ jeder Schrift nur den ersten Buchstaben ihres Namens (`ayşe.yılmaz@gmail.com` 
 Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert
 geschrieben sind: Der Wert neben einem Feld, das einen Namen trägt (`name`, `label`, `type`, `id`,
 …), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt.
-Ein Name mit einem Zeilenumbruch oder einem anderen Steuerzeichen darin gilt überall als geheim
-(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), und in `redact(url:)` wird das Segment nach
+Ein Name mit einem Zeilenumbruch oder einem anderen Steuerzeichen darin gilt in einem Feld, das
+einen Namen enthält, immer als geheim und sonst, wenn er ohne seine Steuerzeichen oder mit
+Leerzeichen an ihrer Stelle einen geheimen Namen ergibt
+(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`); eine kurze Zeichenkette nur aus
+Steuerzeichen (`"\n"`) gilt ebenfalls als geheim, während `{"message":"Hello\nWorld","id":"7"}` `id`
+behält, und in `redact(url:)` wird das Segment nach
 einem Pfadsegment, das kein reiner ASCII-Name ist, zu `:id` (`/şifre/…`, `/a,b/…`).
 In freiem Text verbirgt der erste geheime Name alles, was ihm in diesem Text folgt; das verbirgt
 absichtlich mehr als nötig. Zu viel zu verbergen ist so gewollt. Sechs Regeln legen fest, wo der
@@ -392,6 +396,22 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Bekannte Einschränkungen
+
+Diese Einschränkungen sind bekannt und noch nicht behoben:
+
+- Ein Name mit einem Steuerzeichen darin verbirgt die Werte neben ihm, was auch immer er sagt, wenn
+  ein Feld, das einen Namen enthält, oder das erste Element eines Paares ihn enthält
+  (`{"name":"Hello\nWorld","value":"x"}` verbirgt `value`), und sonst, wenn er ohne seine
+  Steuerzeichen oder mit Leerzeichen an ihrer Stelle einen geheimen Namen ergibt
+  (`{"note":"pass\nword","id":"7"}` verbirgt `id`).
+- Ein Schlüssel zählt `token` und `secret` nur als Wort oder an seinem Ende und `pw` nur als Wort,
+  daher zeigen `tokenvalue`, `TOKENID`, `secretvalue`, `secrethash`, `userpw` und `dbpw` ihre Werte;
+  markieren Sie solche Eigenschaften mit `@Redacted`.
+- Eine kurze Zeichenkette nur aus Steuerzeichen und Leerraum verbirgt alle Werte neben ihr, auch wo
+  sie nichts bedeutet (`{"title":"\n","data":"x"}` verbirgt `data`), während eine mit mehr als 256
+  Skalaren als Text gelesen wird.
 
 ## Demo
 

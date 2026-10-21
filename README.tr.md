@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 582 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 589 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -321,8 +321,11 @@ bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk
 harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com` olur).
 ASCII dışı adlar, değer olarak yazıldıklarında da gizli sayılır: ad taşıyan bir alanın (`name`,
 `label`, `type`, `id`, …) yanındaki değer, ad `Şifre`, `ⓟⓘⓝ` ya da `🔑` gibiyse maskelenir.
-İçinde satır sonu ya da başka bir kontrol karakteri bulunan bir ad, nerede olursa olsun gizli
-sayılır (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`); `redact(url:)` içinde de düz ASCII
+İçinde satır sonu ya da başka bir kontrol karakteri bulunan bir ad, ad tutan bir alanda ne derse
+desin gizli sayılır; başka yerlerde ise kontrol karakterleri çıkarıldığında ya da boşluk olarak
+okunduğunda gizli bir ad veriyorsa gizli sayılır
+(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`). Yalnız kontrol karakterlerinden oluşan kısa
+bir dizgi (`"\n"`) de gizli sayılır, `{"message":"Hello\nWorld","id":"7"}` ise `id`'yi gösterir; `redact(url:)` içinde de düz ASCII
 bir ad olmayan bir yol segmentinden sonraki segment `:id` olur (`/şifre/…`, `/a,b/…`).
 Serbest metinde ilk gizli ad, o metinde kendisinden sonra gelen her şeyi gizler; bu bilerek fazla
 gizler. Fazla gizleme tasarımdır. Metnin nerede kesileceğini altı kural belirler ve hiçbiri bir
@@ -385,6 +388,22 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Bilinen sınırlamalar
+
+Bunlar bilinen ve henüz değiştirilmemiş sınırlamalardır:
+
+- İçinde kontrol karakteri olan bir ad, ad tutan bir alanda ya da bir çiftin ilk öğesinde yer
+  aldığında ne derse desin yanındaki üyeleri gizler (`{"name":"Hello\nWorld","value":"x"}`
+  `value`'yu gizler); başka yerlerde ise kontrol karakterleri çıkarıldığında ya da boşluk olarak
+  okunduğunda gizli bir ad veriyorsa gizler (`{"note":"pass\nword","id":"7"}` `id`'yi gizler).
+- Bir anahtar `token` ve `secret` sözcüklerini yalnız ayrı bir sözcük olarak ya da sonunda, `pw`'yi
+  ise yalnız ayrı bir sözcük olarak sayar; bu yüzden `tokenvalue`, `TOKENID`, `secretvalue`,
+  `secrethash`, `userpw` ve `dbpw` değerlerini gösterir. Böyle özellikleri `@Redacted` ile
+  işaretleyin.
+- Yalnız kontrol ve boşluk karakterlerinden oluşan kısa bir dizgi, bir anlam taşımadığı yerde de
+  yanındaki bütün üyeleri gizler (`{"title":"\n","data":"x"}` `data`'yı gizler); 256 skalerden uzun
+  olanı ise metin olarak okunur.
 
 ## Demo
 
