@@ -63,7 +63,7 @@ struct RedactionObfuscatedValueTests {
         ("pass:word='hunter2' next", "pass:[redacted]"),
         ("password=x\"hunter2\" next", "password=[redacted]"),
         ("token=YWJj== user=bob", "token=[redacted]"),
-        ("<password:>hunter2</password:>", "<password:[redacted]"),
+        ("<password:>hunter2</password:>", "[redacted]"),
         ("password=)hunter2 next", "password=[redacted]"),
     ])
     func valuesEndingInSeparators(input: String, expected: String) {
@@ -116,7 +116,7 @@ struct RedactionObfuscatedValueTests {
         ("password\u{000C}=hunter2", "password[redacted]"),
         ("password=hunter2\u{2028}next", "password=[redacted]"),
         ("p\u{0430}ssword\nS3CRETV", "[redacted]"),
-        ("<key>p\u{0430}ssword</key>\n<string>S3CRETV</string>", "<key>[redacted]"),
+        ("<key>p\u{0430}ssword</key>\n<string>S3CRETV</string>", "[redacted]"),
     ])
     func lineBreaks(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

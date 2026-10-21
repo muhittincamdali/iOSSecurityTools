@@ -22,9 +22,8 @@ enum WrittenName {
         case pairName
         /// An element of an array: any word of it that names a secret or cannot be read counts.
         case element
-        /// A quoted value in free text or markup, or the text of an element, after the key or tag
-        /// `key`: read by the key rule when `key` holds a name, and in any case for words that
-        /// name a secret or cannot be read.
+        /// A quoted or unquoted value in free text after the allowed key `key`: read by the key rule
+        /// when `key` holds a name, and in any case for words that name a secret or cannot be read.
         case quoted(after: [Unicode.Scalar]?)
     }
 

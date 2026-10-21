@@ -21,8 +21,8 @@ struct RedactionObfuscationTests {
         ("p\u{00E1}ssword=hunter2", "p\u{00E1}ssword=[redacted]"),
         ("pa\u{00DF}word=hunter2", "pa\u{00DF}word=[redacted]"),
         ("user_\u{043F}\u{0430}\u{0440}\u{043E}\u{043B}\u{044C}: hunter2", "user_\u{043F}\u{0430}\u{0440}\u{043E}\u{043B}\u{044C}: [redacted]"),
-        // A word that mixes scripts cannot be read: the rest of the line goes with it.
-        ("<passw\u{0434}rd>hunter2</passw\u{0434}rd>", "<[redacted]"),
+        // Markup cuts the text at its tag, whatever the tag spells.
+        ("<passw\u{0434}rd>hunter2</passw\u{0434}rd>", "[redacted]"),
     ])
     func lettersOutsideASCII(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

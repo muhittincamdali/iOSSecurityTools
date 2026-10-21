@@ -6,19 +6,20 @@
 /// there the scan runs once over the scanning copy (``NormalizedText``), left to right, and stops
 /// at the first trigger, which becomes the cut: the offset in the original scalars from which the
 /// text is hidden. A trigger is a key that is not on ``SensitiveDataRedactor/allowedTextKeys``, in
-/// `key=value`, in quotes (`"key": value`, cut at its opening quote), as a JSON member, as the
-/// first string of a two-element JSON array and as the tag of an element; a secret name written
-/// without a separator (see ``LooseReading``); a name written as a value that names a secret or
-/// is not plain ASCII; an escape (see ``isEscape(at:)``); a word that cannot be read or is longer
-/// than ``longestWord``; JSON that does not parse; a URL that is not clean; and a quote or
-/// bracket that is still open at the end of the text. Nothing is carried from one line to the
+/// `key=value`, in quotes (`"key": value`, cut at its opening quote), as a JSON member and as the
+/// first string of a two-element JSON array; markup, which is never parsed (see
+/// ``startsMarkup(at:)``); a secret name written without a separator (see ``LooseReading``); a
+/// name written as a value that names a secret or is not plain ASCII; an escape (see
+/// ``isEscape(at:)``); a word that cannot be read or is longer than ``longestWord``; JSON that does
+/// not parse; a URL that is not clean; and a quote or bracket that is still open at the end of the
+/// text. Nothing is carried from one line to the
 /// next: the cut covers every line after it. JSON and clean URLs before the cut are redacted by their own rules and recorded
 /// as regions, which the value detectors do not read again; a URL that is not clean is a trigger
 /// where it starts (see ``url(to:)``).
 ///
 /// Besides the findings of the JSON and URLs it reads, the scan keeps a few positions: the cut,
-/// the key before the next separator, the quote that is open, the outermost open bracket and the
-/// start tag it is in. Each JSON it reads is parsed and its tree released before the next one is
+/// the key before the next separator, the quote that is open and the outermost open bracket; no
+/// tag is open while it reads. Each JSON it reads is parsed and its tree released before the next one is
 /// read (see ``JSONDocument``), so its extra memory grows with what it finds, not with the number
 /// of JSON texts or the length of the text.
 struct FreeTextScanner {
@@ -62,17 +63,6 @@ struct FreeTextScanner {
     /// The brackets open outside quotes, and the byte of the outermost one.
     private var bracketDepth = 0
     private var outermostBracket = 0
-    /// Whether a start tag (`<input …`) is open, and the byte after the first separator in it: a
-    /// trigger in a start tag hides its attribute values from the first one on
-    /// (`<input value="…" type="password">`).
-    var isInStartTag = false
-    var startTagValues: Int?
-    /// Whether the tag of the start tag that is open is on the allowlist, so that the text of its
-    /// element is read on.
-    var tagAllowsText = false
-    /// Whether a start tag whose tag is not allowed has just ended: the text of its element, the
-    /// next byte that is not white space unless it opens another tag, cuts the text.
-    var cutsElementText = false
 
     init(
         source: [Unicode.Scalar], text: NormalizedText, redactor: SensitiveDataRedactor, compatibility: CompatibilityText, role: Role = .text,
@@ -111,13 +101,6 @@ struct FreeTextScanner {
             position += 1
             return
         }
-        if cutsElementText {
-            cutsElementText = false
-            guard byte == UInt8(ascii: "<") else {
-                cut(atByte: position)
-                return
-            }
-        }
         if isEscape(at: position) {
             cut(atByte: wordStart(before: position))
         } else if isSeparator(position) {
@@ -127,12 +110,10 @@ struct FreeTextScanner {
         } else if startsJSON(position) {
             pendingKey = nil
             embeddedJSON()
-        } else if byte == UInt8(ascii: ">"), isInStartTag, openQuote == nil {
-            pendingKey = nil
-            endStartTag()
+        } else if role == .text, startsMarkup(at: position) {
+            cut(atByte: position)
         } else if Self.boundaries.contains(byte) {
             pendingKey = nil
-            if byte == UInt8(ascii: "<"), role == .text { startTag() }
             note(position)
             position += 1
         } else if let end = urlEnd(from: position) {
@@ -179,21 +160,20 @@ struct FreeTextScanner {
 
     // MARK: Keys
 
-    /// A run of `=`, `:` and `>` (`:=`, `==`, `=>`) after a key; in a start tag a `>` ends the tag
-    /// instead. The value is read on only after a key on the allowlist (see
+    /// A run of `=`, `:` and `>` (`:=`, `==`, `=>`) after a key. The value is read on only after a
+    /// key on the allowlist (see
     /// ``allowsValue(ofKey:)``); in text, after a key on it that holds a name (`id=`, `type=`), the
     /// name is read too (see ``heldName(after:key:)``). After any other key, and after a separator
     /// with no key, the text is cut. Separators outside ASCII are never read: the safe alphabet
     /// ends before them.
     private mutating func separator() {
         var end = position + 1
-        while end < text.count, isSeparator(end) || (text.bytes[end] == UInt8(ascii: ">") && !isInStartTag) { end += 1 }
+        while end < text.count, isSeparator(end) || text.bytes[end] == UInt8(ascii: ">") { end += 1 }
         let key = pendingKey
         pendingKey = nil
         // A key on the line before its separator is a key, but never an allowed one.
         let isBroken = key.map { (($0.upperBound)..<position).contains(where: text.isLineTerminator) } ?? false
         position = end
-        if isInStartTag, startTagValues == nil { startTagValues = end }
         guard !isBroken, allowsValue(ofKey: key) else {
             cut(atByte: nextNonSpace(from: end))
             return
@@ -316,11 +296,9 @@ struct FreeTextScanner {
     // MARK: Findings
 
     /// Hides the text from byte `byte` to its end, with the invisible characters right before
-    /// that byte, and ends the scan. In a start tag, the attribute values before the trigger go
-    /// too.
+    /// that byte, and ends the scan.
     mutating func cut(atByte byte: Int) {
-        let tagValues = isInStartTag ? startTagValues.map { nextNonSpace(from: $0) } : nil
-        cut(atOffset: cutOffset(min(byte, tagValues ?? byte)))
+        cut(atOffset: cutOffset(byte))
     }
 
     /// Hides the text from the original scalar `offset` to its end and ends the scan.

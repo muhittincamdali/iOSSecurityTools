@@ -65,7 +65,6 @@ struct RedactionNameAsValuePropertyTests {
 
     @Test("plain names without a secret word keep the text after them after an allowed key")
     func plainNamesKeepText() {
-        // `string` is allowed too: a tag is a key, so the element's text is read on only after it.
         let allowing = SensitiveDataRedactor(allowedTextKeys: ["name", "string"])
         var random = SeededRandom(seed: 0xA1_2B_0091)
         var checked = 0
@@ -76,8 +75,8 @@ struct RedactionNameAsValuePropertyTests {
             else { continue }
             // Without vowels, `s`, `p`, `c`, `k`, `v` and `w` the text spells no secret word.
             let text = String((0..<12).map { _ in "BDFGHJLMNRTXYZ23456789".randomElement(using: &random)! })
-            #expect(allowing.redact("<string name=\"\(name)\">\(text)</string>").contains(text))
-            #expect(!SensitiveDataRedactor(allowedTextKeys: ["name"]).redact("<string name=\"\(name)\">\(text)</string>").contains(text))
+            // Markup is never parsed: the element's text goes, whatever keys are allowed.
+            #expect(!allowing.redact("<string name=\"\(name)\">\(text)</string>").contains(text))
             #expect(allowing.redact("name=\"\(name)\" \(text)").contains(text))
             #expect(!redactor.redact("name=\"\(name)\" \(text)").contains(text))
             let json = #"{"label":"\#(name)","value":"\#(text)"}"#

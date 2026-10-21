@@ -79,15 +79,17 @@ struct RedactionKeyShapePropertyTests {
         }
     }
 
-    @Test("the text of an element shows when the app allows its tag")
+    // No tag is allowed: markup is never parsed in free text, so the first tag cuts the text at
+    // its `<` even when the app allows a key of the same name.
+    @Test("the text of an element never shows, also when the app allows its tag")
     func allowedElementText() {
         var random = SeededRandom(seed: 0x7A60_0100)
         let allowing = SensitiveDataRedactor(allowedTextKeys: ["item", "note"])
         for _ in 0..<200 {
             let tag = ["status", "count", "item", "note"].randomElement(using: &random)!
             let value = RedactionPropertyTests.value(using: &random)
-            let text = "<\(tag)>\(value)</\(tag)> done"
-            #expect(allowing.redact(text) == text)
+            let text = "status=200 <\(tag)>\(value)</\(tag)> done"
+            #expect(allowing.redact(text) == "status=200 [redacted]")
         }
     }
 

@@ -148,7 +148,7 @@ struct RedactionNameInHiddenValueTests {
         ("--B\nContent-Disposition: form-data; name=\"note\"\n\nVISIBLE1\n--B--", "--B\nContent-Disposition: [redacted]"),
         ("msg: wrong password\nstatus=200", "msg: [redacted]"),
         ("Content-Disposition: attachment\nstatus=200", "Content-Disposition: [redacted]"),
-        ("<key>user</key>\n<string>bob</string>\nstatus=200", "<key>[redacted]"),
+        ("<key>user</key>\n<string>bob</string>\nstatus=200", "[redacted]"),
     ])
     func plainNames(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

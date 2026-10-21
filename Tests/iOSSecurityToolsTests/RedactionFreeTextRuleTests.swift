@@ -108,9 +108,9 @@ struct RedactionFreeTextRuleTests {
         ("password \u{2236} hunter2", "password [redacted]"),
         ("password\u{2254}hunter2", "password[redacted]"),
         ("pass word=hunter2", "pass [redacted]"),
-        ("<password>hunter2</password>", "<password>[redacted]"),
-        ("<password>\nhunter2\n</password>", "<password>[redacted]"),
-        ("<key>password</key>\n<string>hunter2</string>", "<key>[redacted]"),
+        ("<password>hunter2</password>", "[redacted]"),
+        ("<password>\nhunter2\n</password>", "[redacted]"),
+        ("<key>password</key>\n<string>hunter2</string>", "[redacted]"),
         ("password\nhunter2", "password[redacted]"),
         ("wrong password", "wrong password"),
     ])
