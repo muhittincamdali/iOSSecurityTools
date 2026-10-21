@@ -17,7 +17,8 @@ enum WrittenName {
         /// The value of the field `field` of an object, a form, a URL query or a multipart body.
         /// When the field holds a name (see ``holdsName(_:)``), the value is read by the key rule;
         /// otherwise it names a secret only when it is a name (see ``isName(_:compatibility:)``)
-        /// whose words name a secret or cannot be read.
+        /// whose words name a secret or cannot be read, or when it is control characters and
+        /// white space alone (see ``isBlankWithControl(_:)``).
         case field([Unicode.Scalar])
         /// The first element of a two-element array, as fetch headers and `URLSearchParams`
         /// entries are written: read by the key rule.
@@ -34,6 +35,9 @@ enum WrittenName {
         switch place {
         case .field(let field):
             if holdsName(field) { return heldNameNamesSecret(value, field: field, compatibility: compatibility) }
+            // A name of control characters and spaces alone has no letter or digit, so it is no
+            // name to `isName`; it cannot be read, and what it stands for cannot be told.
+            if isBlankWithControl(value) { return true }
             return isName(value, compatibility: compatibility) && nameNamesSecret(value, byKeyRule: false, compatibility: compatibility)
         case .pairName:
             return heldNameNamesSecret(value, field: nil, compatibility: compatibility)
@@ -62,6 +66,13 @@ enum WrittenName {
     /// The control characters, U+0000 to U+001F and U+007F to U+009F: the general category Cc.
     private static func isControl(_ scalar: Unicode.Scalar) -> Bool {
         scalar.value < 0x20 || (0x7F...0x9F).contains(scalar.value)
+    }
+
+    /// Whether a string of at most ``PlainName/maximumKeyLength`` scalars holds a control
+    /// character and nothing but control characters and white space (`\n`, `\t`, `\u{0}`, ` \n `).
+    static func isBlankWithControl(_ value: [Unicode.Scalar]) -> Bool {
+        guard value.count <= PlainName.maximumKeyLength, value.contains(where: isControl) else { return false }
+        return value.allSatisfy { isControl($0) || $0.properties.isWhitespace }
     }
 
     // MARK: Fields that hold names
