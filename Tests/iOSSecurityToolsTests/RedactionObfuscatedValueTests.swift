@@ -129,9 +129,11 @@ struct RedactionObfuscatedValueTests {
         ("user=bob.\nstatus=200", "user=[redacted]"),
         ("password=(\nS3CRETV)", "password=[redacted]"),
         ("token=[\n\"S3CRETV\"\n]", "token=[redacted]"),
-        // Which of the quotes in `"""` closes the value cannot be told: the lines after it go too.
+        // Which of the quotes in `"""` closes the value cannot be told: the lines after it go too. A
+        // quote still open where a character outside the safe alphabet cuts the text cuts it at
+        // the quote.
         ("key=\"\"\"\nS3CRETV\n\"\"\"\nstatus=200", "key=[redacted]"),
-        ("x\"y \u{2254}\"\"\"\nS3CRETV\n\"\"\"", "x\"[redacted]"),
+        ("x\"y \u{2254}\"\"\"\nS3CRETV\n\"\"\"", "x[redacted]"),
     ])
     func openLineEnds(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)

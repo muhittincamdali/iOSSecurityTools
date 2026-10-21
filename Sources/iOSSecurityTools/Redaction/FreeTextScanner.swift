@@ -11,17 +11,17 @@
 /// ``startsMarkup(at:)``); a secret name written without a separator (see ``LooseReading``); a
 /// name written as a value that names a secret or is not plain ASCII; an escape (see
 /// ``isEscape(at:)``); a word that cannot be read or is longer than ``longestWord``; JSON that does
-/// not parse; a URL that is not clean; and a quote or bracket that is still open at the end of the
-/// text. Nothing is carried from one line to the
-/// next: the cut covers every line after it. JSON and clean URLs before the cut are redacted by their own rules and recorded
-/// as regions, which the value detectors do not read again; a URL that is not clean is a trigger
-/// where it starts (see ``url(to:)``).
+/// not parse; a URL that is not clean; a quote that does not close on its line; and a bracket that
+/// is still open at the end of the text (see ``openMarks()``). Nothing is carried from one line to
+/// the next: the cut covers every line after it. JSON and clean URLs before the cut are redacted by
+/// their own rules and recorded as regions, which the value detectors do not read again; a URL
+/// that is not clean is a trigger where it starts (see ``url(to:)``).
 ///
-/// Besides the findings of the JSON and URLs it reads, the scan keeps a few positions: the cut,
-/// the key before the next separator, the quote that is open and the outermost open bracket; no
-/// tag is open while it reads. Each JSON it reads is parsed and its tree released before the next one is
-/// read (see ``JSONDocument``), so its extra memory grows with what it finds, not with the number
-/// of JSON texts or the length of the text.
+/// Besides the findings of the JSON and URLs it reads, the scan keeps two positions: the cut and
+/// the key before the next separator. Quotes and brackets are read by position alone, in one
+/// pass of their own, and no tag or quote is open while the scan reads. Each JSON it reads is
+/// parsed and its tree released before the next one is read (see ``JSONDocument``), so its extra
+/// memory grows with what it finds, not with the number of JSON texts or the length of the text.
 struct FreeTextScanner {
     /// What kind of text is read.
     enum Role {
@@ -58,11 +58,6 @@ struct FreeTextScanner {
     private(set) var scanEnd = 0
     /// The bytes of the key that the next separator belongs to, when only white space follows it.
     var pendingKey: Range<Int>?
-    /// The quote that is open (`"`, `'` or a backtick) and its byte.
-    private var openQuote: (byte: UInt8, at: Int)?
-    /// The brackets open outside quotes, and the byte of the outermost one.
-    private var bracketDepth = 0
-    private var outermostBracket = 0
 
     init(
         source: [Unicode.Scalar], text: NormalizedText, redactor: SensitiveDataRedactor, compatibility: CompatibilityText, role: Role = .text,
@@ -86,11 +81,14 @@ struct FreeTextScanner {
         let foundTrigger = cut != nil
         // The earlier of the two cuts holds, whatever the scan recorded before it.
         if let unsafe { cut(atOffset: unsafe) }
-        guard !foundTrigger, !hidesWholeText, role == .text else { return }
-        // A quote or bracket that does not close before the text ends, or before the character
-        // that cuts it, leaves the end of what it holds unknown.
-        let open = [openQuote?.at, bracketDepth > 0 ? outermostBracket : nil].compactMap { $0 }.min()
-        if let open { cut(atByte: open + 1) }
+        guard !hidesWholeText, role == .text else { return }
+        let marks = openMarks()
+        // A quote that does not close on its line may hold a key and its value over lines
+        // (`"note\nQx31": 1`): the text is cut at it, whatever the scan found after it.
+        if let quote = marks.unclosedQuote { cut(atByte: quote) }
+        // A bracket that does not close before the text ends, or before the character that cuts
+        // it, leaves the end of what it holds unknown.
+        if !foundTrigger, let bracket = marks.openBracket { cut(atByte: bracket + 1) }
     }
 
     // MARK: Reading
@@ -114,7 +112,6 @@ struct FreeTextScanner {
             cut(atByte: position)
         } else if Self.boundaries.contains(byte) {
             pendingKey = nil
-            note(position)
             position += 1
         } else if let end = urlEnd(from: position) {
             pendingKey = nil
@@ -126,37 +123,6 @@ struct FreeTextScanner {
 
     /// Characters that end a key and a word without being part of either.
     static let boundaries = ByteSet(",;&?|([{<")
-
-    /// Moves to byte `end`, noting the quotes and brackets on the way.
-    mutating func advance(to end: Int) {
-        if role == .text {
-            for k in position..<end { note(k) }
-        }
-        position = end
-    }
-
-    /// Notes a quote or bracket at byte `k`. A `'` opens a quote only at the start of a word, so
-    /// the apostrophe of `don't` opens nothing; brackets inside quotes do not count.
-    private mutating func note(_ k: Int) {
-        let byte = text.bytes[k]
-        if let open = openQuote {
-            if byte == open.byte { openQuote = nil }
-            return
-        }
-        switch byte {
-        case UInt8(ascii: "\""), UInt8(ascii: "`"):
-            openQuote = (byte, k)
-        case UInt8(ascii: "'"):
-            if k == 0 || !text.isAnyAlphanumeric(k - 1) { openQuote = (byte, k) }
-        case UInt8(ascii: "("), UInt8(ascii: "["), UInt8(ascii: "{"):
-            if bracketDepth == 0 { outermostBracket = k }
-            bracketDepth += 1
-        case UInt8(ascii: ")"), UInt8(ascii: "]"), UInt8(ascii: "}"):
-            if bracketDepth > 0 { bracketDepth -= 1 }
-        default:
-            break
-        }
-    }
 
     // MARK: Keys
 
@@ -193,7 +159,8 @@ struct FreeTextScanner {
     /// the key rule: unless it is on the allowlist (see ``allowsQuotedKey(_:)``), the text is cut
     /// at its opening quote, so nothing written in the quotes shows (`"session Qz9W…": …`,
     /// `"password hint": 1`). Text in quotes that no separator follows is read like any other,
-    /// for the keys and names written in it.
+    /// for the keys and names written in it; whether the quote closes on its line is read apart
+    /// from the scan (see ``openMarks()``).
     private mutating func quote() {
         let open = position
         let escaped = isEscaped(open)
@@ -212,7 +179,6 @@ struct FreeTextScanner {
             }
         }
         pendingKey = nil
-        note(open)
         position = open + 1
     }
 
@@ -228,7 +194,7 @@ struct FreeTextScanner {
     }
 
     /// The first of the backslashes right before byte `i`.
-    private func backslashesStart(before i: Int) -> Int {
+    func backslashesStart(before i: Int) -> Int {
         var k = i
         while k > 0, text.bytes[k - 1] == UInt8(ascii: "\\") { k -= 1 }
         return k

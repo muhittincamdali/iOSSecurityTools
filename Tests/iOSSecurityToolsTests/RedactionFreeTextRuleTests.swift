@@ -131,14 +131,15 @@ struct RedactionFreeTextRuleTests {
         #expect(output.hasSuffix("[redacted]"))
     }
 
-    @Test("a word that mixes scripts, or a quote that does not close, hides everything after it", arguments: [
+    @Test("a word that mixes scripts, or a quote that does not close on its line, hides everything from it", arguments: [
         ("login p\u{0430}ssword hunter2", "login [redacted]"),
         ("\u{0440}\u{0430}\u{0455}\u{0455}\u{051D}\u{043E}\u{0433}d hunter2", "[redacted]"),
         ("t\u{03BF}ken hunter2", "[redacted]"),
         ("p%D0%B0ssword hunter2", "[redacted]"),
         ("status=\u{043E}k", "status=[redacted]"),
-        ("say \"hunter2", "say \"[redacted]"),
-        ("say \"hi\" and 5\" more", "say \"hi\" and 5\"[redacted]"),
+        ("say \"hunter2", "say [redacted]"),
+        ("say \"hi\" and 5\" more", "say \"hi\" and 5[redacted]"),
+        ("say \"hi\nhunter2\"", "say [redacted]"),
     ])
     func ambiguity(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
