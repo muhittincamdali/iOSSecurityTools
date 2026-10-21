@@ -76,10 +76,12 @@ import Foundation
 /// character outside a safe alphabet — letters, marks and digits of any script, the ASCII space,
 /// tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or a control
 /// character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a word longer
-/// than 256 characters. **In free text the first markup tag cuts the text** (`<user>…`, `</a>`,
-/// `<!--`), whatever the tag, and a quote that does not close on its line cuts it at the quote.
-/// No list of look-alike separators is kept. A URL in free text
-/// is shown only when it is clean, and any other URL cuts the text where it starts. Strings
+/// than 256 characters. **In free text the first markup tag cuts the text** (`<user>…`, `<_id>`,
+/// `</a>`, `<!--`), whatever the tag: a `<` cuts it unless an ASCII space, tab, line break or
+/// digit, `=` or the end of the text follows it. A quote that does not close on its line cuts it
+/// at the quote. No list of look-alike separators is kept. A URL in free text is shown only when
+/// it is clean and followed by white space, a line break, the end of the text or one `.`, `,`,
+/// `!` or `)` before one of those, and any other URL cuts the text where it starts. Strings
 /// inside JSON, form values, allowed query values and multipart text parts are free text, each on
 /// its own. ``redact(_:)`` describes the rule.
 ///
@@ -131,8 +133,11 @@ import Foundation
 /// a text inside a found document that the reading budget no longer covers. In a log line, JSON
 /// nested deeper than 64 levels or longer than 64 Ki scalars cuts the line at its first bracket,
 /// like JSON that does not parse. Free text is read in one pass that keeps a fixed number of
-/// positions, whatever it holds, and no word longer than 256 characters is copied for reading: a
-/// megabyte of it takes less than 16 MB more memory, and a body of 256 KiB less than 16 MB.
+/// positions, whatever it holds, and no word longer than 256 characters is copied for reading; the
+/// value detectors look only before the cut and each finding takes 24 bytes: a megabyte of it
+/// takes less than 16 MB more memory, also when it is dense with findings, and a body of 256 KiB
+/// less than 16 MB. Free text of 256 Mi scalars or more is hidden whole, and a body of 256 MiB or
+/// more is omitted, whatever ``maximumBodySize`` says.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
     public struct Kinds: OptionSet, Sendable, Hashable {
@@ -310,21 +315,25 @@ public struct SensitiveDataRedactor: Sendable {
     ///   `"key":"value"` the text is read on only after a key that is plain ASCII and on
     ///   ``allowedTextKeys`` (`status`, `method`, `path`, `duration_ms` and `count` by default).
     ///   Any other key cuts the text at its value, and so does a separator with no key before it
-    ///   or a key on the line before its separator. A quoted key (`"…":`, `"…"=`) that is not
-    ///   allowed cuts the text at its opening quote, so nothing written in the quotes shows
-    ///   (`cache miss for "session Qz9Wk7rX": refetching` keeps `cache miss for `); a key with a
-    ///   space in it is never allowed. The separators are `=` and `:` and runs of
+    ///   or a key on the line before its separator. A key in quotes of any kind — `"…":`, `'…'=`
+    ///   or in backticks, a `'` opening a quote only at the start of a word — that is not allowed
+    ///   cuts the text at its opening quote, so nothing written in the quotes shows (`cache miss
+    ///   for "session Qz9Wk7rX": refetching` and `{'status': 200, 'last status': 'x'}` keep
+    ///   `cache miss for ` and `{'status': 200, `); a key with a space in it is never allowed.
+    ///   The separators are `=` and `:` and runs of
     ///   them (`:=`, `==`, `=>`); a `:` between two digits is part of a number only after a
     ///   number, as in `12:30:45`, `2026-10-19T12:30` and `10.0.0.1:8080`, and after a key that
     ///   ends in digits it is a separator (`user1:2345` cuts at `2345`). JSON in the text follows
     ///   the same rule member by member, a member name that is not allowed cutting it at its
     ///   opening quote, and the first string of a two-element array is a key too
     ///   (`["user","bob"]` cuts at `"user"`).
-    /// - **Markup.** In free text the first markup tag cuts the text: markup is never parsed, and
-    ///   a `<` before a letter of any script, `/`, `!` or `?` cuts the text there, whatever the tag
-    ///   (`<user>`, `</a>`, `<!-- … -->`, `<![CDATA[…]]>`, `<?xml …?>`); no tag is allowed.
-    ///   `login <user>bob</user>` keeps `login `. A `<` before white space, a digit, `=` or other
-    ///   punctuation is a comparison (`a < b`, `<3`).
+    /// - **Markup.** In free text the first markup tag cuts the text: markup is never parsed. A
+    ///   `<` is a comparison only before an ASCII space, tab or line break, an ASCII digit, `=` or
+    ///   the end of the text (`a < b`, `1<2`, `<3`); before anything else it cuts the text there,
+    ///   whatever follows — a letter of any script, `_`, `:`, `/`, `!`, `?`, other punctuation or
+    ///   a digit outside ASCII (`<user>`, `<_id>`, `</a>`, `<!-- … -->`, `<![CDATA[…]]>`,
+    ///   `<?xml …?>`, `<०>`, `x << 1`); no tag is allowed. `login <user>bob</user>` keeps
+    ///   `login `.
     /// - **Secret names.** A word that holds a secret name cuts the text after the name, with or
     ///   without a separator: `password hunter2`, `PIN 1234`, `export AWS_SECRET_ACCESS_KEY …`.
     ///   Punctuation inside a word (`pass~word`) and a space or `|` between two words
@@ -353,13 +362,15 @@ public struct SensitiveDataRedactor: Sendable {
     /// **URLs.** A URL in free text is shown only when it is clean — `scheme://host` and an
     /// optional path of ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`,
     /// `:`, `@` or `\`), whose host and segments name no secret, followed by white space, a line
-    /// break or punctuation that ends a sentence — and any other URL cuts the text where it starts;
+    /// break, the end of the text or one `.`, `,`, `!` or `)` before one of those — and any other
+    /// URL cuts the text where it starts, also one that a quote, a backtick, `>`, `]`, `}` or a
+    /// `?`, `#`, `;` or `:` follows (`see https://x.example/a'#token` keeps `see `);
     /// ``allowedQueryParameters`` applies only to ``redact(url:)``. A clean URL is written as
     /// ``redact(url:)`` writes it, so an identifier in its path becomes `:id`
     /// (`GET https://api.example.com/users/12345678 200` keeps
-    /// `GET https://api.example.com/users/:id 200`), and one longer than 256 characters cuts the
-    /// text like any long word. `see https://x.example/a?page=2 ok` keeps `see `, with `page`
-    /// allowed or not.
+    /// `GET https://api.example.com/users/:id 200`), its last segment is read with the next word
+    /// (`…/to ken hunter2`), and one longer than 256 characters cuts the text like any long word.
+    /// `see https://x.example/a?page=2 ok` keeps `see `, with `page` allowed or not.
     public func redact(_ text: String) -> String {
         redact(text, nesting: .text(length: text.unicodeScalars.count))
     }

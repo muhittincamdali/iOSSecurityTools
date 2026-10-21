@@ -308,8 +308,16 @@ which an earlier design of 2.1.0 read into 583 MB, a megabyte word of backslashe
 took 36 MB, a form of a megabyte, which took 67 MB, and a megabyte of log lines of short JSON
 (`{"count":1}`), whose trees `JSONSerialization` kept until the redaction ended, 19 MB, and a
 quoted key of a megabyte inside another, which an earlier reading of quoted keys copied into
-26 MB. Memory is measured until the thread that redacts has ended, so what it releases only then
-counts too.
+26 MB, and a megabyte dense with findings, up to 18.55 MiB: log lines of short email addresses with
+one `ﬁ` each, ``SensitiveDataRedactor/matches(in:)`` on them, and addresses after a zero-width
+space that hid them all. The scanning copy now keeps the offset of each byte's scalar as runs,
+one where a scalar is read as several bytes or left out, not one for each byte; the value
+detectors look for findings only before the cut and count them before they keep them, in an
+array of exactly that size; a finding takes 24 bytes; findings are put in order in place; and
+`matches(in:)` finds the index of each start and end in one walk, without an index for each
+scalar. The densest findings the detectors have — a user info password every four bytes
+(`1:2@`) — take less than 13 MiB for a megabyte. Memory is measured until the thread that redacts
+has ended, so what it releases only then counts too.
 
 ### Free text is cut at its first trigger
 
@@ -366,22 +374,27 @@ kept and reviews got past one variant at a time:
   separator. The separators are `=` and `:` and runs of them (`:=`, `==`, `=>`); a `:` between two
   digits is part of a number only after a number — a time, a date and time or an address and its
   port (`12:30:45`, `2026-10-19T12:30`, `10.0.0.1:8080`) — and after a key that ends in digits it
-  is a separator (`user1:2345` cuts at `2345`). A quoted key (`"…":`, `"…"=`) that is not allowed
-  cuts the text at its opening quote, so nothing written in the quotes shows: `cache miss for
-  "session Qz9Wk7rX": refetching` keeps `cache miss for `, and `"password hint": 1` keeps nothing.
+  is a separator (`user1:2345` cuts at `2345`). A key in quotes of any kind (`"…":`, `'…'=`, or
+  in backticks) that is not allowed cuts the text at its opening quote, so nothing written in the
+  quotes shows: `cache miss for "session Qz9Wk7rX": refetching` keeps `cache miss for `,
+  `"password hint": 1` keeps nothing, and `{'status': 200, 'last status': 'x'}` keeps
+  `{'status': 200, `. A `'` opens a quote only at the start of a word, so `don't` holds none.
   JSON in the text is parsed and its members follow the same rule, a member name that is not
   allowed cutting the text at its opening quote (`{"password hunter2": 1}` keeps `{`), as does the
   first string of a two-element array, as fetch headers and `URLSearchParams` entries write a pair
   (`[["X-User","bob"]]` cuts at `"X-User"`). JSON that does not parse, or is longer than 64 Ki
   scalars, cuts the text at its first bracket.
-- **Markup.** In free text the first markup tag cuts the text. Markup is never parsed: a `<`
-  before a letter of any script, `/`, `!` or `?` cuts the text there, whatever the tag and
-  whatever comes between it and the text — `<user>`, `</a>`, `<br/>`, `<!-- … -->`,
-  `<![CDATA[…]]>`, `<?xml …?>` — so `login <user>bob</user>` keeps `login `, and no tag is
-  allowed, whatever keys the app allows. An earlier design of 2.1.0 read a tag as a key and cut
-  at the text of its element; reviews got the text past it behind a quote opened before the tag
-  and behind other markup between the tag and the text. A `<` before white space, a digit, `=`
-  or other punctuation is a comparison (`a < b`, `<3`), not markup.
+- **Markup.** In free text the first markup tag cuts the text. Markup is never parsed, and the
+  rule names what a comparison is, not what a tag starts with: a `<` is a comparison only before
+  an ASCII space, tab or line break, an ASCII digit, `=` or the end of the text (`a < b`, `1<2`,
+  `<3`). Before anything else it cuts the text there, whatever the tag and whatever comes between
+  it and the text — a letter of any script, `_`, `:`, `/`, `!`, `?`, other punctuation or a digit
+  outside ASCII: `<user>`, `<_id>`, `</a>`, `<br/>`, `<!-- … -->`, `<![CDATA[…]]>`, `<?xml …?>`,
+  `<०>`, `x << 1` — so `login <user>bob</user>` keeps `login `, and no tag is allowed, whatever
+  keys the app allows. An earlier design of 2.1.0 read a tag as a key and cut at the text of its
+  element; reviews got the text past it behind a quote opened before the tag and behind other
+  markup between the tag and the text, and then past a list of the characters that start a tag,
+  which left out `_` and digits outside ASCII (`<_id>…</_id>`).
 - **Secret names.** A word that holds a secret name cuts the text after the name, with or without
   a separator: `password hunter2`, `PIN 1234`. Punctuation inside a word and a space, `|`, `,`,
   `;`, `&` or `?` between two words are read as a separator (`pass~word`, `pass word`, `p|wd`). A
@@ -412,12 +425,17 @@ own, by position alone: no quote or tag is open while the text is read.
 
 **URLs.** A URL in free text is shown only when it is clean — `scheme://host` and an optional
 path of ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or
-`\`), whose host and segments name no secret, followed by white space, a line break or
-punctuation that ends a sentence — and any other URL cuts the text where it starts;
-``SensitiveDataRedactor/allowedQueryParameters`` applies only to
-``SensitiveDataRedactor/redact(url:)``. A clean URL is written as `redact(url:)` writes it, so an
-identifier in its path becomes `:id`, and one longer than 256 characters cuts the text like any
-long word. Without a scheme, `?`, `;` and `&` are separators between words and the key rule reads
+`\`), whose host and segments name no secret, followed by white space, a line break, the end of
+the text or one `.`, `,`, `!` or `)` before one of those — and any other URL cuts the text where it
+starts; ``SensitiveDataRedactor/allowedQueryParameters`` applies only to
+``SensitiveDataRedactor/redact(url:)``. A quote, a backtick, `>`, `]`, `}`, a second mark (`).`)
+or a `?`, `#`, `;` or `:` after a URL leaves open where it ends, as a URL parser reads
+`https://x.example/a'#token` on past the `'`, so such a URL is not clean:
+`see https://x.example/a'#token` keeps `see `, as `redact(url:)` hides the fragment of the same
+URL. A clean URL is written as `redact(url:)` writes it, so an identifier in its path becomes
+`:id`, its last segment is read with the next word (`https://x.example/to ken hunter2` keeps
+`https://x.example/to ken `), and one longer than 256 characters cuts the text like any long
+word. Without a scheme, `?`, `;` and `&` are separators between words and the key rule reads
 the names after them.
 
 ```swift
@@ -505,10 +523,12 @@ quote that does not close on its line, after the first character outside the saf
 emoji, a dash, a currency sign or East Asian punctuation in a sentence (`Merhaba dünya 👋 bye`
 keeps only `Merhaba dünya `) — a whole word with an escape in it, a word longer than 256
 characters, everything from the first markup tag on, whatever the tag (`Optional<String>(x)` keeps
-`Optional`, and an email address written as `<bob@example.com>` goes whole), a whole JSON string
+`Optional`, and an email address written as `<bob@example.com>` goes whole), everything from a
+`<` that no ASCII space, tab, line break, digit or `=` follows (`x << 1` keeps `x `), a whole JSON string
 after a trigger in JSON written into it, everything from a URL that is not clean on — one with a
 query, a port, user info or a host in letters outside ASCII (`see https://x.example/a?q=1 ok`
-keeps `see `) — a multipart body written into text from its first header and a property list or
+keeps `see `), or one that a quote, a second mark or a `?` follows (`see "https://x.example/a" ok`
+keeps `see "`) — a multipart body written into text from its first header and a property list or
 any other markup from its first tag.
 
 With `os.Logger`, interpolated values are already private in release logs unless you mark them
