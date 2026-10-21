@@ -135,10 +135,12 @@ import Foundation
 /// a text inside a found document that the reading budget no longer covers. In a log line, JSON
 /// nested deeper than 64 levels or longer than 64 Ki scalars cuts the line at its first bracket,
 /// like JSON that does not parse. Free text is read in one pass that keeps a fixed number of
-/// positions, whatever it holds, and no word longer than 256 characters is copied for reading; the
-/// value detectors look only before the cut and each finding takes 24 bytes: a megabyte of it
-/// takes less than 16 MB more memory, also when it is dense with findings, and a body of 256 KiB
-/// less than 16 MB. Free text of 256 Mi scalars or more is hidden whole, and a body of 256 MiB or
+/// positions, whatever it holds, and no word longer than 256 characters is copied for reading; its
+/// scanning copy ends after the line of the first character outside the safe alphabet and the
+/// next line that is not blank, the readings of characters outside ASCII are cached in a table of
+/// fixed size, and the value detectors look only before the cut and each finding takes 24 bytes:
+/// a megabyte of it takes less than 16 MB more memory, also when it is dense with findings or
+/// nearly every character in it is a different one, and a body of 256 KiB less than 16 MB. Free text of 256 Mi scalars or more is hidden whole, and a body of 256 MiB or
 /// more is omitted, whatever ``maximumBodySize`` says.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
