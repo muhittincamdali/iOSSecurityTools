@@ -7,7 +7,7 @@ import iOSSecurityTools
 /// every scalar from U+0080 on — and 68.15 MiB for 4 MB. The reading of each scalar was cached in
 /// a dictionary that kept one for every scalar, each reading with an array of its own, and the
 /// scanning copy read the whole text, also past a control character that cut it at its start. The
-/// cache now keeps at most 4,096 readings, their bytes held in place, and the copy ends after the
+/// cache now keeps at most 8,192 readings, their bytes held in place, and the copy ends after the
 /// line of the first character outside the safe alphabet and the next line that is not blank.
 enum DistinctScalarShapes {
     /// The value at the end of every shape, after a key that is not allowed.

@@ -49,7 +49,7 @@ extension FreeTextScanner {
             return
         }
         let written = String(String.UnicodeScalarView(source[region]))
-        let redacted = redactor.redactedURL(written, nesting: inner)
+        let redacted = redactor.redactedURL(written, nesting: inner, compatibility: compatibility)
         let span = SensitiveDataRedactor.Span(start: region.lowerBound, end: region.upperBound, kind: .secretFields, replacement: redacted)
         record(spans: redacted == written ? [] : [span], region: region)
         // The last segment and the word after the URL may spell a secret name across the space,
@@ -74,7 +74,7 @@ extension FreeTextScanner {
     /// - after the scheme it holds only the ASCII letters, digits, `.`, `_`, `-` and `/`, so no
     ///   `?`, `#`, `;`, `%`, `=`, `:`, `@`, `\` and no letter, mark or digit outside ASCII;
     /// - the host is a name of ASCII labels or an IPv4 address in which the value detectors find
-    ///   nothing (see ``SensitiveDataRedactor/showsHost(_:)``);
+    ///   nothing (see ``SensitiveDataRedactor/showsHost(_:compatibility:)``);
     /// - neither the host nor any path segment names a secret by the key rule
     ///   (``FieldName/hidesValue(_:)``), which also hides a segment without a letter or digit;
     /// - it ends cleanly (see ``endsCleanly(at:)``), and not at the character outside the safe
@@ -96,7 +96,7 @@ extension FreeTextScanner {
         let rest = bytes[(colon + 3)...]
         guard rest.allSatisfy(Self.isCleanURLCharacter) else { return false }
         let host = rest.prefix { $0 != UInt8(ascii: "/") }
-        guard !host.isEmpty, redactor.showsHost(String(decoding: host, as: UTF8.self)), !Self.namesSecret(host) else { return false }
+        guard !host.isEmpty, redactor.showsHost(String(decoding: host, as: UTF8.self), compatibility: compatibility), !Self.namesSecret(host) else { return false }
         return !rest[host.endIndex...].split(separator: UInt8(ascii: "/")).contains(where: Self.namesSecret)
     }
 

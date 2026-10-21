@@ -8,12 +8,20 @@ import Foundation
 /// `а` stays unreadable.
 ///
 /// The readings are cached, as logs repeat the same few non-ASCII characters and the
-/// normalization goes through Foundation, in a table of at most ``maximumSlots`` readings in
-/// which each scalar has one slot: a scalar whose slot holds another is read again and takes the
-/// slot. A reading holds its bytes in place (see ``Reading``), so the table takes 24 bytes a slot
-/// whatever a text holds. The twenty-first review measured 15 MiB of cached readings for a
-/// megabyte of different scalars, which a dictionary kept one for each, each with an array of its
-/// own.
+/// normalization goes through Foundation, in a table whose size is fixed when it is made: about one
+/// slot for each scalar of the input it serves (a text cannot hold more different scalars than
+/// that), from ``fewestSlots`` to ``mostSlots``. The table never grows. Its slots are in sets of
+/// two, and a scalar's set is chosen with Swift's `Hasher`, which is seeded at random in every
+/// process as `Dictionary` is, so no text can choose scalars that meet in a set; two scalars that
+/// meet anyway both keep their readings, and a third takes the slot of the one read longer ago. A
+/// reading holds its bytes in place (see ``Reading``), so a slot takes 24 bytes whatever a text
+/// holds. One table serves a whole text, body or URL, with every field, part and segment in it.
+///
+/// The twenty-first review measured 15 MiB of cached readings for a megabyte of different
+/// scalars, which a dictionary kept one for each, each with an array of its own. The table that
+/// replaced it doubled whenever two scalars met in a slot, and the twenty-second review found
+/// scalars that meet in every size (`丆幛`, `Âۿ`): seven of them took a new table to 4,096 slots,
+/// and a megabyte of short log lines made of them took 1.77 s.
 final class CompatibilityText {
     /// A byte that no detector or separator matches.
     static let unreadable: UInt8 = 0xFF
@@ -70,10 +78,10 @@ final class CompatibilityText {
         }
     }
 
-    /// The most readings the table keeps. It starts with ``firstSlots`` and doubles while scalars
-    /// meet in a slot, so a text of a few non-ASCII characters keeps a small one.
-    static let maximumSlots = 4_096
-    private static let firstSlots = 64
+    /// The sizes of a table: slots for a text of a few scalars, and for a text, body or URL of
+    /// 8,192 scalars or more (192 KiB), which holds the characters of a megabyte of Chinese.
+    static let fewestSlots = 16
+    static let mostSlots = 8_192
 
     private struct Slot {
         /// The scalar whose reading the slot holds; 0, which is ASCII, when it holds none.
@@ -83,11 +91,23 @@ final class CompatibilityText {
 
     private static let emptySlot = Slot(scalar: 0, reading: Reading(bytes: [], isInvisible: false, alphabet: .unsafe))
 
-    /// Empty until the first scalar outside ASCII is read.
+    /// The number of slots, a power of two, fixed when the table is made.
+    private let size: Int
+    /// Empty until the first scalar outside ASCII is read, so ASCII text makes no table.
     private var slots: [Slot] = []
 
-    /// The slots of the table, for the tests.
+    /// The slots of the table, for the tests: 0 until a scalar outside ASCII is read.
     var slotCount: Int { slots.count }
+    /// How many readings were worked out through Foundation rather than found in the table, for
+    /// the tests.
+    private(set) var uncachedReadings = 0
+
+    /// - Parameter length: The number of scalars (or bytes) of the input the table serves.
+    init(length: Int = mostSlots) {
+        var size = Self.fewestSlots
+        while size < length, size < Self.mostSlots { size *= 2 }
+        self.size = size
+    }
 
     func ascii(_ scalar: Unicode.Scalar) -> Reading.Bytes {
         if scalar.isASCII { return Reading.Bytes(ascii: UInt8(scalar.value)) }
@@ -96,37 +116,26 @@ final class CompatibilityText {
 
     /// The reading of a scalar outside ASCII.
     func reading(_ scalar: Unicode.Scalar) -> Reading {
-        if slots.isEmpty { slots = Array(repeating: Self.emptySlot, count: Self.firstSlots) }
-        var slot = Self.slot(of: scalar.value, in: slots.count)
-        if slots[slot].scalar == scalar.value { return slots[slot].reading }
+        if slots.isEmpty { slots = Array(repeating: Self.emptySlot, count: size) }
+        var hasher = Hasher()
+        hasher.combine(scalar.value)
+        // The first slot of the scalar's set; the slot after it is the other one of the set.
+        let first = (hasher.finalize() & (size / 2 - 1)) * 2
+        if slots[first].scalar == scalar.value { return slots[first].reading }
+        if slots[first + 1].scalar == scalar.value {
+            slots.swapAt(first, first + 1)
+            return slots[first].reading
+        }
         let reading = Self.read(scalar)
-        if slots[slot].scalar != 0, slots.count < Self.maximumSlots {
-            grow()
-            slot = Self.slot(of: scalar.value, in: slots.count)
-        }
-        slots[slot] = Slot(scalar: scalar.value, reading: reading)
+        uncachedReadings += 1
+        slots[first + 1] = slots[first]
+        slots[first] = Slot(scalar: scalar.value, reading: reading)
         return reading
-    }
-
-    /// The slot of a scalar in a table of `count` slots, a power of two: the high bits of the
-    /// scalar times the golden ratio, so that neighbouring scalars spread over the table.
-    private static func slot(of scalar: UInt32, in count: Int) -> Int {
-        Int((scalar &* 0x9E37_79B1) >> UInt32(32 - count.trailingZeroBitCount))
-    }
-
-    /// Doubles the table. A reading whose new slot is taken already is dropped.
-    private func grow() {
-        var grown = Array(repeating: Self.emptySlot, count: slots.count * 2)
-        for old in slots where old.scalar != 0 {
-            let slot = Self.slot(of: old.scalar, in: grown.count)
-            if grown[slot].scalar == 0 { grown[slot] = old }
-        }
-        slots = grown
     }
 
     private static func read(_ scalar: Unicode.Scalar) -> Reading {
         let alphabet = SafeAlphabet.class(of: scalar)
-        var bytes = readASCII(scalar)
+        var bytes = readsOutsideASCII(scalar) ? unreadableReading : readASCII(scalar)
         // A letter, mark or number is never read as punctuation or a space (`⑴` decomposes to
         // `(1)`, `🄁` to `0,`): a key or a word would be split where the text holds one character.
         // Free text is cut at such a scalar, as its class says (see ``SafeAlphabet/class(of:)``);
@@ -135,7 +144,22 @@ final class CompatibilityText {
         return Reading(bytes: bytes, isInvisible: ScalarClass.isInvisible(scalar), alphabet: alphabet)
     }
 
-    private static func readASCII(_ scalar: Unicode.Scalar) -> [UInt8] {
+    /// Whether a scalar is an ideograph or a Hangul syllable, which is read as ``unreadable``
+    /// without asking Foundation: an ideograph has no decomposition or one to other ideographs, and
+    /// a syllable decomposes to Hangul letters. They are most of the different characters a text
+    /// can hold, so a text of more of them than its table has slots (a megabyte of Chinese) does not
+    /// go through Foundation for each one it reads again. A test compares this with
+    /// ``readASCII(_:)`` for every such scalar.
+    static func readsOutsideASCII(_ scalar: Unicode.Scalar) -> Bool {
+        scalar.properties.isIdeographic || hangulSyllables.contains(scalar.value)
+    }
+
+    private static let hangulSyllables: ClosedRange<UInt32> = 0xAC00...0xD7A3
+    /// One array for every such reading, so reading a scalar makes none.
+    private static let unreadableReading = [unreadable]
+
+    /// The reading of a scalar through Foundation's compatibility decomposition.
+    static func readASCII(_ scalar: Unicode.Scalar) -> [UInt8] {
         if let digit = ScalarClass.decimalDigit(scalar) { return [UInt8(ascii: "0") + digit] }
         switch scalar.properties.generalCategory {
         case .lineSeparator, .paragraphSeparator: return [UInt8(ascii: "\n")]

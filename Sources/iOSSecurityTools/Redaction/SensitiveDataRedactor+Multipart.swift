@@ -16,20 +16,20 @@ extension SensitiveDataRedactor {
 
     /// The body is read only with one plain `boundary` parameter: servers differ in which of
     /// several they take, and in whether they undo the quotes and `\` escapes of a quoted one.
-    func redactedMultipart(_ body: Data, _ type: MediaType, nesting: Nesting) -> String? {
+    func redactedMultipart(_ body: Data, _ type: MediaType, nesting: Nesting, compatibility: CompatibilityText) -> String? {
         let parameters = type.parameters.filter { $0.name == "boundary" || $0.name == "boundary*" }
         guard parameters.count == 1, let parameter = parameters.first, parameter.name == "boundary", !parameter.isQuoted,
               MultipartBody.isValidBoundary(parameter.value),
               let multipart = MultipartBody(Array(body), boundary: parameter.value)
         else { return nil }
         let boundary = parameter.value
-        let naming = kinds.contains(.secretFields) ? NamingFields(multipart.parts.lazy.map(Self.namingField), compatibility: CompatibilityText()) : nil
+        let naming = kinds.contains(.secretFields) ? NamingFields(multipart.parts.lazy.map(Self.namingField), compatibility: compatibility) : nil
         var output = ""
         for (index, part) in multipart.parts.enumerated() {
             output += "--\(boundary)\r\n"
-            output += renderedHeaders(of: part, nesting: nesting).map { $0 + "\r\n" }.joined()
+            output += renderedHeaders(of: part, nesting: nesting, compatibility: compatibility).map { $0 + "\r\n" }.joined()
             let hidesValue = naming?.hidesValue(at: index, of: Self.namingField(part)) == true
-            output += "\r\n" + (hidesValue ? Self.replacement : redactedContent(of: part, nesting: nesting)) + "\r\n"
+            output += "\r\n" + (hidesValue ? Self.replacement : redactedContent(of: part, nesting: nesting, compatibility: compatibility)) + "\r\n"
         }
         return output + "--\(boundary)--"
     }
@@ -39,15 +39,16 @@ extension SensitiveDataRedactor {
     /// `[redacted]` otherwise, their values hidden unless they are kept. A file name is never
     /// written. Header names are keys of the part: a name outside the list, such as one that holds
     /// a card number or a token, is never written.
-    private func renderedHeaders(of part: MultipartBody.Part, nesting: Nesting) -> [String] {
-        var lines = ["Content-Disposition: form-data; name=\"\(Self.quotedStringContent(redactedName(part.name, nesting: nesting)))\""]
+    private func renderedHeaders(of part: MultipartBody.Part, nesting: Nesting, compatibility: CompatibilityText) -> [String] {
+        let fieldName = redactedName(part.name, nesting: nesting, compatibility: compatibility)
+        var lines = ["Content-Disposition: form-data; name=\"\(Self.quotedStringContent(fieldName))\""]
         if let contentType = part.contentType { lines.append("Content-Type: " + contentType.essence) }
         for header in part.headers {
             let name = header.name.lowercased()
             guard name != "content-disposition", name != "content-type" else { continue }
             let shownName = Self.namedPartHeaders.contains(name) ? header.name : Self.replacement
             let value = header.value.trimmingCharacters(in: .whitespaces)
-            lines.append(shownName + ": " + (Self.keptPartHeaders.contains(name) ? redact(value, nesting: nesting) : Self.replacement))
+            lines.append(shownName + ": " + (Self.keptPartHeaders.contains(name) ? redact(value, nesting: nesting, compatibility: compatibility) : Self.replacement))
         }
         return lines
     }
@@ -55,7 +56,7 @@ extension SensitiveDataRedactor {
     /// The content of a part, read as a body one level inside the multipart body. A part is a
     /// document found in the body, so it takes its length from the reading budget, and is omitted
     /// when the budget does not cover it.
-    private func redactedContent(of part: MultipartBody.Part, nesting: Nesting) -> String {
+    private func redactedContent(of part: MultipartBody.Part, nesting: Nesting, compatibility: CompatibilityText) -> String {
         if kinds.contains(.secretFields), FieldName.hidesValue(part.name.unicodeScalars) { return Self.replacement }
         let defaultType = part.filename == nil ? "text/plain" : "application/octet-stream"
         guard let type = part.contentType ?? MediaType(defaultType) else { return Self.omitted(part.content.count, defaultType) }
@@ -65,7 +66,7 @@ extension SensitiveDataRedactor {
         else {
             return Self.omitted(part.content.count, type.essence)
         }
-        return redacted(Data(part.content), as: type, nesting: inner) ?? Self.omitted(part.content.count, type.essence)
+        return redacted(Data(part.content), as: type, nesting: inner, compatibility: compatibility) ?? Self.omitted(part.content.count, type.essence)
     }
 
     /// The parts that name the field another part holds (`label` and `value` parts). A part's
