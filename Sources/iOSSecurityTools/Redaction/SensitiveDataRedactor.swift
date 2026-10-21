@@ -77,7 +77,8 @@ import Foundation
 /// tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or a control
 /// character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a word longer
 /// than 256 characters. **In free text the first markup tag cuts the text** (`<user>…`, `</a>`,
-/// `<!--`), whatever the tag. No list of look-alike separators is kept. A URL in free text
+/// `<!--`), whatever the tag, and a quote that does not close on its line cuts it at the quote.
+/// No list of look-alike separators is kept. A URL in free text
 /// is shown only when it is clean, and any other URL cuts the text where it starts. Strings
 /// inside JSON, form values, allowed query values and multipart text parts are free text, each on
 /// its own. ``redact(_:)`` describes the rule.
@@ -338,9 +339,12 @@ public struct SensitiveDataRedactor: Sendable {
     ///   request), a secret name or one that is not plain ASCII cuts the text after it, as in JSON
     ///   (`type="Пароль"`), and so does JSON there.
     ///
-    /// A word that mixes scripts (`pаssword` with a Cyrillic `а`) cuts the text where it starts,
-    /// and a quote or bracket that does not close before the text ends or is cut leaves the end of
-    /// its value unknown, so it cuts the text after it. JSON in the text (`{"…`, `[{…`, `["…`,
+    /// A word that mixes scripts (`pаssword` with a Cyrillic `а`) cuts the text where it starts.
+    /// A quote (`"`, a backtick, or `'` at the start of a word) that does not close on its line,
+    /// or before the first character outside the safe alphabet, cuts the text at the quote, so a
+    /// quoted key with a line break in it shows nothing (`"note\nQx31": 1`); and a bracket that
+    /// does not close before the text ends leaves the end of its value unknown, so it cuts the text
+    /// after it. JSON in the text (`{"…`, `[{…`, `["…`,
     /// `[[…`) is parsed and redacted by the key rule for structured input, within the limits listed
     /// under "Limits"; JSON that does not parse, or is longer than 64 Ki scalars, cuts the text at
     /// its first bracket.

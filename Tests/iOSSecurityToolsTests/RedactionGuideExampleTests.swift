@@ -39,6 +39,7 @@ struct RedactionGuideExampleTests {
         ("see https://x.example/a?q=1 ok", "see [redacted]"),
         ("Merhaba dünya \u{1F44B} bye", "Merhaba dünya [redacted]"),
         ("Optional<String>(x)", "Optional[redacted]"),
+        ("note \"a\nhunter2\": 1", "note [redacted]"),
         ("if a < b then", "if a < b then"),
     ])
     func freeText(input: String, expected: String) {

@@ -25,12 +25,12 @@ extension FreeTextScanner {
         let next = nextNonBlank(from: end)
         if next < text.count, isSeparator(next) {
             pendingKey = start..<end
-            advance(to: end)
+            position = end
             return
         }
         pendingKey = nil
         guard role == .text else {
-            advance(to: end)
+            position = end
             return
         }
         switch read(start..<end) {
@@ -42,7 +42,7 @@ extension FreeTextScanner {
             if let secretEnd = secretEndAcrossSpace(after: start..<end) {
                 cut(atByte: valueStart(after: secretEnd))
             } else {
-                advance(to: end)
+                position = end
             }
         }
     }
