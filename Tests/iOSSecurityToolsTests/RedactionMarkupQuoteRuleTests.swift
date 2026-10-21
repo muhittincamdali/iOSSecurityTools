@@ -3,8 +3,9 @@ import Testing
 @testable import iOSSecurityTools
 
 /// The two rules of free text that keep no state while it is read: markup is not parsed, so the
-/// first `<` before a letter, `/`, `!` or `?` cuts the text there, whatever the tag; and a quote
-/// that does not close on its line cuts the text at the quote. Each is checked on the six paths
+/// first `<` that is not a comparison cuts the text there, whatever follows it; and a quote that
+/// does not close on its line cuts the text at the quote. A `<` is a comparison only before an
+/// ASCII space, tab or line break, an ASCII digit, `=` or the end of the text. Each is checked on the six paths
 /// that read free text (see ``RedactionCutRuleTests/everyPath(_:)``).
 @Suite("SensitiveDataRedactor markup and quotes in free text")
 struct RedactionMarkupQuoteRuleTests {
@@ -19,7 +20,7 @@ struct RedactionMarkupQuoteRuleTests {
 
     // MARK: Markup
 
-    @Test("the first `<` before a letter, `/`, `!` or `?` cuts the text there", arguments: [
+    @Test("the first `<` that is not a comparison cuts the text there", arguments: [
         ("<user>bob</user>", "[redacted]"),
         ("msg <status>ok</status> done", "msg [redacted]"),
         ("closed </user> bob", "closed [redacted]"),
@@ -33,13 +34,37 @@ struct RedactionMarkupQuoteRuleTests {
         ("<\u{0436}>bob", "[redacted]"),
         ("msg \"<user>bob</user>\" done", "msg \"[redacted]"),
         ("'<user>bob</user>'", "'[redacted]"),
+        // The nineteenth review: a tag name may start with `_` or `:`, and a digit outside ASCII
+        // is no digit of a comparison; what follows `<` is never listed.
+        ("<_id>bob</_id>", "[redacted]"),
+        ("login <_x>bob", "login [redacted]"),
+        ("a <_user>bob</_user>", "a [redacted]"),
+        ("<_csrf_x>bob</_csrf_x>", "[redacted]"),
+        ("<__v>bob</__v>", "[redacted]"),
+        ("<_>bob</_>", "[redacted]"),
+        ("<:x>bob", "[redacted]"),
+        ("<-x>bob", "[redacted]"),
+        ("<.x>bob</.x>", "[redacted]"),
+        ("login <#x>bob", "login [redacted]"),
+        ("login <@x>bob", "login [redacted]"),
+        ("login <$x>bob", "login [redacted]"),
+        ("login <%x>bob", "login [redacted]"),
+        ("<\u{0966}>bob</\u{0966}>", "[redacted]"),
+        ("<\u{0E50}>bob</\u{0E50}>", "[redacted]"),
+        ("<\u{2070}>bob</\u{2070}>", "[redacted]"),
+        ("login <\u{0661}>bob", "login [redacted]"),
+        ("msg \"<\" user>bob</user>", "msg \"[redacted]"),
+        ("x << 1", "x [redacted]"),
+        ("a <- b", "a [redacted]"),
+        ("<<<", "[redacted]"),
+        ("<>bob", "[redacted]"),
     ])
     func markupCuts(input: String, expected: String) {
         #expect(redactor.redact(input) == expected)
     }
 
-    @Test("a `<` before white space, a digit, `=` or other punctuation is no markup", arguments: [
-        "a < b", "if count < 10 then", "1<2 ok", "<3 love", "x << 1", "a <- b", "<<<", "a<",
+    @Test("a `<` before an ASCII space, tab or line break, an ASCII digit, `=` or the end of the text is a comparison", arguments: [
+        "a < b", "if count < 10 then", "1<2 ok", "<3 love", "a<", "a <\tb", "a <\nb", "a <\r\nb", "<1x> bob", "a < b > c",
     ])
     func comparisonsStay(input: String) {
         #expect(redactor.redact(input) == input)
@@ -51,6 +76,7 @@ struct RedactionMarkupQuoteRuleTests {
         "<user><![CDATA[S]]></user>", "<phone><![CDATA[S]]></phone>", "<user><!-- c -->S</user>", "<user>\n<!-- c -->\nS\n</user>",
         "<user><br/>S</user>", "<user><count/>S</user>", "<address><line/>S</address>", "<user><count>1</count>S</user>",
         "<user><status>ok</status>S</user>", "<user></x>S", "<user><?pi?>S", "<user><!x>S", "<user>< S", "<user><1>S", "<user><_a>S",
+        "<_x>S</_x>", "<_user>\nS\n</_user>", "<_x a='1'>S", "<\u{0966}>S</\u{0966}>", "<-x>S", "<.x>S</.x>",
     ]
 
     static let prefixes = ["", "msg ", "status=200 ", "note: ", "x=1 "]
