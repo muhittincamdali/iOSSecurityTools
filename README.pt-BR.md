@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
+<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 529
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 538
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -311,8 +311,8 @@ nome de rótulos ASCII nem um endereço, ou que carrega um número de cartão ou
 como `scheme://[redacted]`, e o nome de um cabeçalho de parte multipart só é escrito quando é um
 dos que uma parte carrega. Uma URL com mais de 64 segmentos de caminho ou 128 parâmetros,
 ou com um caminho que servidores resolvem de forma diferente (um segmento de ponto como em
-`/pin/./4831`, um `.`, `/`, `\` ou `%`
-escapado, um segmento só com parâmetros), é registrada apenas com o esquema e o host,
+`/pin/./4831`, um `;` como em `/a;pin/4831`, um `.`, `/`, `\`, `;` ou `%`
+escapado), é registrada apenas com o esquema e o host,
 e um endereço de e-mail mostra só a primeira letra do
 nome, em qualquer escrita (`ayşe.yılmaz@gmail.com` vira `a•••@gmail.com`).
 Nomes que não são ASCII simples contam como secretos mesmo quando escritos como valores: o valor ao

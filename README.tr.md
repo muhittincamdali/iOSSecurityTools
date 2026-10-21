@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
+<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 529 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 538 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -314,8 +314,8 @@ adres olmayan veya bir kart numarası ya da token taşıyan bir URL host'u `sche
 yazılır; bir multipart parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse
 yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan
 ya da yolunu sunucuların farklı çözebileceği (`/pin/./4831` gibi bir nokta
-bölümü, kaçışlı `.`, `/`, `\` ya da `%`, yalnız
-parametreden oluşan bir bölüm) bir URL yalnız şeması ve host'u ile kaydedilir;
+bölümü, `/a;pin/4831` gibi bir `;`, kaçışlı `.`, `/`, `\`, `;` ya da
+`%`) bir URL yalnız şeması ve host'u ile kaydedilir;
 bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk
 harfi görünür (`ayşe.yılmaz@gmail.com`, `a•••@gmail.com` olur).
 ASCII dışı adlar, değer olarak yazıldıklarında da gizli sayılır: ad taşıyan bir alanın (`name`,
