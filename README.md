@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 582 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 589 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -307,8 +307,10 @@ shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com
 `a•••@gmail.com`).
 Non-ASCII names count as secret even when they are written as values: the value beside a field that
 holds a name (`name`, `label`, `type`, `id`, …) such as `Şifre`, `ⓟⓘⓝ` or `🔑` is redacted.
-A name with a line break or another control character in it counts as secret wherever it is
-(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), and in `redact(url:)` the segment after a
+A name with a line break or another control character in it counts as secret, whatever it says, in a
+field that holds a name, and elsewhere when it names a secret with its control characters left out
+or read as spaces (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`); a short string of control
+characters alone (`"\n"`) counts too, while `{"message":"Hello\nWorld","id":"7"}` keeps `id`, and in `redact(url:)` the segment after a
 path segment that is not a plain-ASCII name becomes `:id` (`/şifre/…`, `/a,b/…`).
 In free text, the first secret name hides everything after it in that text; this over-hides on
 purpose. Over-hiding is by design. Six rules set where the text is cut, and none keeps a list of
@@ -369,6 +371,21 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Known limitations
+
+These are known and not changed yet:
+
+- A name with a control character in it hides the members beside it whatever it says when a field
+  that holds a name or the first element of a pair holds it (`{"name":"Hello\nWorld","value":"x"}`
+  hides `value`), and elsewhere when it names a secret once its control characters are left out or
+  read as spaces (`{"note":"pass\nword","id":"7"}` hides `id`).
+- A key counts `token` and `secret` only as a word or at its end and `pw` only as a word, so
+  `tokenvalue`, `TOKENID`, `secretvalue`, `secrethash`, `userpw` and `dbpw` show their values; mark
+  such properties with `@Redacted`.
+- A short string of control characters and white space alone hides every member beside it, also
+  where it means nothing (`{"title":"\n","data":"x"}` hides `data`), while one of more than 256
+  scalars is read as text.
 
 ## Demo
 

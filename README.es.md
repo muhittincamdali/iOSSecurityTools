@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  582 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  589 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -321,8 +321,11 @@ nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser `a•••
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
 `Şifre`, `ⓟⓘⓝ` o `🔑`.
-Un nombre con un salto de línea u otro carácter de control dentro cuenta como secreto esté donde
-esté (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), y en `redact(url:)` el segmento que
+Un nombre con un salto de línea u otro carácter de control dentro cuenta como secreto, diga lo que
+diga, en un campo que contiene un nombre, y en otros lugares cuando nombra un secreto al quitar sus
+caracteres de control o al leerlos como espacios
+(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`); una cadena corta solo de caracteres de
+control (`"\n"`) también cuenta, mientras que `{"message":"Hello\nWorld","id":"7"}` conserva `id`, y en `redact(url:)` el segmento que
 sigue a un segmento de ruta que no es un nombre ASCII simple pasa a ser `:id` (`/şifre/…`,
 `/a,b/…`).
 En texto libre, el primer nombre secreto oculta todo lo que le sigue en ese texto; esto oculta de
@@ -391,6 +394,22 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Limitaciones conocidas
+
+Estas limitaciones se conocen y aún no se han cambiado:
+
+- Un nombre con un carácter de control dentro oculta los miembros que tiene al lado, diga lo que
+  diga, cuando lo contiene un campo que contiene un nombre o el primer elemento de un par
+  (`{"name":"Hello\nWorld","value":"x"}` oculta `value`), y en otros lugares cuando nombra un
+  secreto al quitar sus caracteres de control o al leerlos como espacios
+  (`{"note":"pass\nword","id":"7"}` oculta `id`).
+- Una clave cuenta `token` y `secret` solo como palabra o al final y `pw` solo como palabra, así que
+  `tokenvalue`, `TOKENID`, `secretvalue`, `secrethash`, `userpw` y `dbpw` muestran sus valores;
+  marca esas propiedades con `@Redacted`.
+- Una cadena corta solo de caracteres de control y espacios en blanco oculta todos los miembros que
+  tiene al lado, también donde no significa nada (`{"title":"\n","data":"x"}` oculta `data`),
+  mientras que una de más de 256 escalares se lee como texto.
 
 ## Demo
 

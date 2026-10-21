@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  582 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  589 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -323,8 +323,12 @@ adresse e-mail ne montre que la première lettre de son nom, dans n’importe qu
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
 valeurs : la valeur à côté d’un champ qui porte un nom (`name`, `label`, `type`, `id`, …) comme
 `Şifre`, `ⓟⓘⓝ` ou `🔑` est masquée.
-Un nom qui contient un saut de ligne ou un autre caractère de contrôle compte comme secret où qu’il
-soit (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), et dans `redact(url:)` le segment qui
+Un nom qui contient un saut de ligne ou un autre caractère de contrôle compte comme secret, quoi
+qu’il dise, dans un champ qui contient un nom, et ailleurs quand il nomme un secret une fois ses
+caractères de contrôle retirés ou lus comme des espaces
+(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`) ; une courte chaîne faite seulement de
+caractères de contrôle (`"\n"`) compte aussi, tandis que `{"message":"Hello\nWorld","id":"7"}` garde
+`id`, et dans `redact(url:)` le segment qui
 suit un segment de chemin qui n’est pas un nom en ASCII simple devient `:id` (`/şifre/…`,
 `/a,b/…`).
 Dans le texte libre, le premier nom secret masque tout ce qui le suit dans ce texte ; cela masque
@@ -394,6 +398,22 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Limites connues
+
+Ces limites sont connues et pas encore corrigées :
+
+- Un nom qui contient un caractère de contrôle masque les membres à côté de lui, quoi qu’il dise,
+  quand un champ qui contient un nom ou le premier élément d’une paire le contient
+  (`{"name":"Hello\nWorld","value":"x"}` masque `value`), et ailleurs quand il nomme un secret une
+  fois ses caractères de contrôle retirés ou lus comme des espaces (`{"note":"pass\nword","id":"7"}`
+  masque `id`).
+- Une clé compte `token` et `secret` seulement comme mot ou à sa fin et `pw` seulement comme mot,
+  donc `tokenvalue`, `TOKENID`, `secretvalue`, `secrethash`, `userpw` et `dbpw` montrent leur valeur
+  ; marquez ces propriétés avec `@Redacted`.
+- Une courte chaîne faite seulement de caractères de contrôle et d’espaces masque tous les membres à
+  côté d’elle, même là où elle ne signifie rien (`{"title":"\n","data":"x"}` masque `data`), tandis
+  qu’une chaîne de plus de 256 scalaires est lue comme du texte.
 
 ## Démo
 

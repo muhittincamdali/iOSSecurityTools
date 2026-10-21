@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@b3e2c8de8d35f2e6ec81e7e4e47c61c1f1178bcb status=reviewed -->
+<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -59,7 +59,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 582 теста
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 589 теста
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -317,8 +317,11 @@ multipart после одиночного перевода строки или �
 `a•••@gmail.com`).
 Имена не из простого ASCII считаются секретными, даже когда они записаны как значения: значение
 рядом с полем, которое хранит имя (`name`, `label`, `type`, `id`, …), например `Şifre`, `ⓟⓘⓝ` или
-`🔑`, скрывается. Имя, в котором есть перевод строки или другой управляющий символ, считается
-секретным, где бы оно ни стояло (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), а в
+`🔑`, скрывается. Имя, в котором есть перевод строки или другой управляющий символ, считается секретным, что бы в нём
+ни было, в поле, которое содержит имя, в остальных же местах — если без управляющих символов или с
+пробелами на их месте оно называет секрет (`{"ParameterKey":"DbPassword\n","ParameterValue":…}`);
+короткая строка только из управляющих символов (`"\n"`) тоже считается секретной, а
+`{"message":"Hello\nWorld","id":"7"}` сохраняет `id`, а в
 `redact(url:)` сегмент после сегмента пути, который не является именем из простого ASCII,
 становится `:id` (`/şifre/…`, `/a,b/…`).
 В свободном тексте первое секретное имя скрывает всё, что идёт после него в этом тексте; это
@@ -385,6 +388,21 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
     return (key.publicKeyDER, try key.signature(for: challenge))
 }
 ```
+
+## Известные ограничения
+
+Эти ограничения известны и пока не исправлены:
+
+- Имя с управляющим символом скрывает значения рядом с ним, что бы в нём ни было, когда его содержит
+  поле, которое содержит имя, или первый элемент пары (`{"name":"Hello\nWorld","value":"x"}`
+  скрывает `value`), а в остальных местах — когда без управляющих символов или с пробелами на их
+  месте оно называет секрет (`{"note":"pass\nword","id":"7"}` скрывает `id`).
+- Ключ учитывает `token` и `secret` только как слово или в конце, а `pw` только как слово, поэтому
+  `tokenvalue`, `TOKENID`, `secretvalue`, `secrethash`, `userpw` и `dbpw` показывают свои значения;
+  помечайте такие свойства `@Redacted`.
+- Короткая строка только из управляющих и пробельных символов скрывает все значения рядом с ней,
+  даже там, где она ничего не значит (`{"title":"\n","data":"x"}` скрывает `data`), а строка длиннее
+  256 скаляров читается как текст.
 
 ## Демо
 
