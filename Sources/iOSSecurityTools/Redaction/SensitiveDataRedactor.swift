@@ -53,8 +53,11 @@ import Foundation
 /// `field`, `label`, `type`, `header`, `param`, `path` with every part between `/`, `id`, `k`,
 /// `n`, or a member whose own name is not plain ASCII) is read by the key rule, so non-ASCII
 /// names count as secret even when they are written as values: `Şifre`, `ⓟⓘⓝ`, `🔑`, an empty
-/// name, or an array or object there. A name with a line break or any other control character in
-/// it counts as secret wherever it is (`{"ParameterKey":"DbPassword\n",…}`). When such a name or a
+/// name, or an array or object there; so does a name with a line break or any other control
+/// character in it. Elsewhere such a name counts when it names a secret with its control
+/// characters left out or read as spaces (`{"ParameterKey":"DbPassword\n",…}`), and a short
+/// string of control characters and white space alone counts too (`{"ParameterKey":"\n",…}`),
+/// while `{"message":"Hello\nWorld","id":"7"}` keeps `id`. When such a name or a
 /// secret one is held, or any member's value is a name that names a secret or cannot be read
 /// (`{"type":"password","input":…}`), the
 /// values of the other members of the object are hidden whole, apart from the names of pairs
