@@ -8,7 +8,9 @@
 /// ``FieldName``, as a key is: its name hides what goes with it unless it is plain ASCII and
 /// names no secret. A name in letters outside ASCII (`Şifre`, `Пароль`), in symbols with no letter
 /// or digit of their own (`ⓟⓘⓝ`, `🄿🄸🄽`, `🔑`, `𝐩𝐢𝐧`) or with punctuation (`Password:`) counts as
-/// secret, whatever it says.
+/// secret, whatever it says. In every place, a name with a control character in it — a line
+/// feed, a carriage return, a tab or any other — counts as secret too (see
+/// ``nameNamesSecret(_:byKeyRule:compatibility:)``, the one decision every place makes).
 enum WrittenName {
     /// Where a name is written, which decides how it is read.
     enum Place {
@@ -32,15 +34,34 @@ enum WrittenName {
         switch place {
         case .field(let field):
             if holdsName(field) { return heldNameNamesSecret(value, field: field, compatibility: compatibility) }
-            return isName(value, compatibility: compatibility) && FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+            return isName(value, compatibility: compatibility) && nameNamesSecret(value, byKeyRule: false, compatibility: compatibility)
         case .pairName:
             return heldNameNamesSecret(value, field: nil, compatibility: compatibility)
         case .element:
             return FreeTextScanner.mentionsSecret(value, compatibility: compatibility)
         case .quoted(let key):
             if let key, holdsNameInText(key), heldNameNamesSecret(value, field: key, compatibility: compatibility) { return true }
-            return !value.isEmpty && FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+            return !value.isEmpty && nameNamesSecret(value, byKeyRule: false, compatibility: compatibility)
         }
+    }
+
+    /// Whether a name written as a value names a secret: the one decision of every place that
+    /// reads a name. A name with a control character (Cc) in it names one, whatever it says — a
+    /// line feed or carriage return before, inside or after it (`DbPassword\n`, `\r\npin`,
+    /// `Db\nPassword`), a tab, a vertical tab or any other: the name it stands for cannot be told,
+    /// as one reader trims it and another splits it. With `byKeyRule`, for a field that holds a
+    /// name, so does a name that is not plain ASCII (see ``FieldName/hidesValue(_:)``). Any other
+    /// name names a secret when its words do, as free text reads them (see
+    /// ``FreeTextScanner/nameNamesSecret(_:compatibility:)``).
+    static func nameNamesSecret(_ value: [Unicode.Scalar], byKeyRule: Bool, compatibility: CompatibilityText) -> Bool {
+        if byKeyRule, FieldName.hidesValue(value) { return true }
+        if value.contains(where: isControl) { return true }
+        return FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+    }
+
+    /// The control characters, U+0000 to U+001F and U+007F to U+009F: the general category Cc.
+    private static func isControl(_ scalar: Unicode.Scalar) -> Bool {
+        scalar.value < 0x20 || (0x7F...0x9F).contains(scalar.value)
     }
 
     // MARK: Fields that hold names
@@ -91,8 +112,7 @@ enum WrittenName {
     /// ``pathNamesSecret(_:)``). The words of a plain name are read as free text reads them too.
     private static func heldNameNamesSecret(_ value: [Unicode.Scalar], field: [Unicode.Scalar]?, compatibility: CompatibilityText) -> Bool {
         if let field, isField(field, oneOf: ["path"]) { return pathNamesSecret(value) }
-        if FieldName.hidesValue(value) { return true }
-        return FreeTextScanner.nameNamesSecret(value, compatibility: compatibility)
+        return nameNamesSecret(value, byKeyRule: true, compatibility: compatibility)
     }
 
     /// Whether a JSON Pointer or SCIM path leads to a value that is hidden: one of its parts
@@ -109,18 +129,20 @@ enum WrittenName {
     // MARK: Names in other fields
 
     /// Whether a string is a name rather than a sentence or a document: at most
-    /// ``PlainName/maximumKeyLength`` scalars without a line break, with a letter or digit, and
-    /// once the punctuation and spaces around it are left out, without `:`, `=`, `,`, `;`, quotes
-    /// or brackets, which pair a key with a value or hold one (`Error: token expired`,
+    /// ``PlainName/maximumKeyLength`` scalars with a letter or digit, and once the punctuation,
+    /// spaces and line breaks around it are left out, without `:`, `=`, `,`, `;`, quotes or
+    /// brackets, which pair a key with a value or hold one (`Error: token expired`,
     /// `{"password":…}`). A symbol whose compatibility form is a letter or digit (`ⓟ`, `🄿`, `①`)
     /// counts as one, so a name written only in such symbols is a name. The `;` that ends a
     /// character reference (`p&#97;ssword`, `&#x63;ard`, `&amp;#xauth`) pairs nothing: it is part
     /// of the escape, which the name is read through (see ``FreeTextScanner/nameNamesSecret(_:compatibility:)``).
+    /// A line break does not keep a string from being a name: a name with one in it
+    /// (`DbPassword\n`, `Db\nPassword`) names a secret by the one decision of
+    /// ``nameNamesSecret(_:byKeyRule:compatibility:)``.
     static func isName(_ scalars: [Unicode.Scalar], compatibility: CompatibilityText) -> Bool {
         guard scalars.count <= PlainName.maximumKeyLength else { return false }
         let isLetterOrDigit = { (scalar: Unicode.Scalar) in Self.isLetterOrDigit(scalar, compatibility: compatibility) }
         guard let first = scalars.firstIndex(where: isLetterOrDigit), let last = scalars.lastIndex(where: isLetterOrDigit) else { return false }
-        guard !scalars.contains(where: { $0 == "\n" || $0 == "\r" }) else { return false }
         return !(first...last).contains { i in
             notInNames.contains(scalars[i]) && !(scalars[i] == ";" && endsReference(scalars, at: i))
         }
