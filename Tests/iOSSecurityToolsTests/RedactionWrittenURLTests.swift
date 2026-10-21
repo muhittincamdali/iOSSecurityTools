@@ -4,7 +4,8 @@ import Testing
 
 /// A URL in free text is shown only when it is clean: `scheme://host` with an optional path of
 /// ASCII letters, digits, `.`, `_`, `-` and `/`, a host and segments that name no secret, and
-/// white space, a line break or punctuation that ends a sentence after it. Any other URL cuts the
+/// white space, a line break, the end of the text or one mark that ends a sentence (`.`, `,`,
+/// `!`, `)`) and then one of those after it (see ``RedactionURLEndTests``). Any other URL cuts the
 /// text where it starts. The fourteenth and fifteenth reviews got values past every reading of
 /// the query, fragment and path parameters of a URL in text, one ending at a time: an empty or
 /// allowed section after a secret segment (`/password# hunter2`), an encoded `=` or `:` at the
@@ -73,6 +74,9 @@ struct RedactionWrittenURLTests {
     static let insides = [
         "\u{2192}", "\u{1F511}", "\u{00A0}", "\u{3000}", "\u{FF0F}", "\u{2215}", "\u{200B}", "%3D", "%3A", "%2F", "%253D", "?q=", "?page=",
         "#", "#q=", ";p=", ";page=", "=", ":", "@", "\\", "?", "&", "~", "!", "(", "*", "+", "$", ",",
+        // The nineteenth review: a quote, a backtick or a closing bracket ends the URL, and no URL
+        // that one follows is clean.
+        "'", "\"", "`", ">", "<", "]", "}", ")", ";",
     ]
 
     @Test("no value written in a URL after a character that makes it not clean shows, in any place")
@@ -81,7 +85,9 @@ struct RedactionWrittenURLTests {
             var layouts = ["https://x.example/a\(inside)b/\(Self.secret)?q=1 tail", "https://x.example/a\(inside)\(Self.secret) tail",
                            "https://x.example\(inside)\(Self.secret)/a tail"]
             // A clean URL that ends a sentence (`…/value, tail`) shows its path, the value in it too.
-            if ![",", "!"].contains(inside) { layouts.append("https://x.example/a/\(Self.secret)\(inside) tail") }
+            if !RedactionURLEndTests.sentenceEnds.contains(inside) {
+                layouts.append("https://x.example/a/\(Self.secret)\(inside) tail")
+            }
             for layout in layouts {
                 for (place, output) in Self.places(layout) {
                     #expect(!output.contains(Self.secret), "\(place): \(layout.debugDescription) -> \(output.debugDescription)")
@@ -135,14 +141,13 @@ struct RedactionWrittenURLTests {
             "see https://x.example status=200",
             "see [docs](https://x.example/docs) status=200",
             "see (https://x.example/a) ok",
-            "see \"https://x.example/a\" ok",
             "see https://x.example/a, ok",
             "fetched https://cdn.example.com/assets/app.min.js in 12 ms",
             "ping http://10.0.0.1/health ok",
             "GET https://x.example/a_b/c-d/e.f ok",
             "git clone https://github.com/x/y.git",
-            "open https://x.example/a.) then",
             "https://x.example/a\nnext line",
+            "see https://x.example/a!",
         ] {
             #expect(redactor.redact(line) == line, "\(line.debugDescription)")
         }
