@@ -11,8 +11,10 @@
 ///
 /// An escape is never decoded in free text: it cuts the text at the start of the word it is in, as
 /// what the escape stands for cannot be read, nor what the value detectors would find through it
-/// (`alice%40example.com`). So does a word longer than ``FreeTextScanner/longestWord``, which
-/// cannot be read as a name, so that no word is copied for reading at more than that length.
+/// (`alice%40example.com`). A backslash is an escape whatever follows it, unless an ASCII space,
+/// tab or line break or the end of the text does, so no list of the forms of backslash escapes is
+/// kept. A word longer than ``FreeTextScanner/longestWord`` cuts the text too: it cannot be read
+/// as a name, and so no word is copied for reading at more than that length.
 extension FreeTextScanner {
     /// The longest word of free text that is read, in scalars: a longer one cuts the text at its
     /// start.
@@ -41,8 +43,8 @@ extension FreeTextScanner {
     /// - `&#` and a digit, `&#x` and a hex digit (`&#61;`, `&#x3d`), and `&` with a name made of
     ///   letters and digits, as HTML5 names its references, with or without the `;` (`&colon;`,
     ///   `&equals;`, `&amp;`) — but not the name of a field before `=` (`&count=3`);
-    /// - `\` and a hex digit, as in an octal or CSS escape (`\075`, `\3d`), `\x` and a hex digit,
-    ///   `\u` and four hex digits or `{`, `\U` and a hex digit, and `\N{`.
+    /// - `\` before anything but an ASCII space, tab or line break or the end of the text (see
+    ///   ``backslashEscapes(at:)``).
     func isEscape(at i: Int) -> Bool {
         switch text.bytes[i] {
         case UInt8(ascii: "%"):
@@ -57,18 +59,28 @@ extension FreeTextScanner {
             while k < text.count, ASCII.isNameCharacter(text.bytes[k]), text.bytes[k] != UInt8(ascii: " ") { k += 1 }
             return byte(k) != UInt8(ascii: "=")
         case UInt8(ascii: "\\"):
-            let next = byte(i + 1)
-            if isHex(i + 1) { return true }
-            if Self.hexEscapes.contains(next) { return isHex(i + 2) }
-            if next == UInt8(ascii: "u") { return byte(i + 2) == UInt8(ascii: "{") || (2...5).allSatisfy { isHex(i + $0) } }
-            return next == UInt8(ascii: "N") && byte(i + 2) == UInt8(ascii: "{")
+            return backslashEscapes(at: i)
         default:
             return false
         }
     }
 
-    /// The letters after `\` that start an escape of hex digits: `\x3D`, `\U0000003D`.
-    private static let hexEscapes = ByteSet("xXU")
+    /// Whether the backslash at byte `i` starts an escape: it does unless an ASCII space, tab or
+    /// line break comes right after it in the original text, or the text ends there. What follows
+    /// it is not read as any form of escape, so every form counts, known or not: `\075`, `\x3D`,
+    /// `\x{73}`, `\o{163}`, `\N{…}`, `\u{73}`, `\q`, `\\`, `\"`. A mark or an invisible character
+    /// right after it, which the scanning copy leaves out, counts as what it escapes.
+    func backslashEscapes(at i: Int) -> Bool {
+        if i + 1 < text.count, !Self.blanksAfterBackslash.contains(text.bytes[i + 1]) { return true }
+        // The scanning copy left out what came right after the backslash, or read it as a space
+        // (U+3000): the original scalar decides.
+        let next = text.offset(at: i) + 1
+        return next < source.count && !(source[next].isASCII && Self.blanksAfterBackslash.contains(UInt8(source[next].value)))
+    }
+
+    /// What a backslash can come before without starting an escape: an ASCII space, tab or line
+    /// break.
+    private static let blanksAfterBackslash = ByteSet(" \t\n\r")
 
     /// The byte at `i`, or 0 past the end of the text.
     private func byte(_ i: Int) -> UInt8 {

@@ -27,7 +27,6 @@ struct RedactionEighteenthReviewProbeTests {
         let byReason: [(String, [String])] = [
             ("a `<` before an ASCII space, tab, line break or digit is a comparison", ["a-18#40", "a-18#41", "a-18#42", "a-18#44"] + c18([322])),
             ("a name with two or more letters that have no ASCII form, without a separator", ["a-18#174", "a-18#185"]),
-            ("a backslash and a letter are text, not a line break", ["a-18#261", "a-18#263"]),
             ("a letter or mark that looks like a separator is a letter or mark", ["a-18#303", "a-18#305", "a-18#307", "a-18#309", "a-18#311", "a-18#315"]
                 + c18([130, 133, 139])),
             ("a key that folds to an allowed key (`sta-tus`, `durationMs`, `'status'`)",
@@ -45,9 +44,11 @@ struct RedactionEighteenthReviewProbeTests {
         return shown
     }()
 
-    /// Controls that are hidden on purpose: a backslash before a quote starts a word, so the key
-    /// it quotes is not allowed (`\'status\'`), or escapes nothing (`\\"status\\"`).
-    static let hiddenControls: Set<String> = ["a-18#937", "a-18#938", "a-18#942", "a-18#943"]
+    /// Controls that are hidden on purpose: a backslash before anything but white space or the
+    /// end of the text is an escape, which cuts the text, also before a quote (`\"status\":`,
+    /// `\'status\'`) or another backslash (`\\"status\\"`). That rule made the first two controls
+    /// (`a-18#932`, `a-18#933`) hidden too.
+    static let hiddenControls: Set<String> = ["a-18#932", "a-18#933", "a-18#937", "a-18#938", "a-18#942", "a-18#943"]
 
     /// The limitations the review named that are found: a JSON object written as a form body.
     static let fixed: Set<String> = ["a-18#698"]

@@ -4,10 +4,12 @@ extension FreeTextScanner {
     /// ``EscapeDecoder``): whether it can be read with certainty, and where the first secret word
     /// in it ends. Free text never reaches the decoding: an escape cuts it first (see
     /// ``isEscape(at:)``). The words of a name written as a value, of an array element, of a URL
-    /// path segment and of JSON written into a line are read with their escapes decoded (see
-    /// ``mentionsSecret(_:compatibility:)``). A word longer than ``longestWord`` is not read.
+    /// path segment and of JSON written into a line are read with their percent escapes and
+    /// character references decoded (see ``mentionsSecret(_:compatibility:)``). A backslash
+    /// escape is not decoded in any form: a word with one cannot be read, as it cuts free text
+    /// (see ``backslashEscapes(at:)``). Nor is a word longer than ``longestWord`` read.
     func read(_ range: Range<Int>) -> WordReading {
-        if isOpaque(range) { return .ambiguous }
+        if isOpaque(range) || holdsBackslashEscape(range) { return .ambiguous }
         let scalars = source[text.originalWithInvisiblesBefore(range)]
         guard scalars.contains(where: EscapeDecoder.startsEscape) else {
             if Self.isAmbiguous(scalars) { return .ambiguous }
@@ -17,6 +19,10 @@ extension FreeTextScanner {
         if Self.isAmbiguous(scalars) || Self.isAmbiguous(decoded.scalars) { return .ambiguous }
         let reading = LooseReading(decoded.text, [0..<decoded.text.count], source: decoded.scalars)
         return decoded.byteIndex(of: reading?.secretEnd { _ in true }).map { .valueStart($0) } ?? .plain
+    }
+
+    private func holdsBackslashEscape(_ range: Range<Int>) -> Bool {
+        range.contains { text.bytes[$0] == UInt8(ascii: "\\") && backslashEscapes(at: $0) }
     }
 
     /// Whether a word cannot be read with certainty: it holds a character that only hides text
