@@ -103,7 +103,7 @@ struct FreeTextScanner {
             cut(atByte: wordStart(before: position))
         } else if isSeparator(position) {
             separator()
-        } else if byte == UInt8(ascii: "\"") {
+        } else if Self.quotes.contains(byte), opensQuote(at: position) {
             quote()
         } else if startsJSON(position) {
             pendingKey = nil
@@ -155,16 +155,18 @@ struct FreeTextScanner {
         return redactor.allowsTextKey(name)
     }
 
-    /// A `"` that opens a quoted key (`"user": …`, `"user"=…`) or quoted text. A quoted key follows
-    /// the key rule: unless it is on the allowlist (see ``allowsQuotedKey(_:)``), the text is cut
-    /// at its opening quote, so nothing written in the quotes shows (`"session Qz9W…": …`,
-    /// `"password hint": 1`). Text in quotes that no separator follows is read like any other,
-    /// for the keys and names written in it; whether the quote closes on its line is read apart
-    /// from the scan (see ``openMarks()``).
+    /// A quote that opens a quoted key (`"user": …`, `'user'=…`, a key in backticks) or quoted text:
+    /// a `"` or a backtick anywhere, a `'` at the start of a word (see ``opensQuote(at:)``). A
+    /// quoted key follows the key rule, whatever its quotes: unless it is on the allowlist (see
+    /// ``allowsQuotedKey(_:)``), the text is cut at its opening quote, so nothing written in the
+    /// quotes shows (`"session Qz9W…": …`, `'x status': …`, `"password hint": 1`). Text in
+    /// quotes that no separator follows is read like any other, for the keys and names written in
+    /// it; whether the quote closes on its line is read apart from the scan (see
+    /// ``openMarks()``).
     private mutating func quote() {
         let open = position
         let escaped = isEscaped(open)
-        if let close = closingQuote(after: open, quote: UInt8(ascii: "\""), escaped: escaped) {
+        if let close = closingQuote(after: open, quote: text.bytes[open], escaped: escaped) {
             let next = nextNonBlank(from: close + 1)
             if next < text.count, isSeparator(next) {
                 // In escaped JSON (`\"key\":`) the backslash before the closing quote is not the key's.

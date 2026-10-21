@@ -147,14 +147,15 @@ enum SeventeenthReviewShapes {
         ("j", "{\"m\":\"\\\"note\\nQx56\\\": 1\"}"),
     ]
 
-    /// The markers of ``quotedKeys`` that show by design, with the reason: only a key in double
-    /// quotes is cut at its opening quote, and the words before a key outside them are text.
+    /// The markers of ``quotedKeys`` that show by design, with the reason: a key in quotes of any
+    /// kind is cut at its opening quote (since the nineteenth review: `'Qx20 note': 1` and
+    /// `` `Qx22`: 1 `` are hidden too), and the words before a key in brackets are text.
     static let shownMarkers: [String: String] = {
         var shown: [String: String] = [:]
         let byReason: [(String, [String])] = [
             ("quoted text before the quoted key that the separator follows", ["Qx04", "Qx05"]),
             ("JSON or brackets before a separator with no key, which cuts the text at its value", ["Qx10", "Qx11", "Qx27", "Qx28"]),
-            ("a word before a key that is not in double quotes", ["Qx20", "Qx22", "Qx53", "Qx54"]),
+            ("a word before a key in brackets", ["Qx53", "Qx54"]),
             ("text without a trigger: `->` is no separator", ["Qx29"]),
         ]
         for (reason, markers) in byReason {

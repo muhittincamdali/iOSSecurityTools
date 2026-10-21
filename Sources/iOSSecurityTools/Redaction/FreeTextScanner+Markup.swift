@@ -84,7 +84,7 @@ extension FreeTextScanner {
 
     /// Whether the quote character at byte `k` can open a quote: a `'` only where no letter or
     /// digit comes before it and its backslashes.
-    private func opensQuote(at k: Int) -> Bool {
+    func opensQuote(at k: Int) -> Bool {
         guard text.bytes[k] == UInt8(ascii: "'") else { return true }
         let start = backslashesStart(before: k)
         return start == 0 || !text.isAnyAlphanumeric(start - 1)
