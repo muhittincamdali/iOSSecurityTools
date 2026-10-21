@@ -75,13 +75,15 @@ import Foundation
 /// the first string of a two-element array (`["user","…"]`) cuts it too, and so does the first
 /// character outside a safe alphabet — letters, marks and digits of any script, the ASCII space,
 /// tab and line breaks and printable ASCII — such as `꞉`, `≔`, `→`, an emoji or a control
-/// character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded; and a word longer
-/// than 256 characters. **In free text the first markup tag cuts the text** (`<user>…`, `<_id>`,
-/// `</a>`, `<!--`), whatever the tag: a `<` cuts it unless an ASCII space, tab, line break or
-/// digit, `=` or the end of the text follows it. A quote that does not close on its line cuts it
-/// at the quote. No list of look-alike separators is kept. A URL in free text is shown only when
-/// it is clean and followed by white space, a line break, the end of the text or one `.`, `,`,
-/// `!` or `)` before one of those, and any other URL cuts the text where it starts. Strings
+/// character; any escape (`%3D`, `&colon;`, `\075`), which is never decoded — **in free text
+/// every backslash escape cuts the text**, a backslash before anything but an ASCII space, tab or
+/// line break or the end of the text; and a word longer than 256 characters. **In free text the
+/// first markup tag cuts the text** (`<user>…`, `<_id>`, `</a>`, `<!--`), whatever the tag: a
+/// `<` cuts it unless an ASCII space, tab, line break or digit, `=` or the end of the text follows
+/// it. A quote that does not close on its line cuts it at the quote. No list of look-alike
+/// separators is kept. A URL in free text is shown only when it is clean and followed by white
+/// space, a line break, the end of the text or one `.`, `,`, `!` or `)` before one of those, and
+/// any other URL cuts the text where it starts. Strings
 /// inside JSON, form values, allowed query values and multipart text parts are free text, each on
 /// its own. ``redact(_:)`` describes the rule.
 ///
@@ -303,12 +305,17 @@ public struct SensitiveDataRedactor: Sendable {
     ///   and carriage return, and printable ASCII. The first character outside it cuts the text
     ///   there: punctuation, a symbol or a space outside ASCII (`꞉`, `≔`, `→`, `·`, `＝`, `—`, `€`,
     ///   an emoji, U+00A0, U+2028), a control or format character (a zero-width space, `DEL`) and
-    ///   every default-ignorable code point (U+3164). A modifier letter (`ː`, `ー`) is in the
-    ///   alphabet only after a letter or digit outside ASCII, as in Japanese or Thai.
+    ///   every default-ignorable code point (U+3164). So does a letter or number whose
+    ///   compatibility form, which is what the text is read as, is not in the alphabet (`🄁` is
+    ///   `0,`, `⑴` is `(1)`, `½` is `1⁄2`). A modifier letter (`ː`, `ー`) is in the alphabet only
+    ///   after a letter or digit outside ASCII, as in Japanese or Thai.
     /// - **Escapes.** An escape is never decoded: one that can stand for any character cuts the
     ///   text at the start of the word it is in — `%3D`, `%u003D`, `&#61;`, `&colon;`, `&amp;`, and
-    ///   `&` before a letter unless it starts the name of a field before `=` (`&count=3`), `\075`,
-    ///   `\3d`, `\x3D`, `\u003D`, `\u{3D}`, `\U0000003D` and `\N{…}`.
+    ///   `&` before a letter unless it starts the name of a field before `=` (`&count=3`). In free
+    ///   text every backslash escape cuts the text: a backslash does, whatever follows it, unless
+    ///   an ASCII space, tab or line break or the end of the text does, so no list of its forms is
+    ///   kept (`\075`, `\x3D`, `\x{73}`, `\o{163}`, `\N{…}`, `\q`; `login pa\x{73}sword hunter2`
+    ///   keeps `login `). A Windows path is hidden from its first backslash on, by design.
     /// - **Opaque words.** A word longer than 256 characters cuts the text where it starts: it
     ///   cannot be read as a name.
     /// - **The key rule, in every shape.** In `key=value`, `key: value`, `key = value` and
@@ -319,7 +326,9 @@ public struct SensitiveDataRedactor: Sendable {
     ///   or in backticks, a `'` opening a quote only at the start of a word — that is not allowed
     ///   cuts the text at its opening quote, so nothing written in the quotes shows (`cache miss
     ///   for "session Qz9Wk7rX": refetching` and `{'status': 200, 'last status': 'x'}` keep
-    ///   `cache miss for ` and `{'status': 200, `); a key with a space in it is never allowed.
+    ///   `cache miss for ` and `{'status': 200, `); a key with a space in it is never allowed. A
+    ///   quote glued to the word before it starts no quoted key: the text is cut where that word
+    ///   starts (`x"status": 200` keeps nothing).
     ///   The separators are `=` and `:` and runs of
     ///   them (`:=`, `==`, `=>`); a `:` between two digits is part of a number only after a
     ///   number, as in `12:30:45`, `2026-10-19T12:30` and `10.0.0.1:8080`, and after a key that
