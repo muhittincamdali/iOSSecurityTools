@@ -30,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as `scheme://[redacted]`. With `.secretFields` a query value is kept only for the names on
   `allowedQueryParameters`, which is empty by default and which free text does not use, and a path
   segment that looks like an identifier or a secret, and the segment after one that names a
-  secret (`/pin/4831`), become `:id` (`identifierPlaceholder`); without it only the value
+  secret (`/pin/4831`) or is not a plain-ASCII name (`/şifre/…`, `/p%0Ain/…`, `/a,b/…`), become
+  `:id` (`identifierPlaceholder`); without it only the value
   detectors run on the path and the query. A query that servers could split into fields
   differently is written as `?[redacted]`, and a URL that `URLComponents` cannot parse as
   `unparsedURL`. With `URLDetail.hostOnly` (the `urlDetail` argument of the initializer) only the
@@ -143,11 +144,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     are comparisons.
   - **Secret names**, with or without a separator, split by punctuation or a space, and names
     written as values (`name="password"`, `Content-Disposition: form-data; name="pin"`). A word is compared by its ASCII skeleton, one
-    reading for every path: once the text is read in compatibility form, the letters that have
-    no ASCII form are left out, however many (`piꞏn`, `tokeın`, `tokenꞏs`, `keyıs`), and a name
-    also counts with one of its letters missing where a letter was left out (`pɑssword`,
-    `user_pın`). A word of another language that reads as a name this way hides what follows it
-    (Turkish `yapın` reads as `pin`), on purpose.
+    reading for every path: once the text is read in compatibility form, one wildcard rule
+    applies — a letter, mark or number outside ASCII that has no ASCII form counts as nothing or
+    as any one letter. Such characters are left out, however many (`piꞏn`, `tokeın`, `tokenꞏs`,
+    `keyıs`), and a name also counts with one of its letters missing where one stands
+    (`pɑssword`, `user_pın`, `tͦken`, `passw〇rd`). A word of another language that reads as a
+    name this way hides what follows it (Turkish `yapın` reads as `pin`), on purpose.
   A word that mixes scripts, a quote that does not close on its line (at the quote), a bracket
   left open and JSON that does not parse cut the text too. Everything after the first trigger is hidden, to the end of the text and not only of its
   line; a log message, a text/plain body, a JSON string, a form value, an allowed query value and
@@ -156,10 +158,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the scan keeps a fixed number of positions and stops at the trigger. Free text is a best
   effort, as the threat model in the README and the logging guide now says: a name written
   without a separator in letters of the safe alphabet with two or more of its letters replaced by
-  letters that have no ASCII form (`pɑsswoʀd hunter2`), or with a combining mark (Mn) in place of
-  one of its letters (`tͦken hunter2`), is not guaranteed to be found when nothing before it cuts
-  the text, and no table of look-alikes is kept to chase it. One letter (L*) put in place of a
-  letter of a name is found (`pɑssword`, `tøken`).
+  letters that have no ASCII form (`pɑsswoʀd hunter2`) is not guaranteed to be found when nothing
+  before it cuts the text, and no table of look-alikes is kept to chase it. One letter, mark or
+  number without an ASCII form put in place of a letter of a name is found (`pɑssword`, `tøken`,
+  `tͦken`).
 - A URL in free text is shown only when it is clean — `scheme://host` and an optional path of
   ASCII letters, digits, `.`, `_`, `-` and `/` (no `?`, `#`, `;`, `%`, `=`, `:`, `@` or `\`),
   whose host and segments name no secret, followed by white space, a line break, the end of the
@@ -516,11 +518,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a differential test of the six paths and generated secret hosts.
 - The same review put a combining Latin small letter (Mn, U+0363 to U+036F) in place of one letter
   of a secret name (`login tͦken X`, `pͥn X`, `passwͦrd X`), which free text without a separator
-  did not read as the name, in 54 of 56 variants of 12 names. This is documented as a limit, not
-  changed: a mark is left out of the ASCII skeleton like any mark, one letter (L*) put in place of
-  a letter is found, and a mark put in place of a letter is deliberate disguise that is not
-  guaranteed to be found (threat model, "What it does not find"). The review's 91 probes are kept
-  as tests of the limit as it reads today.
+  did not read as the name, in 54 of 56 variants of 12 names: a mark is left out of the scanning
+  copy, so the ASCII skeleton missed a letter where nothing was left out. A number without an
+  ASCII form was read as punctuation, so `passw〇rd` and `p〡n` were not found either. The one
+  wildcard rule of the redaction spec now applies: a letter, mark or number outside ASCII that has
+  no ASCII form, inside an ASCII word, counts as nothing or as any one letter, and a mark the copy
+  left out marks the place where it stands. The review's 91 probes are hidden on every path, and a
+  test puts one of sixteen such characters in or in place of every letter of eleven names on six
+  paths.
 - The twenty-third review found that a name written as a value with `%` or `&` in it was read only
   with its escapes decoded, and that decoding takes the hex letters that start a name for digits
   of the escape: `%card` decoded to U+FFFD and `rd`, `&#xcvv` to U+000C and `vv`, so neither named
@@ -533,6 +538,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   read as one beside a field that holds no name. A test checks every secret name in both cases
   after `%`, `&#x`, `&#X`, `&#x0`, `x%`, `%u`, `%U`, `&#` and `&amp;#x` against the same name
   after `~`, and on nine paths.
+- The twenty-fourth review found that a `:` between digits was read as part of a number when the
+  word before it was a number, whatever came after the digit that followed it: `id 7:9hunter2`,
+  `status=1 12:3hunter2`, `x 1.2.3.4:5hunter2`, `2026-10-21 12:3hunter2` and `attempt 1:482913`
+  showed the value, in a line, a JSON string and a form value. Both sides now need the whole shape
+  of a number — a time (`h:mm[:ss][.fff][Z|±hh:mm]`), a date and time, an IPv4 address and its
+  port or a line and column — followed by the end of the word; a letter in what follows and five
+  or more digits right after the `:` make it a separator.
+- The same review found that a name with a line feed or carriage return in it, beside a field
+  that holds no name, showed the value beside it: `{"ParameterKey":"DbPassword
+",
+  "ParameterValue":…}`, `{"OptionName":"
+DBPassword","Value":…}` and `Db
+Password`, also in
+  CloudFormation `Parameters` and Elastic Beanstalk `OptionSettings`, a form, a multipart body and
+  an allowed query, 64 probes. One function now decides for every place that reads a name, and a
+  name with any control character in it names a secret. A short string with a line break or a
+  tab beside other members hides their values too, on purpose.
+- The same review found that a card number, an IBAN, an email address or a token written across a
+  vertical tab, a form feed, U+0085, U+2028 or U+2029, each of which cuts free text, showed the
+  part before it (`paid with 4111 1111 1111` and twelve digits, a whole email name, twenty
+  characters of a token), 28 probes, while a control character that the scanning copy leaves out
+  let the finding be hidden whole. The value detectors now read across the five, as white space
+  between the groups of a card number or an IBAN and as nothing inside an address or a token, so
+  the finding joins the cut and the text is hidden from its start; a line feed or carriage
+  return written as such still ends a finding.
+- A URL path segment that is not a plain-ASCII name — with a line break, a space inside a secret
+  name, a letter outside ASCII or other punctuation (`/p%0Ain/…`, `/p%20in/…`, `/şifre/…`,
+  `/a,b/…`) — showed the segment after it in `redact(url:)`. Segments are now read by the same
+  rule as a name held by a field, so the segment after such a one becomes `:id`; `:id` itself is
+  not such a name. The review's probes are kept as tests, and so are the inputs of every class
+  around them.
 - `PasswordHash.verify(_:against:)` returns `false` for an empty or overlong password instead of
   throwing `CipherError.invalidParameter`; a malformed hash still throws.
 
