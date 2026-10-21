@@ -75,6 +75,8 @@ struct RedactionURLSemicolonTests {
     func plainPathsStay() throws {
         #expect(redactor.redact(url: try #require(URL(string: "https://api.example.com/v1/items/42/info"))) == "https://api.example.com/v1/items/42/info")
         #expect(redactor.redact(url: try #require(URL(string: "https://api.example.com/pin/4831/info"))) == "https://api.example.com/pin/:id/info")
-        #expect(redactor.redact(url: try #require(URL(string: "https://api.example.com/a,b/c-d.json"))) == "https://api.example.com/a,b/c-d.json")
+        #expect(redactor.redact(url: try #require(URL(string: "https://api.example.com/a-b/c-d.json"))) == "https://api.example.com/a-b/c-d.json")
+        // A segment that is not a plain-ASCII name is a label: the segment after it is a value.
+        #expect(redactor.redact(url: try #require(URL(string: "https://api.example.com/a,b/c-d.json"))) == "https://api.example.com/a,b/:id")
     }
 }

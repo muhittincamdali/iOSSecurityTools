@@ -202,10 +202,10 @@ extension SensitiveDataRedactor {
         return redacted == decoded ? raw : Self.formEncoded(redacted)
     }
 
-    /// The path segment by segment. A segment after one that names a secret or cannot be read
-    /// (`/pin/4831`, `/password-reset/…`, `/token/…/info`) is a value, so it becomes `:id`
-    /// whatever it looks like. A segment that comes again is not read again. The path has no `;`
-    /// (see ``resolvesDifferently(path:)``).
+    /// The path segment by segment. A segment after one that names a secret, cannot be read or is
+    /// not a plain-ASCII name (`/pin/4831`, `/password-reset/…`, `/token/…/info`, `/şifre/…`,
+    /// `/p%0Ain/…`, `/a,b/…`) is a value, so it becomes `:id` whatever it looks like. A segment that comes
+    /// again is not read again. The path has no `;` (see ``resolvesDifferently(path:)``).
     private func redacted(path: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
         let classifier = SensitiveDataRedactor(self, kinds: .all)
         var readings: [Substring: PathSegmentReading] = [:]
@@ -228,13 +228,20 @@ extension SensitiveDataRedactor {
     private struct PathSegmentReading {
         /// It looks like an identifier or holds a secret, so it becomes `:id`.
         let hides: Bool
-        /// It has a word that names a secret or cannot be read, so the segment after it is a value.
+        /// It has a word that names a secret or cannot be read, or it is not a plain-ASCII name
+        /// (see ``PlainName``), so the segment after it is a value.
         let isLabel: Bool
     }
 
     /// Reads a path segment once: it is decoded and scanned a single time, and the free-text rule,
     /// every value detector and the word reading all run on that scan. A segment that does not
-    /// decode is both.
+    /// decode is both. A segment is a label by the one rule for names (see
+    /// ``WrittenName/nameNamesSecret(_:byKeyRule:compatibility:)``), as a name held by a field
+    /// is: unless it is a plain-ASCII name — ASCII letters and digits, `_`, `-`, `.` and spaces —
+    /// that names no secret, the segment after it becomes `:id`, since a letter outside ASCII, a
+    /// control character or other punctuation may disguise a secret name. `:id`, which the
+    /// redactor writes for a segment, is not a label, so a path that is already redacted reads
+    /// the same again.
     private func read(pathSegment segment: Substring, nesting: Nesting, compatibility: CompatibilityText) -> PathSegmentReading {
         guard let decoded = segment.removingPercentEncoding else { return PathSegmentReading(hides: true, isLabel: true) }
         let scalars = Array(decoded.unicodeScalars)
@@ -243,7 +250,9 @@ extension SensitiveDataRedactor {
         guard !Self.isQuietWord(scalars) else { return PathSegmentReading(hides: isIdentifier, isLabel: false) }
         let text = NormalizedText(scalars, compatibility: compatibility)
         let holdsSecret = !textSpans(in: scalars, text: text, compatibility: compatibility, nesting: nesting, detectsInRegions: true).isEmpty
-        let isLabel = FreeTextScanner.mentionsSecret(scalars, text: text, compatibility: compatibility)
+        let isLabel = decoded != Self.identifierPlaceholder
+            && (FreeTextScanner.mentionsSecret(scalars, text: text, compatibility: compatibility)
+                || WrittenName.nameNamesSecret(scalars, byKeyRule: true, compatibility: compatibility))
         return PathSegmentReading(hides: isIdentifier || holdsSecret, isLabel: isLabel)
     }
 
