@@ -639,6 +639,22 @@ With `os.Logger`, interpolated values are already private in release logs unless
 `.public`; use the redactor for the values you do mark public, and for logs sent to your own
 servers.
 
+### Known limitations
+
+These are known and not changed yet:
+
+- A name with a control character in it hides the members beside it whatever it says when a
+  member that holds a name or the first element of a pair holds it
+  (`{"name":"Hello\nWorld","value":"x"}` hides `value`), and elsewhere when it names a secret
+  once its control characters are left out or read as spaces (`{"note":"pass\nword","id":"7"}`
+  hides `id`).
+- A key counts `token` and `secret` only as a word or at its end and `pw` only as a word, so
+  `{"tokenvalue":…}`, `{"TOKENID":…}`, `{"secretvalue":…}`, `{"secrethash":…}`, `{"userpw":…}`
+  and `{"dbpw":…}` show their values; mark such properties with ``Redacted``.
+- A short string of control characters and white space alone hides every member beside it, also
+  where it means nothing (`{"title":"\n","data":"x"}` hides `data`), while one of more than 256
+  scalars is read as text and hides nothing beside it.
+
 ### Cover the screen
 
 Add ``SwiftUICore/View/privacyShield(when:)`` to views with sensitive content. It covers the view

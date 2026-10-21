@@ -116,6 +116,19 @@ struct RedactionTwentySixthReviewTests {
         #expect(form == (hides ? "\(key)=[redacted]&status=ok" : "\(key)=v1&status=ok"))
     }
 
+    /// The examples of "Known limitations" in the logging guide and the README, as written there.
+    @Test("the known limitations read as the documentation says")
+    func knownLimitations() {
+        #expect(Self.json(#"{"name":"Hello\nWorld","value":"x"}"#) == #"{"name":"Hello\nWorld","value":"[redacted]"}"#)
+        #expect(Self.json(#"{"note":"pass\nword","id":"7"}"#) == #"{"note":"pass[redacted]","id":"[redacted]"}"#)
+        for key in ["tokenvalue", "TOKENID", "secretvalue", "secrethash", "userpw", "dbpw"] {
+            #expect(Self.json(#"{"\#(key)":"x"}"#) == #"{"\#(key)":"x"}"#)
+        }
+        #expect(Self.json(#"{"title":"\n","data":"x"}"#) == #"{"title":"\n","data":"[redacted]"}"#)
+        let long = String(repeating: #"\n"#, count: 257)
+        #expect(Self.json(#"{"title":"\#(long)","data":"x"}"#) == #"{"title":"\#(long)","data":"x"}"#)
+    }
+
     @Test("a name of spaces alone, or an empty one, beside a field that holds no name keeps the value")
     func spacesAlone() {
         #expect(Self.json(#"{"title":" ","data":"ok"}"#) == #"{"title":" ","data":"ok"}"#)
