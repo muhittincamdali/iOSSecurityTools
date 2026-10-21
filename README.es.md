@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
+<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  529 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  538 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -313,8 +313,8 @@ de etiquetas ASCII ni una dirección, o que lleva un número de tarjeta o un tok
 `scheme://[redacted]`, y el nombre de una cabecera de parte multipart solo se escribe cuando es una
 de las que lleva una parte. Una URL con más de 64 segmentos de ruta o 128 parámetros,
 o con una ruta que los servidores resuelven de forma distinta (un segmento de punto como en
-`/pin/./4831`, un `.`, `/`, `\` o `%`
-escapado, un segmento que solo tiene parámetros), se registra solo con su esquema y su host,
+`/pin/./4831`, un `;` como en `/a;pin/4831`, un `.`, `/`, `\`, `;` o `%`
+escapado), se registra solo con su esquema y su host,
 y de una dirección de correo solo se muestra la primera letra del
 nombre, en cualquier escritura (`ayşe.yılmaz@gmail.com` pasa a ser `a•••@gmail.com`).
 Los nombres que no son ASCII simple cuentan como secretos aunque se escriban como valores: se

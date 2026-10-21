@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
+<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  529 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  538 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -314,8 +314,8 @@ reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse
 Kartennummer oder ein Token enthält, wird als `scheme://[redacted]` geschrieben, und der Name eines
 Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Eine URL mit mehr als 64 Pfadsegmenten
 oder 128 Parametern oder mit einem Pfad, den Server unterschiedlich auflösen (ein
-Punktsegment wie in `/pin/./4831`, ein maskiertes `.`, `/`, `\` oder `%`, ein Segment nur aus
-Parametern), wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
+Punktsegment wie in `/pin/./4831`, ein `;` wie in `/a;pin/4831`, ein maskiertes `.`, `/`, `\`, `;`
+oder `%`), wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
 jeder Schrift nur den ersten Buchstaben ihres Namens (`ayşe.yılmaz@gmail.com` wird zu
 `a•••@gmail.com`).
 Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert

@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
+<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -59,7 +59,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 529 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 538 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -310,8 +310,8 @@ multipart после одиночного перевода строки или �
 номер карты или токен, записывается как `scheme://[redacted]`, а имя заголовка части multipart
 записывается, только если это один из заголовков, которые несёт часть. URL, в котором больше 64
 сегментов пути или 128 параметров или путь, который серверы разрешают по-разному (точечный
-сегмент, как в `/pin/./4831`, экранированные `.`, `/`, `\` или `%`, сегмент только из
-параметров), записывается только как схема и хост, а у адреса электронной
+сегмент, как в `/pin/./4831`, `;`, как в `/a;pin/4831`, экранированные `.`, `/`, `\`, `;`
+или `%`), записывается только как схема и хост, а у адреса электронной
 почты видна только первая буква имени, в любой письменности (`ayşe.yılmaz@gmail.com` превращается в
 `a•••@gmail.com`).
 Имена не из простого ASCII считаются секретными, даже когда они записаны как значения: значение

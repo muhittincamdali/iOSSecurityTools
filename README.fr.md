@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@5e8f2ed939dc0762ec5c87d3bdcc998942d52639 status=reviewed -->
+<!-- i18n-source: README.md@18e5f3f8741682ab46221bea4280c5c1caa1ea1d status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  529 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  538 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -315,8 +315,8 @@ ASCII simple. Un hôte d’URL qui n’est ni un nom fait de libellés ASCII ni 
 un numéro de carte ou un jeton, est écrit `scheme://[redacted]`, et le nom d’un en-tête de partie
 multipart n’est écrit que s’il fait partie de ceux qu’une partie porte. Une URL de plus de 64
 segments de chemin ou de 128 paramètres, ou dont le chemin est résolu différemment selon les
-serveurs (un segment point comme dans `/pin/./4831`, un `.`, `/`, `\` ou `%` échappé, un segment
-fait seulement de paramètres), n’est enregistrée qu’avec son schéma et son hôte, et une
+serveurs (un segment point comme dans `/pin/./4831`, un `;` comme dans `/a;pin/4831`, un `.`, `/`,
+`\`, `;` ou `%` échappé), n’est enregistrée qu’avec son schéma et son hôte, et une
 adresse e-mail ne montre que la première lettre de son nom, dans n’importe quelle écriture
 (`ayşe.yılmaz@gmail.com` devient `a•••@gmail.com`).
 Les noms qui ne sont pas en ASCII simple comptent comme secrets même quand ils sont écrits comme
