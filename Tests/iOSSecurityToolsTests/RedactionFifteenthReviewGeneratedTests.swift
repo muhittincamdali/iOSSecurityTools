@@ -4,10 +4,11 @@ import Testing
 
 /// The fifteenth correctness review's generated inputs and its usefulness check.
 ///
-/// Letters, marks and numbers of the safe alphabet whose compatibility form holds ASCII
-/// punctuation or a space (`⑴` is `(1)`, `🄁` is `0,`, `ͺ` is a space and a mark) are read as one
-/// character outside ASCII, never as that punctuation: the scanning copy split `🄁user=…` at the
-/// comma, and the free-text rule read `user` as an allowed key where the text holds `🄁user`.
+/// Letters, marks and numbers whose compatibility form holds ASCII punctuation or a space (`⑴` is
+/// `(1)`, `🄁` is `0,`, `ͺ` is a space and a mark) are read as one character outside ASCII, never
+/// as that punctuation: the scanning copy split `🄁user=…` at the comma, and the free-text rule
+/// read `user` as an allowed key where the text holds `🄁user`. Since the twenty-first review they
+/// are outside the safe alphabet as well, so free text is cut where they stand.
 /// Letters and marks that look like separators (`ǂ`, `ꞌ`, `ः`) are letters and marks, so a name
 /// before them has no separator; a modifier letter that looks like one (`ː`) cuts the text after
 /// ASCII.
@@ -15,20 +16,23 @@ import Testing
 struct RedactionFifteenthReviewGeneratedTests {
     static let secret = "Qz9Wk7rX"
 
-    /// The scalars of the safe alphabet outside ASCII whose compatibility form holds ASCII that
-    /// is not a letter or digit.
+    /// The letters, marks and numbers outside ASCII whose compatibility form holds ASCII that is
+    /// not a letter or digit.
     static let punctuatedScalars: [Unicode.Scalar] = (0x80...0x1FFFF).compactMap { value in
-        guard let scalar = Unicode.Scalar(UInt32(value)), SafeAlphabet.class(of: scalar) != .unsafe, !ScalarClass.isInvisible(scalar) else { return nil }
+        guard let scalar = Unicode.Scalar(UInt32(value)), ScalarClass.isLetterOrNumber(scalar), !ScalarClass.isInvisible(scalar),
+              !scalar.properties.isDefaultIgnorableCodePoint
+        else { return nil }
         let form = String(scalar).decomposedStringWithCompatibilityMapping.unicodeScalars
         return form.contains { $0.isASCII && !ASCII.isAlphanumeric(UInt8($0.value)) } ? scalar : nil
     }
 
-    @Test("a letter, mark or number of the safe alphabet is never read as punctuation or a space")
+    @Test("a letter, mark or number is never read as punctuation or a space, and is outside the safe alphabet")
     func readings() {
         #expect(Self.punctuatedScalars.count > 60)
         let compatibility = CompatibilityText()
         for scalar in Self.punctuatedScalars {
             #expect(compatibility.reading(scalar).bytes == [CompatibilityText.unreadable], "\(String(format: "%04X", scalar.value))")
+            #expect(compatibility.reading(scalar).alphabet == .unsafe, "\(String(format: "%04X", scalar.value))")
         }
         // Punctuation outside the safe alphabet keeps its reading, which the value detectors use.
         #expect(compatibility.reading("\u{FF20}").bytes == Array("@".utf8))

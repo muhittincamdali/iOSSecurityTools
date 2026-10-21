@@ -306,10 +306,11 @@ final class CompatibilityText {
         if let cached = cache[scalar.value] { return cached }
         let alphabet = SafeAlphabet.class(of: scalar)
         var bytes = Self.read(scalar)
-        // A letter, mark or number of the safe alphabet is never read as punctuation or a space
-        // (`⑴` decomposes to `(1)`, `🄁` to `0,`): the free-text rule would split a key or a word
-        // where the text holds one character, and read as allowed a key such as `🄁user`.
-        if alphabet != .unsafe, bytes.contains(where: { $0 < 0x80 && !ASCII.isAlphanumeric($0) }) { bytes = [Self.unreadable] }
+        // A letter, mark or number is never read as punctuation or a space (`⑴` decomposes to
+        // `(1)`, `🄁` to `0,`): a key or a word would be split where the text holds one character.
+        // Free text is cut at such a scalar, as its class says (see ``SafeAlphabet/class(of:)``);
+        // the value detectors, which read on where no cut is made, read it as one character.
+        if ScalarClass.isLetterOrNumber(scalar), bytes.contains(where: { $0 < 0x80 && !ASCII.isAlphanumeric($0) }) { bytes = [Self.unreadable] }
         let reading = Reading(bytes: bytes, isInvisible: ScalarClass.isInvisible(scalar), alphabet: alphabet)
         cache[scalar.value] = reading
         return reading

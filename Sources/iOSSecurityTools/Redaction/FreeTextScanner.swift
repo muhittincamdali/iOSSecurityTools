@@ -163,15 +163,20 @@ struct FreeTextScanner {
     /// quotes that no separator follows is read like any other, for the keys and names written in
     /// it; whether the quote closes on its line is read apart from the scan (see
     /// ``openMarks()``). No quote the scan reaches is escaped: a backslash before it is an escape,
-    /// which cuts the text first (escaped JSON, `\"key\":`, is cut at its first backslash).
+    /// which cuts the text first (escaped JSON, `\"key\":`, is cut at its first backslash). A
+    /// quote glued to the word before it (`x"status":`, `À"status":`, `🄁"status":`) leaves that
+    /// word in the key, which is then not plain: the text is cut where that word starts. So is a
+    /// quote right after a mark that the scanning copy leaves out (`\u{0300}"status":`).
     private mutating func quote() {
         let open = position
         if let close = closingQuote(after: open, quote: text.bytes[open], escaped: false) {
             let next = nextNonBlank(from: close + 1)
             if next < text.count, isSeparator(next) {
                 let key = (open + 1)..<close
-                guard allowsQuotedKey(key) else {
-                    cut(atByte: open)
+                let start = wordStart(before: open)
+                let followsLeftOut = text.offset(at: open) > (open > 0 ? text.offsets[open - 1] + 1 : 0)
+                guard start == open, !followsLeftOut, allowsQuotedKey(key) else {
+                    cut(atByte: start)
                     return
                 }
                 pendingKey = key
