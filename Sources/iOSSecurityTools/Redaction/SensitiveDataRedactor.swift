@@ -226,8 +226,8 @@ public struct SensitiveDataRedactor: Sendable {
     /// Bodies larger than this many bytes are omitted without being parsed (see
     /// ``redact(body:contentType:)``); ``defaultMaximumBodySize`` unless the initializer is given
     /// another. Reading a body takes memory in proportion to its size: the tests check that a body
-    /// of 256 KiB in any shape takes less than 16 MB more, and the worst shapes take about 60
-    /// bytes for each byte of the body, so a limit of 1 MiB can take 64 MB.
+    /// of 256 KiB in any shape takes less than 16 MB more, and the worst shapes take about 40
+    /// bytes for each byte of the body, so a limit of 1 MiB can take 40 MB.
     public let maximumBodySize: Int
 
     /// Creates a redactor.
