@@ -31,12 +31,12 @@ struct RedactionFifteenthReviewGeneratedTests {
         #expect(Self.punctuatedScalars.count > 60)
         let compatibility = CompatibilityText()
         for scalar in Self.punctuatedScalars {
-            #expect(compatibility.reading(scalar).bytes == [CompatibilityText.unreadable], "\(String(format: "%04X", scalar.value))")
+            #expect(Array(compatibility.reading(scalar).bytes) == [CompatibilityText.unreadable], "\(String(format: "%04X", scalar.value))")
             #expect(compatibility.reading(scalar).alphabet == .unsafe, "\(String(format: "%04X", scalar.value))")
         }
         // Punctuation outside the safe alphabet keeps its reading, which the value detectors use.
-        #expect(compatibility.reading("\u{FF20}").bytes == Array("@".utf8))
-        #expect(compatibility.reading("\u{FF1D}").bytes == Array("=".utf8))
+        #expect(Array(compatibility.reading("\u{FF20}").bytes) == Array("@".utf8))
+        #expect(Array(compatibility.reading("\u{FF1D}").bytes) == Array("=".utf8))
     }
 
     /// The review's templates whose trigger comes before the value: a key that is not plain
