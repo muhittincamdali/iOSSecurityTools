@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@c7c9a7923be9feec86b2755388a0341a8b855508 status=reviewed -->
+<!-- i18n-source: README.md@ea7d43aec9b692ad6780a69a6e65d96e2525a2dd status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  559 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  572 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -322,6 +322,9 @@ jeder Schrift nur den ersten Buchstaben ihres Namens (`ayşe.yılmaz@gmail.com` 
 Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn sie als Wert
 geschrieben sind: Der Wert neben einem Feld, das einen Namen trägt (`name`, `label`, `type`, `id`,
 …), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt.
+Ein Name mit einem Zeilenumbruch oder einem anderen Steuerzeichen darin gilt überall als geheim
+(`{"ParameterKey":"DbPassword\n","ParameterValue":…}`), und in `redact(url:)` wird das Segment nach
+einem Pfadsegment, das kein reiner ASCII-Name ist, zu `:id` (`/şifre/…`, `/a,b/…`).
 In freiem Text verbirgt der erste geheime Name alles, was ihm in diesem Text folgt; das verbirgt
 absichtlich mehr als nötig. Zu viel zu verbergen ist so gewollt. Sechs Regeln legen fest, wo der
 Text abgeschnitten wird, und keine führt eine Liste von Varianten: das erste Zeichen außerhalb
@@ -343,10 +346,10 @@ erste Markup-Tag den Text ab, welches Tag es auch ist (`<user>`, `<_id>`, `</a>`
 `<`, auf das kein ASCII-Leerzeichen, kein Tab, kein Zeilenumbruch, keine ASCII-Ziffer, kein `=` und
 nicht das Textende folgt, schneidet ihn ab; und ein geheimer Name, mit
 oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Ein Wort wird über sein
-ASCII-Skelett verglichen: Buchstaben ohne ASCII-Form werden weggelassen, sodass `piꞏn`, `tokeın`
-und `tokenꞏs` als `pin`, `token` und `tokens` gelesen werden, und ein Name zählt auch mit einem
-fehlenden Buchstaben dort, wo einer weggelassen wurde, sodass ein Buchstabe (L*) an der Stelle
-eines Buchstabens gefunden wird (`pɑssword`). Ein Anführungszeichen, das
+ASCII-Skelett mit einer einzigen Platzhalterregel verglichen: Ein Buchstabe, ein Zeichen oder eine
+Zahl außerhalb von ASCII ohne ASCII-Form zählt als nichts oder als ein beliebiger Buchstabe, sodass
+`piꞏn`, `tokeın` und `tokenꞏs` als `pin`, `token` und `tokens` gelesen werden und ein solches
+Zeichen an der Stelle eines Buchstabens gefunden wird (`pɑssword`, `tͦken`, `passw〇rd`). Ein Anführungszeichen, das
 sich nicht in seiner Zeile schließt, schneidet den Text an diesem Anführungszeichen ab, sodass von
 einem Schlüssel in Anführungszeichen mit einem Zeilenumbruch darin nichts zu sehen ist. Der
 Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
@@ -359,18 +362,21 @@ Namen nennen, gefolgt von Leerraum, einem Zeilenumbruch, dem Textende oder einem
 eine, auf die ein Anführungszeichen, `>`, ein Backtick oder ein `?`, `#` oder `;` folgt
 (`see https://x.example/a?page=2 ok` und `see https://x.example/a'#token` werden zu
 `see [redacted]`; `allowedQueryParameters` gilt nur für `redact(url:)`). Ein `:` zwischen Ziffern
-gehört nur nach einer Zahl zur Zahl (`12:30`, `10.0.0.1:8080`); nach einem Schlüssel, der auf
-Ziffern endet (`user1:2345`), ist er ein
-Trennzeichen.
+gehört nur dann zur Zahl, wenn beide Seiten Zahlen derselben Form sind (`12:30:45`,
+`10.0.0.1:8080`, `42:10`); nach einem Schlüssel, der auf Ziffern endet (`user1:2345`), vor einem
+Buchstaben (`id 7:9hunter2`) oder vor fünf oder mehr Ziffern (`1:482913`) ist er ein
+Trennzeichen. Eine Kartennummer, eine IBAN, eine E-Mail-Adresse oder ein Token, das über einen
+vertikalen Tabulator, einen Seitenvorschub oder ein Unicode-Zeilentrennzeichen hinweg geschrieben
+ist, wird ganz gefunden, und der Text wird ab seinem Anfang verborgen.
 Schwärzen ist ein Sicherheitsnetz,
 keine Garantie: Es ist für Geheimnisse gebaut, die versehentlich geloggt werden. Strukturierte
 Eingaben (JSON, Formulare, Multipart-Bodys mit ihren Part-Headern, URLs mit ihren Hosts) sind
 standardmäßig sicher; was der Redactor dort nicht versteht, wird geschwärzt, und strukturierte
 Schlüsselnamen werden gezeigt, nur die Werte darunter werden verborgen. In freiem Text wird ein
 Name ohne Trennzeichen, in dem zwei oder mehr Buchstaben durch ähnlich aussehende ersetzt sind
-(`pɑsswoʀd hunter2`) oder ein kombinierendes Zeichen (Mn) an der Stelle eines Buchstabens steht
-(`tͦken hunter2`), nicht garantiert gefunden, wenn nichts davor den Text abschneidet: Beides ist
-absichtliche Tarnung, ein einzelner Buchstabe (L*) an der Stelle eines Buchstabens wird gefunden. Der
+(`pɑsswoʀd hunter2`), nicht garantiert gefunden, wenn nichts davor den Text abschneidet: Das ist
+absichtliche Tarnung; ein einzelner Buchstabe, ein Zeichen oder eine Zahl an der Stelle eines
+Buchstabens wird gefunden (`tͦken hunter2`). Der
 [Logging-Leitfaden](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
 beschreibt die Regeln für freien Text, ihren Preis und was sie nicht finden.
 
