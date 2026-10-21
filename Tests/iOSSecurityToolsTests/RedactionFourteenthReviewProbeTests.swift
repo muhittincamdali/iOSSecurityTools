@@ -18,7 +18,6 @@ struct RedactionFourteenthReviewProbeTests {
         var shown: [String: String] = [:]
         let byReason: [(String, [String])] = [
             ("the value of an allowed query parameter, its name escaped", ["a-14#440"]),
-            ("a label that the list does not know (pw, pass, sid)", ["a-14#593", "a-14#594", "a-14#595", "a-14#596"]),
             ("a token split by / or - into pieces shorter than 32 characters", ["a-14#672", "a-14#673", "a-14#674", "a-14#675"]),
             ("an IBAN written in lowercase", ["a-14#683", "a-14#684"]),
             ("a value written before its name", ["a-14b#384"]),
@@ -33,7 +32,7 @@ struct RedactionFourteenthReviewProbeTests {
     func counts() {
         let counts = Dictionary(grouping: ReviewProbes.all.filter { Self.reviews.contains($0.review) }, by: \.review).mapValues(\.count)
         #expect(counts == ["a-14": 758, "a-14b": 402, "a-14q": 60])
-        #expect(Self.shown.count == 12)
+        #expect(Self.shown.count == 8)
     }
 
     // The large probes that the documentation says are hidden run in the probe set suite, each a

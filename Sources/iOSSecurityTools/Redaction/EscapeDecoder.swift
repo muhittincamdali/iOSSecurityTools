@@ -1,14 +1,16 @@
 /// Decodes the escapes a name written as a value may hide a secret name behind, so that
-/// `pass%77ord`, `p&#97;ssword`, `\u0070assword` and `pass%2577ord` read as `password` where a
-/// name in structured input is read for secret words: a name held by a field
-/// (`{"ParameterKey":"Db%50assword"}`), an element of a JSON array, a URL path segment and the
-/// words of JSON written into a line. Free text itself never decodes an escape: one cuts the
-/// text (see ``FreeTextScanner/isEscape(at:)``).
+/// `pass%77ord`, `p&#97;ssword` and `pass%2577ord` read as `password` where a name in structured
+/// input is read for secret words: a name held by a field (`{"ParameterKey":"Db%50assword"}`), an
+/// element of a JSON array, a URL path segment and the words of JSON written into a line. Free
+/// text itself never decodes an escape: one cuts the text (see
+/// ``FreeTextScanner/isEscape(at:)``).
 ///
 /// Decoded are percent escapes (as UTF-8, and `%uXXXX`), HTML character references by number
-/// (`&#97;`, `&#x61;`, also without the `;` and with leading zeros) and `&amp;`, and `\uXXXX`,
-/// `\u{…}` and `\xXX` escapes, round after round up to ``maximumRounds`` times. Keys are never
-/// decoded for an allowlist: a key with an escape is not plain ASCII, so its value is hidden.
+/// (`&#97;`, `&#x61;`, also without the `;` and with leading zeros) and `&amp;`, round after
+/// round up to ``maximumRounds`` times. A backslash escape is never decoded, whatever its form:
+/// a word with one cannot be read (see ``FreeTextScanner/backslashEscapes(at:)``), so a name
+/// with one names a secret (`\u0070assword`, `pa\x{73}sword`). Keys are never decoded for an
+/// allowlist: a key with an escape is not plain ASCII, so its value is hidden.
 enum EscapeDecoder {
     static let maximumRounds = 4
 
@@ -17,7 +19,7 @@ enum EscapeDecoder {
 
     /// Whether a scalar can start an escape.
     static func startsEscape(_ scalar: Unicode.Scalar) -> Bool {
-        scalar == "%" || scalar == "&" || scalar == "\\"
+        scalar == "%" || scalar == "&"
     }
 
     /// The scalars with their escapes decoded, and for each the offset in `scalars` it came from.
@@ -38,8 +40,7 @@ enum EscapeDecoder {
         var positions: [Int] = []
         var i = 0
         while i < scalars.count {
-            if let (decoded, length) = percentRun(scalars, at: i) ?? percentU(scalars, at: i) ?? reference(scalars, at: i)
-                ?? backslash(scalars, at: i) {
+            if let (decoded, length) = percentRun(scalars, at: i) ?? percentU(scalars, at: i) ?? reference(scalars, at: i) {
                 output += decoded
                 positions += Array(repeating: i, count: decoded.count)
                 i += length
@@ -88,28 +89,6 @@ enum EscapeDecoder {
         guard end > digitsStart, let value = digits.isEmpty ? 0 : number(digits, radix: isHex ? 16 : 10), let scalar = Unicode.Scalar(value)
         else { return nil }
         let length = (end < scalars.count && scalars[end] == ";" ? end + 1 : end) - start
-        return ([scalar], length)
-    }
-
-    /// `\uXXXX`, `\u{…}` or `\xXX`.
-    private static func backslash(_ scalars: [Unicode.Scalar], at start: Int) -> ([Unicode.Scalar], Int)? {
-        guard scalars[start] == "\\", start + 1 < scalars.count else { return nil }
-        let digits: ArraySlice<Unicode.Scalar>
-        let length: Int
-        switch scalars[start + 1] {
-        case "u" where start + 2 < scalars.count && scalars[start + 2] == "{":
-            guard let close = scalars[(start + 3)...].prefix(9).firstIndex(of: "}") else { return nil }
-            (digits, length) = (scalars[(start + 3)..<close], close + 1 - start)
-        case "u":
-            guard start + 6 <= scalars.count else { return nil }
-            (digits, length) = (scalars[(start + 2)..<(start + 6)], 6)
-        case "x":
-            guard start + 4 <= scalars.count else { return nil }
-            (digits, length) = (scalars[(start + 2)..<(start + 4)], 4)
-        default:
-            return nil
-        }
-        guard !digits.isEmpty, let value = number(digits, radix: 16), let scalar = Unicode.Scalar(value) else { return nil }
         return ([scalar], length)
     }
 

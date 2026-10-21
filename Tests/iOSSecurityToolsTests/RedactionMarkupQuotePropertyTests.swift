@@ -112,7 +112,7 @@ struct RedactionMarkupQuotePropertyTests {
         var random = SeededRandom(seed: 0x18_3C00)
         let pieces = [
             "a < b", "count < 10", "1<2", "<3", "count <5", "a <\tb", "say \"hi there\"", "'quoted' word", "`cmd` ran", "don't", "we're",
-            "status=200", "method=GET", "done", "ok", "\"a \\\" b\"",
+            "status=200", "method=GET", "done", "ok",
         ]
         for _ in 0..<300 {
             let lines = (0..<Int.random(in: 1...3, using: &random)).map { _ in

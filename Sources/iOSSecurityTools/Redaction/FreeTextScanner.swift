@@ -162,17 +162,16 @@ struct FreeTextScanner {
     /// quotes shows (`"session Qz9W…": …`, `'x status': …`, `"password hint": 1`). Text in
     /// quotes that no separator follows is read like any other, for the keys and names written in
     /// it; whether the quote closes on its line is read apart from the scan (see
-    /// ``openMarks()``).
+    /// ``openMarks()``). No quote the scan reaches is escaped: a backslash before it is an escape,
+    /// which cuts the text first (escaped JSON, `\"key\":`, is cut at its first backslash).
     private mutating func quote() {
         let open = position
-        let escaped = isEscaped(open)
-        if let close = closingQuote(after: open, quote: text.bytes[open], escaped: escaped) {
+        if let close = closingQuote(after: open, quote: text.bytes[open], escaped: false) {
             let next = nextNonBlank(from: close + 1)
             if next < text.count, isSeparator(next) {
-                // In escaped JSON (`\"key\":`) the backslash before the closing quote is not the key's.
-                let key = (open + 1)..<(escaped ? close - 1 : close)
+                let key = (open + 1)..<close
                 guard allowsQuotedKey(key) else {
-                    cut(atByte: escaped ? backslashesStart(before: open) : open)
+                    cut(atByte: open)
                     return
                 }
                 pendingKey = key
