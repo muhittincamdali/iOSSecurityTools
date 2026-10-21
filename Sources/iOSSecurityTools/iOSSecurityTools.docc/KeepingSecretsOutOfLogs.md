@@ -96,8 +96,9 @@ file. It is not built to stop someone who writes a log line on purpose to get a 
   separator: a letter, mark or number outside ASCII that has no ASCII form, inside an ASCII word,
   counts as nothing or as any one letter, so one such character put in or put in place of a letter
   is found (`pɑssword`, `tøken`, `tͦken` with a small `o` written above the `t`, `passw〇rd`,
-  `piꞏn`). The limit applies only when no trigger comes before a secret and the name is written
-  without a separator, and it is deliberate disguise: a name in letters of the safe alphabet with
+  `piꞏn`, and `t၀ken` with a Myanmar zero: a decimal digit of another script is such a number).
+  The limit applies only when no trigger comes before a secret and the name is written without a
+  separator, and it is deliberate disguise: a name in letters of the safe alphabet with
   two or more of its letters replaced on purpose by look-alike letters (`pɑsswoʀd hunter2`) is not
   guaranteed to be found. <doc:KeepingSecretsOutOfLogs#What-it-does-not-find> lists such limits.
   No table of look-alikes is kept to chase them, since none is ever complete. Write logs with
@@ -329,9 +330,11 @@ first bracket, like JSON that does not parse. The package's tests run every limi
 with `swift test -c release` they check that a megabyte of text, nested input or a body takes less
 than a second, also for ordinary shapes such as a JSON array of short strings, a multipart body of
 1,000 parts, URLs of many segments, a megabyte of Turkish sentences or of `ı` quoted in JSON up
-to four times, quotes of every style, a quote before a megabyte of escaped ones and comparisons
-written with `<`, timed by the CPU time of such a thread. The default redactor and its folded keys are
-made once and shared, never per array element or path segment, each path segment is read in a single
+to four times, quotes of every style, a quote before a megabyte of escaped ones, comparisons
+written with `<`, and a megabyte of `eyJ ` or of line separators between digits and tokens, with
+every kind and with the value detectors alone (an earlier reading of tokens across line
+separators took 46.6 s for a megabyte of `eyJ `), timed by the CPU time of such a thread. The
+default redactor and its folded keys are made once and shared, never per array element or path segment, each path segment is read in a single
 pass, and each word is compared with each secret word in a single pass. Free text is read once and
 keeps a fixed number of positions, the tree of each JSON in it is released before the next one is
 read, no word longer than 256 characters is copied for reading and a quoted key is compared where
@@ -473,14 +476,17 @@ kept and reviews got past one variant at a time:
   in compatibility form (`ｐａｓｓ`, `pässword`), every letter still without an ASCII form (`ꞏ`,
   `ı`, `ɑ`, `ø`) is left out, and what remains is compared with the secret names, a plural `s`
   included. That is the one wildcard rule: a letter, mark or number outside ASCII that has no
-  ASCII form — `ꞏ`, `ı`, `ɑ`, `ø`, a combining mark such as `ͦ` (U+0366), `〇` — counts as nothing
-  or as any one letter. As nothing, however many such characters are put in, the name is found:
-  `piꞏn`, `tokeın`, `tokenꞏs` and `keyıs` read as `pin`, `token`, `tokens` and `keys`. As a
-  letter, a name counts with one of its letters missing where such a character stands, so one put
+  ASCII form — `ꞏ`, `ı`, `ɑ`, `ø`, a combining mark such as `ͦ` (U+0366), `〇`, a decimal digit
+  of another script such as the Myanmar `၀` or the Devanagari `०` — counts as nothing or as any
+  one letter. Such a digit is still its digit in a number and to the value detectors
+  (`४२४२ ४२४२ ४२४२ ४२४२` is a card number); only a word reads it as the wildcard. A digit that
+  has an ASCII form (`０`, `𝟎`, `⁰`) is that digit, so `passw０rd` reads as `passw0rd`. As
+  nothing, however many such characters are put in, the name is found: `piꞏn`, `tokeın`,
+  `tokenꞏs` and `keyıs` read as `pin`, `token`, `tokens` and `keys`. As a letter, a name counts with one of its letters missing where such a character stands, so one put
   in place of a letter of the name is found too (`pɑssword`, `user_pın`, `tͦken`, `ͦtp`,
-  `passw〇rd`). A word of another language that reads as a name this way hides what follows it —
-  Turkish `yapın` reads as `pin` — which over-hides on purpose. A name with two or more of its
-  letters replaced is not read this way (see "What it does not find"). A name
+  `passw〇rd`, `t၀ken`, `passw०rd`). A word of another language that reads as a name this way
+  hides what follows it — Turkish `yapın` reads as `pin` — which over-hides on purpose. A name
+  with two or more of its letters replaced is not read this way (see "What it does not find"). A name
   written as a value is read too: `name=`, `key=`, `label=` and
   the other keys that hold a name are not allowed by default, so they cut the text at once
   (`name="password"`, `Content-Disposition: form-data; name="pin"`).
@@ -568,9 +574,14 @@ written another way (`é`, `𝐚`) does not. A finding that runs over the point 
 cut, such as a card number grouped with non-breaking spaces, is hidden whole with the rest of the
 text. So is one written across a vertical tab, a form feed, U+0085, U+2028 or U+2029: each of them
 cuts free text, and the detectors read across them — as the white space between the groups of a
-card number or an IBAN, and as nothing inside an address or a token — so the text is hidden from
-the start of the finding (`paid with 4111 1111 1111` and a vertical tab before `1111` keeps
-`paid with `), as it is across a control character that the scanning copy leaves out. A line feed
+card number or an IBAN and after `Bearer`, and as nothing inside an address, its domain, a token
+and the token after `Bearer` — so the text is hidden from the start of the finding (`paid with
+4111 1111 1111` and a vertical tab before `1111` keeps `paid with `), as it is across a control
+character that the scanning copy leaves out. The two readings are each written once, and no
+detector tests for a line separator itself: read as nothing, the groups of two card numbers on
+either side of one would run together and neither would be found; read as white space, one would
+end an address, whose name the cut would then show. The detectors alone, without
+``SensitiveDataRedactor/Kinds/secretFields``, read across them the same way. A line feed
 or carriage return written as such is a line break of the log and ends a finding. An address
 after `:` shows no letter of its name, which may be the password of
 `user:password@host` (`user:•••@example.com`), a token whose last dot was cut off (`eyJ….eyJ…`) is
