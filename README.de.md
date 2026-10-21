@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@7f32b9c6808f9063527af1053a4fb1e3799889af status=reviewed -->
+<!-- i18n-source: README.md@72c6a3c0d9670618c43accdb704574b6810e25b5 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  478 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  493 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -320,7 +320,7 @@ Namen, die nicht aus reinem ASCII bestehen, gelten auch dann als geheim, wenn si
 geschrieben sind: Der Wert neben einem Feld, das einen Namen trägt (`name`, `label`, `type`, `id`,
 …), etwa `Şifre`, `ⓟⓘⓝ` oder `🔑`, wird geschwärzt.
 In freiem Text verbirgt der erste geheime Name alles, was ihm in diesem Text folgt; das verbirgt
-absichtlich mehr als nötig. Zu viel zu verbergen ist so gewollt. Fünf Regeln legen fest, wo der
+absichtlich mehr als nötig. Zu viel zu verbergen ist so gewollt. Sechs Regeln legen fest, wo der
 Text abgeschnitten wird, und keine führt eine Liste von Varianten: das erste Zeichen außerhalb
 eines sicheren Alphabets (Buchstaben, Zeichen und Ziffern jeder Schrift, das ASCII-Leerzeichen,
 Tabulator und Zeilenumbrüche sowie druckbares ASCII), also ein ähnlich aussehendes Trennzeichen wie
@@ -328,15 +328,18 @@ Tabulator und Zeilenumbrüche sowie druckbares ASCII), also ein ähnlich aussehe
 nie dekodiert wird; ein Wort mit mehr als 256 Zeichen; ein Schlüssel, der nicht erlaubt ist (jeder
 außer `status`, `method`, `path`, `duration_ms`, `count` und den Schlüsseln, die Sie übergeben),
 auch in Anführungszeichen, wo er den Text am öffnenden Anführungszeichen abschneidet (aus
-`cache miss for "session Qz9Wk7rX": refetching` wird `cache miss for [redacted]`), als erster
-String eines Arrays mit zwei Elementen oder als Tag eines Elements; und ein geheimer Name, mit
+`cache miss for "session Qz9Wk7rX": refetching` wird `cache miss for [redacted]`), oder als
+erster String eines Arrays mit zwei Elementen; ein Markup-Tag, denn in freiem Text schneidet das
+erste Markup-Tag den Text ab, welches Tag es auch ist (`<user>`, `</a>`, `<!--`); und ein geheimer Name, mit
 oder ohne Trennzeichen, auch als Wert geschrieben wie `name="password"`. Ein Wort wird über sein
 ASCII-Skelett verglichen: Buchstaben ohne ASCII-Form werden weggelassen, sodass `piꞏn`, `tokeın`
 und `tokenꞏs` als `pin`, `token` und `tokens` gelesen werden, und ein Name zählt auch mit einem
-fehlenden Buchstaben dort, wo einer weggelassen wurde (`pɑssword`). Der
+fehlenden Buchstaben dort, wo einer weggelassen wurde (`pɑssword`). Ein Anführungszeichen, das
+sich nicht in seiner Zeile schließt, schneidet den Text an diesem Anführungszeichen ab, sodass von
+einem Schlüssel in Anführungszeichen mit einem Zeilenumbruch darin nichts zu sehen ist. Der
 Text wird bis zu seinem Ende abgeschnitten und nicht nur bis zum Ende der Zeile: Aus
-`login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body oder eine Property
-List im Log wird ab dem ersten Header oder Schlüssel verborgen.
+`login user=bob status=401` wird `login user=[redacted]`, und ein Multipart-Body im Log wird ab
+dem ersten Header verborgen, eine Property List ab ihrem ersten Tag.
 Eine URL in freiem Text wird nur gezeigt, wenn sie sauber ist – `scheme://host` und ein optionaler
 Pfad aus ASCII-Buchstaben, Ziffern, `.`, `_`, `-` und `/`, deren Host und Segmente keinen geheimen
 Namen nennen, gefolgt von Leerraum, einem Zeilenumbruch oder einem Satzzeichen am Satzende –, und

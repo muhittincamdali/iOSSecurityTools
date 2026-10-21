@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@7f32b9c6808f9063527af1053a4fb1e3799889af status=reviewed -->
+<!-- i18n-source: README.md@72c6a3c0d9670618c43accdb704574b6810e25b5 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-es-light.svg" alt="iOSSecurityTools: Llavero, cifrado, pinning, códigos de un solo uso y controles de integridad para apps de Apple."></picture></p>
@@ -61,7 +61,7 @@ paquete no tiene dependencias.
 - **Probado con entradas hostiles** — vectores de las RFC 4226, 6238 y 5869, sobres y hashes
   creados por una implementación independiente, cadenas de certificados de una PKI de pruebas,
   fechas NaN e infinitas, `Int.min` e `Int.max`, y parámetros de URI desmesurados o duplicados:
-  478 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
+  493 pruebas con Swift Testing en macOS y en un simulador de iPhone, además de las suites del
   llavero dentro de la app de ejemplo.
 
 ### Qué incluye
@@ -318,7 +318,7 @@ Los nombres que no son ASCII simple cuentan como secretos aunque se escriban com
 oculta el valor junto a un campo que lleva un nombre (`name`, `label`, `type`, `id`, …) como
 `Şifre`, `ⓟⓘⓝ` o `🔑`.
 En texto libre, el primer nombre secreto oculta todo lo que le sigue en ese texto; esto oculta de
-más a propósito. Ocultar de más es una decisión de diseño. Cinco reglas fijan dónde se corta el
+más a propósito. Ocultar de más es una decisión de diseño. Seis reglas fijan dónde se corta el
 texto, y ninguna guarda una lista de variantes: el primer carácter fuera de un alfabeto seguro
 (letras, marcas y dígitos de cualquier escritura, el espacio ASCII, el tabulador y los saltos de
 línea, y el ASCII imprimible), de modo que un separador parecido como `꞉` o `→`, un emoji o un
@@ -326,15 +326,18 @@ carácter de control lo cortan; cualquier secuencia de escape (`%3D`, `&colon;`,
 se decodifica; una palabra de más de 256 caracteres; una clave que no está permitida (cualquiera
 salvo `status`, `method`, `path`, `duration_ms`, `count` y las claves que usted pase), también
 entre comillas, donde corta el texto en la comilla de apertura
-(`cache miss for "session Qz9Wk7rX": refetching` queda como `cache miss for [redacted]`), como
-primera cadena de un array de dos elementos o como etiqueta de un elemento; y un nombre secreto,
+(`cache miss for "session Qz9Wk7rX": refetching` queda como `cache miss for [redacted]`), o como
+primera cadena de un array de dos elementos; una etiqueta de marcado, porque en texto libre la
+primera etiqueta de marcado corta el texto, sea cual sea la etiqueta (`<user>`, `</a>`, `<!--`); y
+un nombre secreto,
 con o sin separador, también escrito como valor como `name="password"`. Una palabra se compara
 por su esqueleto ASCII: las letras que no tienen forma ASCII se omiten, así que `piꞏn`, `tokeın` y
 `tokenꞏs` se leen como `pin`, `token` y `tokens`, y un nombre cuenta también con una letra de
-menos donde se omitió una (`pɑssword`). El texto se corta hasta su
+menos donde se omitió una (`pɑssword`). Una comilla que no se cierra en su línea corta el texto en
+la comilla, así que de una clave entre comillas con un salto de línea dentro no se ve nada. El texto se corta hasta su
 final y no solo hasta el final de la línea: `login user=bob status=401` queda como
-`login user=[redacted]`, y un cuerpo multipart o una property list escritos en un log se ocultan
-desde su primera cabecera o clave.
+`login user=[redacted]`, y un cuerpo multipart escrito en un log se oculta
+desde su primera cabecera, y una property list desde su primera etiqueta.
 Una URL en texto libre solo se muestra cuando está limpia —`scheme://host` y una ruta opcional de
 letras ASCII, dígitos, `.`, `_`, `-` y `/`, cuyo host y segmentos no nombran ningún secreto, seguida
 de un espacio, un salto de línea o la puntuación que cierra una frase—, y cualquier otra URL corta
