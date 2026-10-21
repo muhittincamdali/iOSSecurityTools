@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@72c6a3c0d9670618c43accdb704574b6810e25b5 status=reviewed -->
+<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  493 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  507 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -328,10 +328,13 @@ ligne, et l’ASCII imprimable), si bien qu’un séparateur ressemblant comme `
 un caractère de contrôle le coupe ; toute séquence d’échappement (`%3D`, `&colon;`, `\075`), qui
 n’est jamais décodée ; un mot de plus de 256 caractères ; une clé qui n’est pas autorisée (toute
 clé sauf `status`, `method`, `path`, `duration_ms`, `count` et les clés que vous fournissez), aussi
-entre guillemets, où elle coupe le texte au guillemet ouvrant
+entre guillemets de toute sorte (`"`, `'`, accent grave), où elle coupe le texte au guillemet
+ouvrant
 (`cache miss for "session Qz9Wk7rX": refetching` devient `cache miss for [redacted]`), ou comme
 première chaîne d’un tableau de deux éléments ; une balise, car dans le texte libre la première
-balise coupe le texte, quelle qu’elle soit (`<user>`, `</a>`, `<!--`) ; et un nom secret,
+balise coupe le texte, quelle qu’elle soit (`<user>`, `<_id>`, `</a>`, `<!--`) : tout `<` qui
+n’est suivi ni d’une espace, d’une tabulation, d’un saut de ligne ou d’un chiffre ASCII, ni de `=`,
+ni de la fin du texte le coupe ; et un nom secret,
 avec ou sans séparateur, aussi écrit comme valeur comme `name="password"`. Un mot est comparé par
 son squelette ASCII : les lettres sans forme ASCII sont omises, si bien que `piꞏn`, `tokeın` et
 `tokenꞏs` se lisent `pin`, `token` et `tokens`, et un nom compte aussi avec une lettre en moins là
@@ -343,9 +346,10 @@ devient `login user=[redacted]`, et un corps multipart écrit dans un journal
 est masqué à partir de son premier en-tête, une property list à partir de sa première balise.
 Une URL dans du texte libre n’est affichée que si elle est propre — `scheme://host` et un chemin
 facultatif de lettres ASCII, de chiffres, de `.`, `_`, `-` et `/`, dont l’hôte et les segments ne
-nomment aucun secret, suivie d’une espace, d’un saut de ligne ou d’une ponctuation de fin de phrase
-— et toute autre URL coupe le texte là où elle commence (`see https://x.example/a?page=2 ok` devient
-`see [redacted]` ; `allowedQueryParameters` ne s’applique qu’à `redact(url:)`). Un `:`
+nomment aucun secret, suivie d’une espace, d’un saut de ligne, de la fin du texte ou d’un seul `.`,
+`,`, `!` ou `)` avant l’un d’eux — et toute autre URL coupe le texte là où elle commence, aussi celle
+que suit un guillemet, `>`, un accent grave ou un `?`, `#` ou `;` (`see https://x.example/a?page=2 ok`
+et `see https://x.example/a'#token` deviennent `see [redacted]` ; `allowedQueryParameters` ne s’applique qu’à `redact(url:)`). Un `:`
 entre des chiffres ne fait partie d’un nombre qu’après un nombre (`12:30`, `10.0.0.1:8080`) ; après
 une clé qui se termine par des chiffres (`user1:2345`), c’est un séparateur.
 Le masquage est un filet de

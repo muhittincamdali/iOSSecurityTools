@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 493 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 507 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -310,10 +310,12 @@ variants: the first character outside a safe alphabet (letters, marks and digits
 the ASCII space, tab and line breaks, and printable ASCII), so a look-alike separator such as `꞉`
 or `→`, an emoji or a control character cuts it; any escape (`%3D`, `&colon;`, `\075`), which is
 never decoded; a word longer than 256 characters; a key that is not allowed (any key but
-`status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also in quotes, where it
-cuts the text at the opening quote (`cache miss for "session Qz9Wk7rX": refetching` becomes
+`status`, `method`, `path`, `duration_ms`, `count` and the keys you pass), also in quotes of any
+kind (`"`, `'`, a backtick), where it cuts the text at the opening quote (`cache miss for "session Qz9Wk7rX": refetching` becomes
 `cache miss for [redacted]`), or as the first string of a two-element array; a markup tag, as in
-free text the first markup tag cuts the text, whatever the tag (`<user>`, `</a>`, `<!--`); and a
+free text the first markup tag cuts the text, whatever the tag (`<user>`, `<_id>`, `</a>`, `<!--`):
+a `<` cuts it unless an ASCII space, tab, line break or digit, `=` or the end of the text follows
+it; and a
 secret name, with or without a separator, also one written as a value such as `name="password"`. A word is compared by its ASCII skeleton: the letters that have no ASCII form
 are left out, so `piꞏn`, `tokeın` and `tokenꞏs` read as `pin`, `token` and `tokens`, and a name
 also counts with one letter missing where one was left out (`pɑssword`). A quote that does not
@@ -324,8 +326,10 @@ end and not only to the end of the line: `login user=bob status=401` becomes
 property list from its first tag.
 A URL in free text is shown only when it is clean — `scheme://host` and an optional path of ASCII
 letters, digits, `.`, `_`, `-` and `/`, whose host and segments name no secret, followed by white
-space, a line break or punctuation that ends a sentence — and any other URL cuts the text where it
-starts (`see https://x.example/a?page=2 ok` becomes `see [redacted]`; `allowedQueryParameters`
+space, a line break, the end of the text or one `.`, `,`, `!` or `)` before one of those — and any
+other URL cuts the text where it starts, also one that a quote, `>`, a backtick or a `?`, `#` or `;`
+follows (`see https://x.example/a?page=2 ok` and `see https://x.example/a'#token` become
+`see [redacted]`; `allowedQueryParameters`
 applies only to `redact(url:)`). A `:` between digits is part of a number only after a number
 (`12:30`, `10.0.0.1:8080`); after a key that ends in digits (`user1:2345`) it is a separator.
 Redaction is a safety net, not a guarantee: it is built for secrets logged by accident.

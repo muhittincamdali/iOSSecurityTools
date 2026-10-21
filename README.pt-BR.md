@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@72c6a3c0d9670618c43accdb704574b6810e25b5 status=reviewed -->
+<!-- i18n-source: README.md@0c850818c8d0ca43dbe3502fe12af0a89680ad98 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 493
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 507
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -323,10 +323,12 @@ o ASCII imprimível), de modo que um separador parecido como `꞉` ou `→`, um 
 controle o cortam; qualquer sequência de escape (`%3D`, `&colon;`, `\075`), que nunca é
 decodificada; uma palavra com mais de 256 caracteres; uma chave que não é permitida (qualquer chave
 além de `status`, `method`, `path`, `duration_ms`, `count` e das chaves que você passar), também
-entre aspas, onde corta o texto na aspa de abertura
+entre aspas de qualquer tipo (`"`, `'`, crase), onde corta o texto na aspa de abertura
 (`cache miss for "session Qz9Wk7rX": refetching` vira `cache miss for [redacted]`), ou como
 primeira string de um array de dois elementos; uma tag de marcação, pois em texto livre a primeira
-tag de marcação corta o texto, seja qual for a tag (`<user>`, `</a>`, `<!--`); e um nome secreto, com
+tag de marcação corta o texto, seja qual for a tag (`<user>`, `<_id>`, `</a>`, `<!--`): todo `<`
+que não seja seguido de espaço, tabulação, quebra de linha ou dígito ASCII, de `=` ou do fim do texto
+o corta; e um nome secreto, com
 ou sem separador, também escrito como valor, como `name="password"`. Uma palavra é comparada pelo
 seu esqueleto ASCII: as letras sem forma ASCII são omitidas, de modo que `piꞏn`, `tokeın` e
 `tokenꞏs` são lidos como `pin`, `token` e `tokens`, e um nome também conta com uma letra a menos
@@ -337,8 +339,10 @@ corpo multipart escrito em um log é ocultado a partir do primeiro cabeçalho, e
 partir da primeira tag.
 Uma URL em texto livre só é mostrada quando está limpa — `scheme://host` e um caminho opcional de
 letras ASCII, dígitos, `.`, `_`, `-` e `/`, cujo host e segmentos não nomeiam nenhum segredo,
-seguida de espaço, quebra de linha ou pontuação que encerra uma frase —, e qualquer outra URL corta
-o texto onde começa (`see https://x.example/a?page=2 ok` vira `see [redacted]`;
+seguida de espaço, quebra de linha, fim do texto ou um único `.`, `,`, `!` ou `)` antes de um deles
+—, e qualquer outra URL corta o texto onde começa, também uma seguida de aspas, `>`, crase ou `?`,
+`#` ou `;` (`see https://x.example/a?page=2 ok` e `see https://x.example/a'#token` viram
+`see [redacted]`;
 `allowedQueryParameters` vale só para `redact(url:)`). Um `:` entre
 dígitos só faz parte de um número depois de um número (`12:30`, `10.0.0.1:8080`); depois de uma
 chave que termina em dígitos (`user1:2345`), ele é um separador.
