@@ -34,10 +34,11 @@ struct SpanSink {
 /// ``SensitiveDataRedactor/merged(_:)``). A megabyte of addresses after a character that cuts the
 /// text at its start finds nothing and takes no memory for them.
 ///
-/// The detectors read across a vertical tab, a form feed, U+0085, U+2028 and U+2029 (see
-/// ``isBridgedLineBreak(_:)``): as white space between the groups of a card number or an IBAN
-/// and after `Bearer`, and as nothing inside an email address, a JSON Web Token and a long token,
-/// which white space would end. A finding never starts or ends with one.
+/// The detectors read across a vertical tab, a form feed, U+0085, U+2028 and U+2029 only through
+/// ``isGap(_:)`` and ``readable(after:)`` (see ``NormalizedText``'s line separators): as white
+/// space between the groups of a card number or an IBAN and after `Bearer`, and as nothing inside
+/// an email address, a JSON Web Token, a long token and the token after `Bearer`. Each byte is
+/// read a fixed number of times, so a megabyte of `eyJ` and line separators is read in one pass.
 extension NormalizedText {
     // MARK: Card numbers
 
@@ -46,7 +47,7 @@ extension NormalizedText {
     static let longestCard = 19 + 18 * 3
 
     func cardSpans(startLimit: Int = .max, into spans: inout SpanSink) {
-                // No card number that starts before the limit runs past this byte.
+        // No card number that starts before the limit runs past this byte.
         let chainLimit = startLimit >= count ? count : min(count, startLimit + Self.longestCard)
         var i = 0
         while i < min(count, startLimit) {
@@ -82,7 +83,7 @@ extension NormalizedText {
     }
 
     private func isCardSeparator(_ i: Int) -> Bool {
-        bytes[i] == UInt8(ascii: " ") || bytes[i] == UInt8(ascii: "-") || bytes[i] == UInt8(ascii: "\t") || isBridgedLineBreak(i)
+        isGap(i) || bytes[i] == UInt8(ascii: "-")
     }
 
     /// The digit groups of a chain that a card number may still start in. From each group on, the
@@ -166,19 +167,21 @@ extension NormalizedText {
     /// `.` and `-` that ends in a top-level domain of two or more letters (`example.com`,
     /// `例子.中国`). The whole address is one finding, shown with ``Mask/email(_:)``.
     func emailSpans(startLimit: Int = .max, into spans: inout SpanSink) {
-                // An address whose `@` comes after the limit starts before it only when the name between
+        // An address whose `@` comes after the limit starts before it only when the name between
         // them runs over it.
-        var reach = min(count, startLimit)
-        while reach < count, isLocalPart(reach) { reach += 1 }
+        var reach = readable(from: min(count, startLimit))
+        while reach < count, isLocalPart(reach) { reach = readable(after: reach) }
         for at in 0..<min(count, reach + 1) where bytes[at] == UInt8(ascii: "@") {
             var start = at
-            while start > 0, isLocalPart(start - 1) { start -= 1 }
-            while start < at, bytes[start] == UInt8(ascii: ".") || isBridgedLineBreak(start) { start += 1 }
+            while let previous = readable(before: start), isLocalPart(previous) { start = previous }
+            while start < at, bytes[start] == UInt8(ascii: ".") { start = readable(after: start) }
             var end = at + 1
-            while end < count, isAnyAlphanumeric(end) || bytes[end] == UInt8(ascii: ".") || bytes[end] == UInt8(ascii: "-") || isBridgedLineBreak(end) {
-                end += 1
+            var next = readable(after: at)
+            while next < count, isDomainCharacter(next) {
+                end = next + 1
+                next = readable(after: next)
             }
-            while end > at + 1, bytes[end - 1] == UInt8(ascii: ".") || bytes[end - 1] == UInt8(ascii: "-") || isBridgedLineBreak(end - 1) { end -= 1 }
+            while end > at + 1, bytes[end - 1] == UInt8(ascii: ".") || bytes[end - 1] == UInt8(ascii: "-") { end = (readable(before: end - 1) ?? at) + 1 }
             guard start < at, end > at + 1, isDomain(at + 1..<end) else { continue }
             // After a `:` the name may be the password of `user:password@host`: none of it is shown.
             let followsColon = start > 0 && bytes[start - 1] == UInt8(ascii: ":")
@@ -187,64 +190,83 @@ extension NormalizedText {
     }
 
     private func isLocalPart(_ i: Int) -> Bool {
-        isAnyAlphanumeric(i) || Self.localPartMarks.contains(bytes[i]) || isBridgedLineBreak(i)
+        isAnyAlphanumeric(i) || Self.localPartMarks.contains(bytes[i])
     }
 
     private static let localPartMarks = ByteSet("._%+-")
 
+    private func isDomainCharacter(_ i: Int) -> Bool {
+        isAnyAlphanumeric(i) || bytes[i] == UInt8(ascii: ".") || bytes[i] == UInt8(ascii: "-")
+    }
+
+    /// Whether the bytes of `range`, read across line separators, are a domain: they hold a `.`
+    /// after their first byte, and two or more letters after the last one.
     private func isDomain(_ range: Range<Int>) -> Bool {
         guard let lastDot = range.last(where: { bytes[$0] == UInt8(ascii: ".") }), lastDot > range.lowerBound else { return false }
-        let topLevel = (lastDot + 1)..<range.upperBound
-        return topLevel.count >= 2 && topLevel.allSatisfy(isAnyLetter)
+        var letters = 0
+        var k = readable(after: lastDot)
+        while k < range.upperBound {
+            guard isAnyLetter(k) else { return false }
+            letters += 1
+            k = readable(after: k)
+        }
+        return letters >= 2
     }
 
     // MARK: JSON Web Tokens
 
+    /// Two to five segments of base64url characters with `.` between them, the first two of four
+    /// characters or more, from an `eyJ` that no ASCII letter or digit is glued to. A candidate
+    /// reads its segments once, and the next one starts after its first segment: where the
+    /// payload starts is kept as it is read, and a candidate that is not a token moves on by the
+    /// bytes of its first segment, line separators included.
     func jsonWebTokenSpans(startLimit: Int = .max, into spans: inout SpanSink) {
         let prefix = Array("eyJ".utf8)
-                var i = 0
+        var i = 0
         while i + 3 <= count, i < startLimit {
             // A token glued to a word by `_` or `-` (`id_eyJ…`) is still a token.
             guard bytes[i] == prefix[0], bytes[i + 1] == prefix[1], bytes[i + 2] == prefix[2], i == 0 || !gluesToWord(i - 1) else {
                 i += 1
                 continue
             }
-            var j = i
             var segments = 0
-            var segmentLengths: [Int] = []
+            var header = 0
+            var payload = 0
+            var payloadStart = count
+            // After the last byte of the token read so far, and the next byte to read.
+            var end = i
+            var next = i
+            var headerEnd = i
             while true {
-                let segmentStart = j
                 var length = 0
-                while j < count, isBase64URL(j) || isBridgedLineBreak(j) {
-                    if !isBridgedLineBreak(j) { length += 1 }
-                    j += 1
+                while next < count, isBase64URL(next) {
+                    length += 1
+                    end = next + 1
+                    next = readable(after: next)
                 }
-                segmentLengths.append(length)
+                if segments == 0 {
+                    header = length
+                    headerEnd = end
+                } else if segments == 1 {
+                    payload = length
+                }
                 segments += 1
-                guard segments < 5, j < count, bytes[j] == UInt8(ascii: ".") else {
-                    // A token does not end with a line separator; the text goes on after it.
-                    while j > segmentStart, isBridgedLineBreak(j - 1) { j -= 1 }
-                    break
-                }
+                guard segments < 5, next < count, bytes[next] == UInt8(ascii: ".") else { break }
                 // The signature (third segment) is empty in unsecured tokens ("alg": "none").
-                var next = j + 1
-                while next < count, isBridgedLineBreak(next) { next += 1 }
-                let nextIsSegment = next < count && isBase64URL(next)
-                guard nextIsSegment || segments == 2 else { break }
-                j = next
+                let segmentStart = readable(after: next)
+                guard (segmentStart < count && isBase64URL(segmentStart)) || segments == 2 else { break }
+                if segments == 1 { payloadStart = segmentStart }
+                end = next + 1
+                next = segmentStart
             }
             // A header and a payload that are both JSON (`eyJ….eyJ…`) are a token whose last dot was
             // cut off, as a URL in a sentence loses it to the full stop after it.
-            var payload = i
-            while payload < count, bytes[payload] != UInt8(ascii: ".") { payload += 1 }
-            payload += 1
-            while payload < count, isBridgedLineBreak(payload) { payload += 1 }
-            let isCutToken = segments == 2 && segmentLengths[1] >= 4 && payload + 3 <= count && bytes[payload..<(payload + 3)].elementsEqual(prefix)
-            if segments >= 3 || isCutToken, segmentLengths[0] >= 4, segmentLengths[1] >= 4 {
-                spans.add(span(i..<j, .jsonWebTokens, SensitiveDataRedactor.replacement))
-                i = j
+            let isCutToken = segments == 2 && payload >= 4 && payloadStart + 3 <= count && bytes[payloadStart..<(payloadStart + 3)].elementsEqual(prefix)
+            if segments >= 3 || isCutToken, header >= 4, payload >= 4 {
+                spans.add(span(i..<end, .jsonWebTokens, SensitiveDataRedactor.replacement))
+                i = end
             } else {
-                i += max(segmentLengths[0], 1)
+                i = max(headerEnd, i + 1)
             }
         }
     }
@@ -253,17 +275,23 @@ extension NormalizedText {
 
     func bearerSpans(startLimit: Int = .max, into spans: inout SpanSink) {
         let word = Array("bearer".utf8)
-                var i = 0
+        var i = 0
         while i < min(count, startLimit) {
-            guard matches(word, at: i), isWordStart(i), i + word.count < count, isSpace(i + word.count) || isBridgedLineBreak(i + word.count) else {
+            guard matches(word, at: i), isWordStart(i), i + word.count < count, isGap(i + word.count) else {
                 i += 1
                 continue
             }
             var start = i + word.count
-            while start < count, isSpace(start) || isBridgedLineBreak(start) { start += 1 }
+            while start < count, isGap(start) { start += 1 }
             var end = start
-            while end < count, isTokenCharacter(end) { end += 1 }
-            if end - start >= 8 {
+            var length = 0
+            var next = start
+            while next < count, isTokenCharacter(next) {
+                length += 1
+                end = next + 1
+                next = readable(after: next)
+            }
+            if length >= 8 {
                 spans.add(span(start..<end, .bearerTokens, SensitiveDataRedactor.replacement))
             }
             i = max(end, i + 1)

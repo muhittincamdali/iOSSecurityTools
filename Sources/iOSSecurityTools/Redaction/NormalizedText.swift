@@ -174,10 +174,11 @@ struct NormalizedText {
     }
 
     /// The bytes of a range as text, with each byte that has no ASCII reading written as the
-    /// scalar it came from: `ayşe.yılmaz` is `ayse.yılmaz`, and `例子.中国` stays as it is.
+    /// scalar it came from: `ayşe.yılmaz` is `ayse.yılmaz`, and `例子.中国` stays as it is. A line
+    /// separator that the value detectors read across is left out, as they read it.
     func shown(_ range: Range<Int>) -> String {
         var scalars = String.UnicodeScalarView()
-        for k in range {
+        for k in range where !isBridgedLineBreak(k) {
             scalars.append(bytes[k] == CompatibilityText.unreadable ? source[offsets[k]] : Unicode.Scalar(bytes[k]))
         }
         return String(scalars)
@@ -248,17 +249,54 @@ struct NormalizedText {
         return byte == 0x0A || byte == 0x0D || byte == 0x0B || byte == 0x0C
     }
 
-    /// Whether byte `i` is a line separator that the value detectors read across as white space:
-    /// a vertical tab, a form feed, or a line feed read from U+0085, U+2028 or U+2029. Each of
-    /// them is outside the safe alphabet and cuts free text, so a card number, an IBAN, an email
-    /// address or a token written across one is found whole and the cut moves back to its start;
-    /// a line feed or carriage return written as such ends a finding, as it ends a line.
-    func isBridgedLineBreak(_ i: Int) -> Bool {
+    // MARK: Line separators inside a value
+
+    /// Whether byte `i` is a line separator that the value detectors read across: a vertical tab,
+    /// a form feed, or a line feed read from U+0085, U+2028 or U+2029. Each of them is outside the
+    /// safe alphabet and cuts free text, so a card number, an IBAN, an email address or a token
+    /// written across one is found whole and the cut, which falls inside the finding, joins it at
+    /// its start (see ``SensitiveDataRedactor/merged(_:)``); a line feed or carriage return
+    /// written as such ends a finding, as it ends a line of the log.
+    ///
+    /// The detectors never test for one themselves. They read such a separator in one of two
+    /// ways, each written once here: as the white space between the parts of a value
+    /// (``isGap(_:)``: the groups of a card number or an IBAN, and the token after `Bearer`), or
+    /// as nothing inside a run of a value (``readable(after:)``, ``readable(before:)`` and
+    /// ``readable(from:)``: an email address, a JSON Web Token, a long token, the token after
+    /// `Bearer`), which white space would end. One reading cannot serve both: read as nothing,
+    /// the groups of two card numbers on either side of it run together and neither is found;
+    /// read as white space, it ends an address, whose name the cut then shows. A finding never
+    /// starts or ends with one, and each byte is read a fixed number of times.
+    private func isBridgedLineBreak(_ i: Int) -> Bool {
         switch bytes[i] {
         case 0x0B, 0x0C: true
         case 0x0A: !source[offsets[i]].isASCII
         default: false
         }
+    }
+
+    /// Whether byte `i` is white space between the parts of a value: a space, a tab or a line
+    /// separator that the value detectors read across.
+    func isGap(_ i: Int) -> Bool { isSpace(i) || isBridgedLineBreak(i) }
+
+    /// The first byte at or after `i` that is not a line separator the value detectors read
+    /// across; ``count`` when there is none.
+    func readable(from i: Int) -> Int {
+        var k = i
+        while k < count, isBridgedLineBreak(k) { k += 1 }
+        return k
+    }
+
+    /// The next byte after `i` that is not a line separator the value detectors read across;
+    /// ``count`` when there is none.
+    func readable(after i: Int) -> Int { readable(from: i + 1) }
+
+    /// The last byte before `i` that is not a line separator the value detectors read across;
+    /// nil when there is none.
+    func readable(before i: Int) -> Int? {
+        var k = i - 1
+        while k >= 0, isBridgedLineBreak(k) { k -= 1 }
+        return k >= 0 ? k : nil
     }
 
     /// Whether a word starts at `i`: after a character that does not glue to it (see
