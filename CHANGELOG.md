@@ -5,6 +5,50 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - Unreleased
+
+### Security
+
+- `SensitiveDataRedactor.redact(url:)` in 2.1.0 wrote the host and port of a URL whose host names
+  a secret, by the key rule or as a word, and hid only the path after it. The value can be in the
+  host or the port, and it showed: `myapp://password.hunter2`, `myapp://pin-4831`,
+  `https://pin-4831.example.com/a` (written as `https://pin-4831.example.com`) and
+  `myapp://pin:4831`. Such a host is now written as `scheme://[redacted]`, with no port, path or
+  query, also with `URLDetail.hostOnly` and for a URL whose path is not read (too many segments, a
+  dot segment, a `;`). This is the host rule of the shared redaction spec (section 5 U4, gap G1),
+  as iOS-Networking-Architecture-Pro 2.0.0 applies it. Free text, JSON strings, form values and
+  multipart and text bodies were not affected: there a URL whose host names a secret is not clean
+  and cuts the text where it starts. Upgrade from 2.1.0 if you log URLs with `redact(url:)`.
+
+#### Known limitations
+
+The three limitations listed under 2.1.0 are not changed in 2.1.1:
+[#22](https://github.com/muhittincamdali/iOSSecurityTools/issues/22) and
+[#24](https://github.com/muhittincamdali/iOSSecurityTools/issues/24) hide more than they need to,
+and [#23](https://github.com/muhittincamdali/iOSSecurityTools/issues/23) shows the values of keys
+such as `tokenvalue`, `secretvalue` and `dbpw`; mark such properties with `@Redacted`.
+
+### Changed
+
+- A host that names a secret is hidden whole, which hides more than 2.1.0 did:
+  `https://auth.example.com/oauth/authorize` is written as `https://[redacted]` where 2.1.0 wrote
+  `https://auth.example.com`, and `myapp://pin/4831` as `myapp://[redacted]` where 2.1.0 wrote
+  `myapp://pin`. Which hosts name a secret does not change. Without `.secretFields` in `kinds` the
+  host is written as before, and only the value detectors read the URL.
+
+### Fixed
+
+- The 2.1.0 entry said five rules set the triggers of free text and listed six; it now says six,
+  as the logging guide and the README do.
+- The documentation of `Kinds.secretFields` and of the `kinds` parameter says that a set without
+  `.secretFields` hides no value by its name (`{"password":"hunter2"}` and
+  `login password=hunter2` are written as they are), and the logging guide names two URL limits
+  it did not: a secret written as a label of a host that names no secret
+  (`https://hunter2.example.com/a`) and a short value in an ordinary path (`/reset/abc123`) show.
+- The test suite holds the shared redaction spec's required test set (section 8) in the spec's
+  order, in `RedactionSpecSetBodyTests`, `RedactionSpecSetDetectorURLTests` and
+  `RedactionSpecSetFreeTextTests`.
+
 ## [2.1.0] - 2026-10-21
 
 ### Added
@@ -111,7 +155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the budget is hidden whole and a multipart part is omitted. A long text quoted in JSON three
   times in a body, or twice in a log line, has its innermost string hidden.
 - Free text is cut once: in free text, the first secret name hides everything after it in that
-  text; this over-hides on purpose. Over-hiding is by design. Five rules set the triggers, and
+  text; this over-hides on purpose. Over-hiding is by design. Six rules set the triggers, and
   none keeps a list of variants:
   - **A safe alphabet.** Free text is read only as far as it is written in letters, marks and
     digits of any script (L, M, N), the ASCII space, tab, line feed and carriage return, and
@@ -709,6 +753,7 @@ No 1.0.0 API remains.
 First tagged release: encryption, keychain, authentication and monitoring managers. Replaced by
 2.0.0.
 
+[2.1.1]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.0...HEAD
 [2.1.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/muhittincamdali/iOSSecurityTools/releases/tag/v1.0.0
