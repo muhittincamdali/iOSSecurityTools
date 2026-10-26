@@ -69,6 +69,25 @@ struct RedactionSpecSetDetectorURLTests {
         #expect(try url(input) == expected)
     }
 
+    /// §5 U4 as the spec's §9.2 G1 tightens it: a host that names a secret may hold the value
+    /// itself, so the host is hidden too, with its port, path and query (`scheme://[R]`).
+    @Test("§8.4 #43, §9.2 G1: a host that names a secret is hidden with everything after it", arguments: [
+        ("myapp://pin/4831", "myapp://[redacted]"),
+        ("myapp://user@pin/Qz743Wk5m", "myapp://[redacted]"),
+        ("myapp://password.hunter2", "myapp://[redacted]"),
+        ("myapp://pin-4831", "myapp://[redacted]"),
+        ("https://pin-4831.example.com", "https://[redacted]"),
+        ("https://pin-4831.example.com/a", "https://[redacted]"),
+        ("myapp://pin:4831", "myapp://[redacted]"),
+        ("myapp://pin:4831/a", "myapp://[redacted]"),
+        ("https://auth.example.com/oauth/authorize?client_id=x", "https://[redacted]"),
+    ])
+    func hostNamesSecret(input: String, expected: String) throws {
+        #expect(try url(input) == expected)
+        #expect(try url(input, SensitiveDataRedactor(urlDetail: .hostOnly)) == expected)
+        #expect(try url(input, SensitiveDataRedactor(allowedQueryParameters: ["client_id"])) == expected)
+    }
+
     /// Spec §9.3: what the URL rules do not find, by design.
     @Test("§9.3: a host that names no secret and a short ordinary path segment are shown")
     func documentedURLLimits() throws {

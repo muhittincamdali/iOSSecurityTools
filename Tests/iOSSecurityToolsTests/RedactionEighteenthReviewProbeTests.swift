@@ -14,7 +14,8 @@ import Testing
 /// the text or one mark that ends a sentence; a key in quotes of any kind follows the quoted-key
 /// rule; and a URL's last segment is read with the next word. Every probe is checked by its
 /// claim, as the sixteenth review's are; the large ones are checked with those of the other
-/// reviews (see ``RedactionReviewProbeSetTests``).
+/// reviews (see ``RedactionReviewProbeSetTests``). `a-18#751` (`https://Qx751Np7v.password.h.example/`)
+/// showed its value in a host that names a secret until 2.1.1, which hides such a host.
 @Suite("SensitiveDataRedactor eighteenth review probes")
 struct RedactionEighteenthReviewProbeTests {
     static let reviews = ["a-18", "c-18"]
@@ -33,7 +34,6 @@ struct RedactionEighteenthReviewProbeTests {
              (366...378).map { "a-18#\($0)" } + ["a-18#400"]),
             ("a path segment written without a scheme, before a query cut at its value", ["a-18#471"]),
             ("a key of structured input, which is shown", ["a-18#700"]),
-            ("the host of a URL passed to redact(url:), in which the detectors find nothing", ["a-18#751"]),
             ("the value of a key that names no secret, in structured input", ["a-18#788"]),
             ("text after JSON or a value that no trigger comes before", ["a-18#906"] + c18([409])),
             ("text without a trigger: `->` is no separator", ["a-18#959"]),
