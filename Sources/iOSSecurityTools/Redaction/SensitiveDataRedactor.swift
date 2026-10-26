@@ -173,6 +173,8 @@ public struct SensitiveDataRedactor: Sendable {
         /// an escape, a long word), the hosts, query values and path segments that ``redact(url:)``
         /// hides by its URL rules, and the password in `user:password@host` in text.
         /// ``redact(url:)`` drops a URL's user name, password and fragment with or without it.
+        /// A set of kinds without it hides no value by its name: `{"password":"hunter2"}`,
+        /// `login password=hunter2` and a URL with a password in free text are written as they are.
         public static let secretFields = Kinds(rawValue: 1 << 4)
         /// International bank account numbers that pass the mod-97 check.
         public static let ibans = Kinds(rawValue: 1 << 5)
@@ -249,7 +251,8 @@ public struct SensitiveDataRedactor: Sendable {
     /// Creates a redactor.
     ///
     /// - Parameters:
-    ///   - kinds: The kinds of data to look for; all of them by default.
+    ///   - kinds: The kinds of data to look for; all of them by default. Leave
+    ///     ``Kinds/secretFields`` in: without it no value is hidden by its name.
     ///   - allowedTextKeys: Keys after which free text is read on, in addition to
     ///     ``defaultAllowedTextKeys``. A key that is not plain ASCII or names a secret is ignored.
     ///   - allowedQueryParameters: Query parameters whose values ``redact(url:)`` keeps; free
