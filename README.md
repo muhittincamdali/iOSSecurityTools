@@ -52,7 +52,7 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
 - **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
   an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 589 Swift Testing tests on
+  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 605 Swift Testing tests on
   macOS and an iPhone simulator, plus the keychain suites inside the example app.
 
 ### What's included
@@ -297,12 +297,13 @@ the time it takes; text past that budget is redacted whole.
 A field named in one place and valued in another, as in `{"name":"X-Api-Key","value":…}`, a JSON
 Patch or SCIM operation on `/password` or `[["Authorization","…"]]`, has its value redacted whole
 when the name is secret or not plain ASCII. A URL host that is not a name of ASCII labels or an
-address, or that holds a card number or a token, is written as `scheme://[redacted]`, and a
-multipart part header name is written only when it is one a part carries. A URL with more than 64
-path segments or 128 parameters, with a host that names a secret (`myapp://pin/4831`, whose host
-is `pin`), or with a path that servers resolve differently (a dot
-segment as in `/pin/./4831`, a `;` as in `/a;pin/4831`, an escaped `.`, `/`, `\`, `;` or `%`),
-is recorded as its scheme and host only, and an email address
+address, that holds a card number or a token, or that names a secret (`myapp://pin/4831`, whose
+host is `pin`; the value may be in the host itself, as in `https://pin-4831.example.com`) is written as
+`scheme://[redacted]`, with no port, path or query, and a multipart part header name is written
+only when it is one a part carries. A URL with more than 64 path segments or 128 parameters, or
+with a path that servers resolve differently (a dot segment as in `/pin/./4831`, a `;` as in
+`/a;pin/4831`, an escaped `.`, `/`, `\`, `;` or `%`), is recorded as its scheme and host only,
+and an email address
 shows only the first letter of its name, in any script (`ayşe.yılmaz@gmail.com` becomes
 `a•••@gmail.com`).
 Non-ASCII names count as secret even when they are written as values: the value beside a field that

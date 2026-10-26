@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
+<!-- i18n-source: README.md@8770ba5239dc7faa0f5eaee29eed587ef18129f9 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -59,7 +59,7 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   secreto.
 - **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
   gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 589
+  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 605
   testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
   dentro do app de exemplo.
 
@@ -307,11 +307,11 @@ dela, o que limita o tempo; o texto além desse orçamento é ocultado por intei
 Um campo cujo nome está em um lugar e o valor em outro, como em `{"name":"X-Api-Key","value":…}`,
 em uma operação JSON Patch ou SCIM sobre `/password` ou em `[["Authorization","…"]]`, tem o valor
 ocultado por inteiro quando o nome é secreto ou não é ASCII simples. Um host de URL que não é um
-nome de rótulos ASCII nem um endereço, ou que carrega um número de cartão ou um token, é escrito
-como `scheme://[redacted]`, e o nome de um cabeçalho de parte multipart só é escrito quando é um
-dos que uma parte carrega. Uma URL com mais de 64 segmentos de caminho ou 128 parâmetros,
-com um host que nomeia um segredo (`myapp://pin/4831`, cujo host é `pin`)
-ou com um caminho que servidores resolvem de forma diferente (um segmento de ponto como em
+nome de rótulos ASCII nem um endereço, que carrega um número de cartão ou um token, ou que nomeia
+um segredo (`myapp://pin/4831`, cujo host é `pin`; o valor pode estar no próprio host, como em
+`https://pin-4831.example.com`) é escrito como `scheme://[redacted]`, sem porta, caminho nem query, e o nome de um
+cabeçalho de parte multipart só é escrito quando é um dos que uma parte carrega. Uma URL com mais
+de 64 segmentos de caminho ou 128 parâmetros, ou com um caminho que servidores resolvem de forma diferente (um segmento de ponto como em
 `/pin/./4831`, um `;` como em `/a;pin/4831`, um `.`, `/`, `\`, `;` ou `%`
 escapado), é registrada apenas com o esquema e o host,
 e um endereço de e-mail mostra só a primeira letra do

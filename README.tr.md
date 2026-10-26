@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
+<!-- i18n-source: README.md@8770ba5239dc7faa0f5eaee29eed587ef18129f9 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 589 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 605 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -310,11 +310,11 @@ süreyi de sınırlar ve bu bütçenin ötesindeki metin bütünüyle maskelenir
 Adı bir yerde, değeri başka bir yerde duran bir alanın — `{"name":"X-Api-Key","value":…}`,
 `/password` üzerinde bir JSON Patch ya da SCIM işlemi veya `[["Authorization","…"]]` — adı gizliyse
 ya da düz ASCII değilse değeri bütünüyle maskelenir. ASCII etiketlerinden oluşan bir ad ya da bir
-adres olmayan veya bir kart numarası ya da token taşıyan bir URL host'u `scheme://[redacted]` olarak
-yazılır; bir multipart parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse
-yazılır. 64'ten fazla yol bölümü ya da 128'den fazla parametresi olan,
-host'u gizli bir ad anan (`myapp://pin/4831`; burada host `pin`'dir)
-ya da yolunu sunucuların farklı çözebileceği (`/pin/./4831` gibi bir nokta
+adres olmayan, bir kart numarası ya da token taşıyan veya gizli bir ad anan (`myapp://pin/4831`;
+burada host `pin`'dir; ya da değeri host'un kendisinde taşıyan `https://pin-4831.example.com`) bir
+URL host'u port, yol ve query olmadan `scheme://[redacted]` olarak yazılır; bir multipart
+parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse yazılır. 64'ten fazla
+yol bölümü ya da 128'den fazla parametresi olan ya da yolunu sunucuların farklı çözebileceği (`/pin/./4831` gibi bir nokta
 bölümü, `/a;pin/4831` gibi bir `;`, kaçışlı `.`, `/`, `\`, `;` ya da
 `%`) bir URL yalnız şeması ve host'u ile kaydedilir;
 bir e-posta adresinde, hangi yazı sisteminde olursa olsun, adın yalnız ilk

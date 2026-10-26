@@ -261,11 +261,14 @@ The host is a key of the URL: it is written only when it is a name of ASCII lett
 detectors find nothing in it. Any other host — `password=hunter2` in `myapp://password=hunter2`,
 `h.example;password=hunter2`, a card number or a run of 32 hex digits as a label, a host in
 letters outside ASCII — is written as `[redacted]` after the scheme, with nothing after it. In
-free text such a URL is not clean, so it cuts the text where it starts (see below). A host that
-names a secret, by the key rule or as a word, records the scheme, host and port only, since the
-path after it is its value: with a scheme of the app's own `URLComponents` reads the first part
-after `//` as the host, so `myapp://pin/4831` has the host `pin` and the path `/4831`. A host such
-as `auth.example.com` names `auth` too and hides its whole path, which over-hides on purpose.
+free text such a URL is not clean, so it cuts the text where it starts (see below). With
+``SensitiveDataRedactor/Kinds/secretFields`` so is a host that names a secret, by the key rule or
+as a word, since its value may be written in the host itself (`myapp://password.hunter2`,
+`https://pin-4831.example.com`), in the port (`myapp://pin:4831`) or in the path after it: with a
+scheme of the app's own `URLComponents` reads the first part after `//` as the host, so
+`myapp://pin/4831` has the host `pin` and the path `/4831`, and is written as `myapp://[redacted]`.
+A host such as `auth.example.com` names `auth` too and is hidden whole, which over-hides on
+purpose; with ``SensitiveDataRedactor/URLDetail/hostOnly`` the host follows the same rule.
 The user name, password and fragment are never written, whatever kinds the redactor looks for;
 without ``SensitiveDataRedactor/Kinds/secretFields`` only the value detectors run on the path and
 the query. With it, a query parameter keeps its value only when its name is plain ASCII and on
@@ -297,7 +300,9 @@ redactor.redact(url: URL(string: "https://example.com/a;pin/4831")!)
 redactor.redact(url: URL(string: "https://h.example;password=hunter2/db")!)
 // https://[redacted]
 redactor.redact(url: URL(string: "myapp://pin/4831")!)
-// myapp://pin
+// myapp://[redacted]
+redactor.redact(url: URL(string: "https://pin-4831.example.com/a")!)
+// https://[redacted]
 ```
 
 ### Limits keep hostile input from exhausting the stack and the time
@@ -617,7 +622,9 @@ the value and shows the name). It does not find card numbers grouped with dots,
 underscores or `+`, split by a line break of the log (a line feed or carriage return), glued to
 ASCII letters or written as a JSON floating-point number, an IBAN
 written in lowercase, or a token split by `/` or `-` into pieces shorter than 32 characters. The value of
-an allowed key is shown, also when it is repeated (`status==…`).
+an allowed key is shown, also when it is repeated (`status==…`). A URL host that names no secret
+is shown, so a secret written as a label of such a host (`https://hunter2.example.com/a`) shows,
+and so does a short value in a path that looks ordinary (`/reset/abc123`).
 
 Where it cannot tell, it hides more than it has to, on purpose: over-hiding is by design. It hides
 everything after the first key that is not allowed (`Error: connection refused` hides

@@ -68,8 +68,9 @@ import Foundation
 /// (`label=Password&value=…`).
 ///
 /// URLs are read with `URLComponents` (see ``redact(url:)``); a host that is not a name of ASCII
-/// labels or an address, or in which a value detector finds something, is written as
-/// `[redacted]` after the scheme. ``redact(body:contentType:)`` reads JSON, form, multipart and
+/// labels or an address, in which a value detector finds something, or that names a secret
+/// (`myapp://pin/4831`, `https://pin-4831.example.com`), is written as `[redacted]` after the
+/// scheme. ``redact(body:contentType:)`` reads JSON, form, multipart and
 /// plain-text bodies of up to ``maximumBodySize`` bytes; a body it cannot parse completely is
 /// omitted, and so is one that a common server parser could split into fields differently, such
 /// as a multipart body with `--boundary` after a bare LF or a form with a `;`. The name of a
@@ -172,6 +173,8 @@ public struct SensitiveDataRedactor: Sendable {
         /// an escape, a long word), the hosts, query values and path segments that ``redact(url:)``
         /// hides by its URL rules, and the password in `user:password@host` in text.
         /// ``redact(url:)`` drops a URL's user name, password and fragment with or without it.
+        /// A set of kinds without it hides no value by its name: `{"password":"hunter2"}`,
+        /// `login password=hunter2` and a URL with a password in free text are written as they are.
         public static let secretFields = Kinds(rawValue: 1 << 4)
         /// International bank account numbers that pass the mod-97 check.
         public static let ibans = Kinds(rawValue: 1 << 5)
@@ -248,7 +251,8 @@ public struct SensitiveDataRedactor: Sendable {
     /// Creates a redactor.
     ///
     /// - Parameters:
-    ///   - kinds: The kinds of data to look for; all of them by default.
+    ///   - kinds: The kinds of data to look for; all of them by default. Leave
+    ///     ``Kinds/secretFields`` in: without it no value is hidden by its name.
     ///   - allowedTextKeys: Keys after which free text is read on, in addition to
     ///     ``defaultAllowedTextKeys``. A key that is not plain ASCII or names a secret is ignored.
     ///   - allowedQueryParameters: Query parameters whose values ``redact(url:)`` keeps; free

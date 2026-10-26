@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
+<!-- i18n-source: README.md@8770ba5239dc7faa0f5eaee29eed587ef18129f9 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -59,7 +59,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 589 теста
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 605 тестов
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -306,10 +306,11 @@ multipart после одиночного перевода строки или �
 Поле, у которого имя записано в одном месте, а значение в другом, как в
 `{"name":"X-Api-Key","value":…}`, в операции JSON Patch или SCIM над `/password` или в
 `[["Authorization","…"]]`, скрывается со всем значением, если имя секретное или не состоит из
-простого ASCII. Хост URL, который не является ни именем из меток ASCII, ни адресом, или содержит
-номер карты или токен, записывается как `scheme://[redacted]`, а имя заголовка части multipart
-записывается, только если это один из заголовков, которые несёт часть. URL, в котором больше 64
-сегментов пути или 128 параметров, хост называет секрет (`myapp://pin/4831`, где хост — `pin`)
+простого ASCII. Хост URL, который не является ни именем из меток ASCII, ни адресом, содержит
+номер карты или токен либо называет секрет (`myapp://pin/4831`, где хост — `pin`; значение может
+быть и в самом хосте, как в `https://pin-4831.example.com`), записывается как `scheme://[redacted]`
+без порта, пути и query, а имя заголовка части multipart записывается, только если это один из
+заголовков, которые несёт часть. URL, в котором больше 64 сегментов пути или 128 параметров
 или путь, который серверы разрешают по-разному (точечный
 сегмент, как в `/pin/./4831`, `;`, как в `/a;pin/4831`, экранированные `.`, `/`, `\`, `;`
 или `%`), записывается только как схема и хост, а у адреса электронной

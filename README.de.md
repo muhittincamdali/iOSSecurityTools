@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@9a6d848e81f4da47c2f0ca28c8f310f212d48f08 status=reviewed -->
+<!-- i18n-source: README.md@8770ba5239dc7faa0f5eaee29eed587ef18129f9 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  589 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  605 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -310,11 +310,12 @@ die Laufzeit begrenzt; Text jenseits dieses Budgets wird ganz geschwärzt.
 Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wie in
 `{"name":"X-Api-Key","value":…}`, in einer JSON-Patch- oder SCIM-Operation auf `/password` oder in
 `[["Authorization","…"]]`, wird mit seinem ganzen Wert geschwärzt, wenn der Name geheim oder kein
-reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse ist oder eine
-Kartennummer oder ein Token enthält, wird als `scheme://[redacted]` geschrieben, und der Name eines
+reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse ist, eine
+Kartennummer oder ein Token enthält oder einen geheimen Namen nennt (`myapp://pin/4831`, dessen
+Host `pin` ist; der Wert kann im Host selbst stehen, wie in `https://pin-4831.example.com`), wird als
+`scheme://[redacted]` ohne Port, Pfad und Query geschrieben, und der Name eines
 Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Eine URL mit mehr als 64 Pfadsegmenten
-oder 128 Parametern, mit einem Host, der einen geheimen Namen nennt (`myapp://pin/4831`, dessen
-Host `pin` ist), oder mit einem Pfad, den Server unterschiedlich auflösen (ein
+oder 128 Parametern oder mit einem Pfad, den Server unterschiedlich auflösen (ein
 Punktsegment wie in `/pin/./4831`, ein `;` wie in `/a;pin/4831`, ein maskiertes `.`, `/`, `\`, `;`
 oder `%`), wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
 jeder Schrift nur den ersten Buchstaben ihres Namens (`ayşe.yılmaz@gmail.com` wird zu

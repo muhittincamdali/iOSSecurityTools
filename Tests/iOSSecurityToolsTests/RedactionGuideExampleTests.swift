@@ -69,7 +69,7 @@ struct RedactionGuideExampleTests {
         #expect(redactor.redact(url: try #require(URL(string: "https://h.example;password=hunter2/db"))) == "https://[redacted]")
         #expect(redactor.redact(url: try #require(URL(string: "https://example.com/pin/./4831"))) == "https://example.com")
         #expect(redactor.redact(url: try #require(URL(string: "https://example.com/a;pin/4831"))) == "https://example.com")
-        #expect(redactor.redact(url: try #require(URL(string: "myapp://pin/4831"))) == "myapp://pin")
+        #expect(redactor.redact(url: try #require(URL(string: "myapp://pin/4831"))) == "myapp://[redacted]")
         #expect(redactor.redact(url: try #require(URL(string: "https://bob:pw@example.com/users/12345678/reset?code=x#y")))
             == "https://example.com/users/:id/reset?code=[redacted]")
         let body = Data(("{\"a\":\"" + String(repeating: "abc ", count: 70_000) + "\"}").utf8)

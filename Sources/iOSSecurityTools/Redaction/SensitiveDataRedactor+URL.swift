@@ -12,9 +12,14 @@ extension SensitiveDataRedactor {
     ///   brackets, and the value detectors that ``kinds`` turns on find nothing in it (a card number,
     ///   a run of 32 hex digits, a token). Any other host — one with `=`, `;`, `%`, `_` or letters
     ///   outside ASCII, such as `password=hunter2` in `myapp://password=hunter2` — is written as
-    ///   `[redacted]` after the scheme, with nothing after it. A host that names a secret, by the
-    ///   key rule or as a word, is written with the scheme and port only, as the path after it is
-    ///   its value: `myapp://pin/4831` has the host `pin` and is written as `myapp://pin`.
+    ///   `[redacted]` after the scheme, with nothing after it: no port, path or query. With
+    ///   ``Kinds/secretFields`` so is a host that names a secret, by the key rule or as a word,
+    ///   whose value may be written in the host itself (`myapp://password.hunter2`,
+    ///   `https://pin-4831.example.com`), in the port (`myapp://pin:4831`) or in the path after
+    ///   it: with a scheme of the app's own `URLComponents` reads the first part after `//` as the
+    ///   host, so `myapp://pin/4831` has the host `pin` and is written as `myapp://[redacted]`. A
+    ///   host such as `auth.example.com` names `auth` and is hidden whole too, which over-hides
+    ///   on purpose.
     /// - **Query:** a parameter keeps its value only when its name, decoded, is plain ASCII and on
     ///   ``allowedQueryParameters``, which is empty by default; any other value is
     ///   `[redacted]`, and so is a parameter without `=` that is not on the list. A name that is not
@@ -34,10 +39,12 @@ extension SensitiveDataRedactor {
     ///   `.`, `/`, `\`, `;` or `%` (`%2E`, `%2F`, `%5C`, `%3B`, `%25`) — is not written: only the
     ///   scheme, host and port are, as which segment follows a secret name depends on the server.
     ///   Parameters after a `;` are not read at all.
-    /// - With ``URLDetail/hostOnly`` only the scheme, host and port are written.
+    /// - With ``URLDetail/hostOnly`` only the scheme, host and port are written; the host follows
+    ///   the host rule above.
     ///
-    /// The query and path rules above, apart from `?[redacted]` for a query servers could split
-    /// differently, belong to ``Kinds/secretFields``. Without it the URL is read
+    /// The rule for a host that names a secret and the query and path rules above, apart from
+    /// `?[redacted]` for a query servers could split differently, belong to
+    /// ``Kinds/secretFields``. Without it the URL is read
     /// the same way, but only the value detectors that ``kinds`` turns on run: a path segment in
     /// which they find something becomes `:id`, and what they find in a decoded query name or
     /// value is replaced and encoded again (`card=%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2+1111`).
@@ -65,13 +72,16 @@ extension SensitiveDataRedactor {
     /// The URL; one readings table serves its host, every path segment and every parameter.
     private func redacted(_ components: URLComponents, nesting: Nesting, compatibility: CompatibilityText) -> String {
         guard let scheme = components.scheme, let host = components.percentEncodedHost else { return Self.unparsedURL }
-        guard showsHost(host, compatibility: compatibility) else { return scheme + "://" + Self.replacement }
+        let hidesByName = kinds.contains(.secretFields)
+        // A host that names a secret is a key, and its value may be in the host, the port or the
+        // path: none of them is written (`myapp://password.hunter2`, `myapp://pin:4831`).
+        guard showsHost(host, compatibility: compatibility), !(hidesByName && Self.hostNamesSecret(host, compatibility: compatibility)) else {
+            return scheme + "://" + Self.replacement
+        }
         var result = scheme + "://" + host
         if let port = components.port { result += ":\(port)" }
         let path = components.percentEncodedPath
         guard urlDetail == .full, !Self.exceedsLimits(components), !Self.resolvesDifferently(path: path) else { return result }
-        let hidesByName = kinds.contains(.secretFields)
-        if hidesByName, Self.hostNamesSecret(host, compatibility: compatibility) { return result }
         result += hidesByName
             ? redacted(path: path, nesting: nesting, compatibility: compatibility)
             : scanned(path: path, nesting: nesting, compatibility: compatibility)
@@ -105,8 +115,9 @@ extension SensitiveDataRedactor {
     /// Whether a host names a secret, by the key rule (``FieldName/hidesValue(_:)``) or as a word
     /// that makes the path segment after it a value (``FreeTextScanner/mentionsSecret(_:compatibility:)``).
     /// In `myapp://pin/4831` `URLComponents` reads `pin` as the host, so the path after it is
-    /// the value a segment `pin` would label: only the scheme, host and port are written. An
-    /// IPv4 or IPv6 address names nothing.
+    /// the value a segment `pin` would label; in `myapp://password.hunter2` and
+    /// `https://pin-4831.example.com` the value is in the host itself. Such a host is not
+    /// written. An IPv4 or IPv6 address names nothing.
     static func hostNamesSecret(_ host: String, compatibility: CompatibilityText) -> Bool {
         let bytes = Array(host.utf8)
         guard !bytes.isEmpty, !isIPv4Address(bytes), !isIPv6Literal(bytes) else { return false }
