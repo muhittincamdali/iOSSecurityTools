@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@cf4d89a47a7134103f2b2df8a33d41dbf9183291 status=reviewed -->
+<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="CI-Status"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Aktuelle Version: v2.1.1"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Aktuelle Version: v2.1.2"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Unterstützte Plattformen: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Sprachversion: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="Lizenz: MIT"></picture></a>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  605 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  622 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -87,7 +87,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
 Füge sie oben rechts im Fenster in das Suchfeld ein. Lass **Dependency Rule** auf **Up to Next
-Major Version** ab `2.1.1` stehen und klicke auf **Add Package**. Wähle im nächsten Fenster neben
+Major Version** ab `2.1.2` stehen und klicke auf **Add Package**. Wähle im nächsten Fenster neben
 **iOSSecurityTools** das Target deiner App aus und klicke noch einmal auf **Add Package**.
 
 **2. Modul importieren**
@@ -154,7 +154,7 @@ Oder füge es zu den `dependencies` in deiner `Package.swift` hinzu:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.1")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.2")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -306,7 +306,8 @@ anheben, was bis zu etwa 40 Byte Speicher für jedes Byte des Bodys kostet), und
 den Stack begrenzt, den feindliche Eingaben belegen können; ein String, der mehr enthält, wird
 ganz geschwärzt.
 Die in einer Eingabe gefundenen Dokumente lesen zusammen höchstens das Vierfache ihrer Länge, was
-die Laufzeit begrenzt; Text jenseits dieses Budgets wird ganz geschwärzt.
+die Laufzeit begrenzt; Text jenseits dieses Budgets wird ganz geschwärzt, ebenso ungelesen ein
+Text aus 2^28 Skalaren (256 Mi) oder mehr.
 Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wie in
 `{"name":"X-Api-Key","value":…}`, in einer JSON-Patch- oder SCIM-Operation auf `/password` oder in
 `[["Authorization","…"]]`, wird mit seinem ganzen Wert geschwärzt, wenn der Name geheim oder kein
@@ -314,7 +315,10 @@ reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse
 Kartennummer oder ein Token enthält oder einen geheimen Namen nennt (`myapp://pin/4831`, dessen
 Host `pin` ist; der Wert kann im Host selbst stehen, wie in `https://pin-4831.example.com`), wird als
 `scheme://[redacted]` ohne Port, Pfad und Query geschrieben, und der Name eines
-Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Eine URL mit mehr als 64 Pfadsegmenten
+Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Von den Werten der Part-Header werden nur
+`Content-Length` (ein bis zwölf ASCII-Ziffern) und `Content-Transfer-Encoding` (`7bit`, `8bit`,
+`binary`, `base64` oder `quoted-printable`) geschrieben, in dieser Form und nie als freier Text
+gelesen; jeder andere Wert wird `[redacted]`. Eine URL mit mehr als 64 Pfadsegmenten
 oder 128 Parametern oder mit einem Pfad, den Server unterschiedlich auflösen (ein
 Punktsegment wie in `/pin/./4831`, ein `;` wie in `/a;pin/4831`, ein maskiertes `.`, `/`, `\`, `;`
 oder `%`), wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in

@@ -17,7 +17,10 @@ extension SensitiveDataRedactor {
     ///   ways (`a.b` and `a_b`, `pass%77ord` and `password`, `Note` and `note`).
     /// - **Multipart form data**: every part is written again with its field name and its
     ///   `type/subtype`; other part headers show their value only when they are
-    ///   `Content-Length` or `Content-Transfer-Encoding`, and their name only when it is one of
+    ///   `Content-Length` or `Content-Transfer-Encoding`, and then by its shape alone, never read
+    ///   as free text: a length of one to twelve ASCII digits, and `7bit`, `8bit`, `binary`,
+    ///   `base64` or `quoted-printable` in lowercase; any other value is written as
+    ///   `[redacted]` (`Content-Length: 12 hunter2`). They show their name only when it is one of
     ///   the headers a part carries (`Content-ID`, `Content-Description`, `Content-Language`,
     ///   `Content-Location`, `Content-Encoding` and those two): any other name is a key that is not
     ///   allowed, written as `[redacted]`, so a card number or a token in it never shows. A part

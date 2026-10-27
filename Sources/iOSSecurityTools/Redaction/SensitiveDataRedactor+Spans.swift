@@ -2,41 +2,71 @@
 extension SensitiveDataRedactor {
     /// A replacement, in offsets of the original scalars, and the kinds of what it hides. The two
     /// offsets and the kinds are packed into 64 bits, so a span takes 24 bytes, not 40: a megabyte
-    /// of short findings (`a@b.cd `, `1:2@`) holds up to a quarter of a million of them. Every
-    /// text that is read has fewer than 2^28 scalars (see ``maximumTextLength``).
+    /// of short findings (`a@b.cd `, `1:2@`) holds up to a quarter of a million of them. A text
+    /// longer than ``maximumTextLength`` is hidden before any span is made for it.
+    ///
+    /// A span that hides a whole text holds no offsets (see ``wholeText(kind:)``), and an offset
+    /// that does not fit in 28 bits makes one: masked to 28 bits, the span that was to hide a text
+    /// of 2^28 + 99 scalars ended at 99 and left the rest of the text written.
     struct Span {
-        var replacement: String
-        /// The start in the low 28 bits, the end in the next 28 and the kinds in the top 8.
-        private var packed: UInt64
+        let replacement: String
+        /// The start in the low 28 bits, the end in the next 28, the kinds in the next 7 and, in
+        /// the top bit, whether the span hides the whole text.
+        private let packed: UInt64
 
+        /// The scalars from `start` to `end`, written as `replacement`; the whole text, written as
+        /// ``SensitiveDataRedactor/replacement``, when an offset is not one a span holds.
         init(start: Int, end: Int, kind: Kinds, replacement: String) {
+            guard Self.offsets.contains(start), Self.offsets.contains(end) else {
+                self.init(wholeTextOf: kind)
+                return
+            }
+            self.init(packed: UInt64(start) | UInt64(end) << 28 | Self.bits(of: kind), replacement: replacement)
+        }
+
+        private init(wholeTextOf kind: Kinds) {
+            self.init(packed: Self.wholeTextBit | Self.bits(of: kind), replacement: SensitiveDataRedactor.replacement)
+        }
+
+        private init(packed: UInt64, replacement: String) {
+            self.packed = packed
             self.replacement = replacement
-            packed = Self.offset(start) | Self.offset(end) << 28 | UInt64(UInt8(truncatingIfNeeded: kind.rawValue)) << 56
         }
 
-        private static let offsetMask: UInt64 = (1 << 28) - 1
+        /// A span that hides the whole text it is found in, however long: ``replacing(_:in:)``
+        /// writes ``SensitiveDataRedactor/replacement`` alone for a text with one, and
+        /// ``matches(in:)`` one match of the whole text. It starts at 0 and ends past every
+        /// offset, so ``merged(_:)`` joins every other span into it.
+        static func wholeText(kind: Kinds) -> Span { Span(wholeTextOf: kind) }
 
-        private static func offset(_ value: Int) -> UInt64 {
-            UInt64(clamping: value) & offsetMask
+        /// The offsets a span holds: 0 to 2^28 − 1.
+        static let offsets = 0...(1 << 28) - 1
+
+        private static let offsetMask = UInt64(offsets.upperBound)
+        /// The seven kinds of ``Kinds/all``.
+        private static let kindMask: UInt64 = 0x7F
+        private static let wholeTextBit: UInt64 = 1 << 63
+
+        private static func bits(of kind: Kinds) -> UInt64 {
+            (UInt64(truncatingIfNeeded: kind.rawValue) & kindMask) << 56
         }
 
-        var start: Int {
-            get { Int(packed & Self.offsetMask) }
-            set { packed = packed & ~Self.offsetMask | Self.offset(newValue) }
-        }
+        /// Whether the span hides the whole text it is found in (see ``wholeText(kind:)``).
+        var hidesWholeText: Bool { packed & Self.wholeTextBit != 0 }
 
-        var end: Int {
-            get { Int(packed >> 28 & Self.offsetMask) }
-            set { packed = packed & ~(Self.offsetMask << 28) | Self.offset(newValue) << 28 }
-        }
+        var start: Int { hidesWholeText ? 0 : Int(packed & Self.offsetMask) }
 
-        var kind: Kinds { Kinds(rawValue: Int(packed >> 56)) }
+        var end: Int { hidesWholeText ? .max : Int(packed >> 28 & Self.offsetMask) }
+
+        var kind: Kinds { Kinds(rawValue: Int(packed >> 56 & Self.kindMask)) }
     }
 
     /// The scalars with every span replaced; `spans` are in order and do not overlap. The UTF-8 of
     /// the output is counted first and written once into the string, so the output is never held
-    /// twice.
+    /// twice. A span that ends past the scalars — one that hides the whole text, or one made for
+    /// another text — hides all of them: the output is ``replacement`` alone.
     static func replacing(_ spans: [Span], in scalars: [Unicode.Scalar]) -> String {
+        guard spans.allSatisfy({ $0.end <= scalars.count }) else { return replacement }
         // Appending to a String.UnicodeScalarView piece by piece copies what is already there,
         // which made many matches take quadratic time.
         func utf8Count(_ range: Range<Int>) -> Int {

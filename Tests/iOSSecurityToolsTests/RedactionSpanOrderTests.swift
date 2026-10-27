@@ -83,9 +83,9 @@ struct RedactionSpanOrderTests {
         #expect(span.end == 7)
         #expect(span.kind == .all)
         #expect(MemoryLayout<Span>.stride == 24)
-        var moved = span
-        moved.start = 3
-        moved.end = SensitiveDataRedactor.maximumTextLength
-        #expect(moved.start == 3 && moved.end == SensitiveDataRedactor.maximumTextLength && moved.kind == .all)
+        // The top bit marks a span of the whole text, so the kinds must fit in the seven below it.
+        #expect(SensitiveDataRedactor.Kinds.all.rawValue < 1 << 7)
+        let other = Span(start: 3, end: SensitiveDataRedactor.maximumTextLength, kind: .all, replacement: "x")
+        #expect(other.start == 3 && other.end == SensitiveDataRedactor.maximumTextLength && other.kind == .all && !other.hidesWholeText)
     }
 }

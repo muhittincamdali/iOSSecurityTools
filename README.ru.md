@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@cf4d89a47a7134103f2b2df8a33d41dbf9183291 status=reviewed -->
+<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ru-light.svg" alt="iOSSecurityTools: Связка ключей, шифрование, пиннинг, одноразовые коды и проверки целостности для приложений Apple."></picture></p>
@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="Статус CI"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Последняя версия: v2.1.1"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Последняя версия: v2.1.2"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Поддерживаемые платформы: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Версия языка: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="Лицензия: MIT"></picture></a>
@@ -59,7 +59,7 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
 - **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
   хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 605 тестов
+  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 622 теста
   Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
   примера приложения.
 
@@ -87,7 +87,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
 Вставьте его в поле поиска в правом верхнем углу окна. Оставьте **Dependency Rule** в значении
-**Up to Next Major Version** начиная с `2.1.1` и нажмите **Add Package**. В следующем окне выберите
+**Up to Next Major Version** начиная с `2.1.2` и нажмите **Add Package**. В следующем окне выберите
 таргет вашего приложения рядом с **iOSSecurityTools** и ещё раз нажмите **Add Package**.
 
 **2. Импортируйте модуль**
@@ -152,7 +152,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.1")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.2")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -302,7 +302,8 @@ multipart после одиночного перевода строки или �
 строк, что ограничивает стек, который может занять враждебный ввод; строка, в которой их больше,
 скрывается целиком.
 Документы, найденные внутри одного ввода, вместе читают не больше четырёх его длин, что
-ограничивает время; текст сверх этого бюджета скрывается целиком.
+ограничивает время; текст сверх этого бюджета скрывается целиком, как и, без чтения, текст из 2^28
+скаляров (256 Mi) и более.
 Поле, у которого имя записано в одном месте, а значение в другом, как в
 `{"name":"X-Api-Key","value":…}`, в операции JSON Patch или SCIM над `/password` или в
 `[["Authorization","…"]]`, скрывается со всем значением, если имя секретное или не состоит из
@@ -310,7 +311,10 @@ multipart после одиночного перевода строки или �
 номер карты или токен либо называет секрет (`myapp://pin/4831`, где хост — `pin`; значение может
 быть и в самом хосте, как в `https://pin-4831.example.com`), записывается как `scheme://[redacted]`
 без порта, пути и query, а имя заголовка части multipart записывается, только если это один из
-заголовков, которые несёт часть. URL, в котором больше 64 сегментов пути или 128 параметров
+заголовков, которые несёт часть. Из значений заголовков части записываются только `Content-Length`
+(от одной до двенадцати цифр ASCII) и `Content-Transfer-Encoding` (`7bit`, `8bit`, `binary`,
+`base64` или `quoted-printable`) — в таком виде, и они никогда не читаются как свободный текст;
+любое другое значение становится `[redacted]`. URL, в котором больше 64 сегментов пути или 128 параметров
 или путь, который серверы разрешают по-разному (точечный
 сегмент, как в `/pin/./4831`, `;`, как в `/a;pin/4831`, экранированные `.`, `/`, `\`, `;`
 или `%`), записывается только как схема и хост, а у адреса электронной

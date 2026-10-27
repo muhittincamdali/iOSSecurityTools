@@ -259,6 +259,8 @@ extension SensitiveDataRedactor {
         guard let decoded = segment.removingPercentEncoding else { return PathSegmentReading(hides: true, isLabel: true) }
         let scalars = Array(decoded.unicodeScalars)
         guard !scalars.isEmpty else { return PathSegmentReading(hides: false, isLabel: false) }
+        // A segment too long to read could hold anything, a secret name among it.
+        guard !hidesUnread(scalarCount: scalars.count) else { return PathSegmentReading(hides: true, isLabel: true) }
         let isIdentifier = UUID(uuidString: decoded) != nil || Self.isIdentifierShaped(scalars)
         guard !Self.isQuietWord(scalars) else { return PathSegmentReading(hides: isIdentifier, isLabel: false) }
         let text = NormalizedText(scalars, compatibility: compatibility)

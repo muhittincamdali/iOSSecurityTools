@@ -5,7 +5,9 @@ import iOSSecurityTools
 /// The required test set of the shared redaction spec (REDACTION-SPEC 2.1-r2, §8), ported to this
 /// package's API: §8.1 keys and bodies (§2, §4) and §8.2 control characters and held names (§2 K11).
 /// Each case is the spec's input and the output this package writes for it (`[R]` is
-/// ``SensitiveDataRedactor/replacement``). The numbers are the spec's.
+/// ``SensitiveDataRedactor/replacement``). The numbers are the spec's. §8.1 #17c, a text past the
+/// reading limit of 2^28 − 1 scalars, is in ``RedactionTextLengthLimitTests``: its texts are made
+/// with a limit lowered for the test, and its spans at the real limit.
 @Suite("Redaction spec §8.1–8.2: keys, bodies and held names")
 struct RedactionSpecSetBodyTests {
     let redactor = SensitiveDataRedactor()
@@ -74,6 +76,20 @@ struct RedactionSpecSetBodyTests {
         let bareLineFeed = "--B0und\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\nhi\n--B0und\r\n"
             + "Content-Disposition: form-data; name=\"pin\"\r\n\r\n4831\r\n--B0und--"
         #expect(redactor.redact(body: Data(bareLineFeed.utf8), contentType: type) == omitted(bareLineFeed, "multipart/form-data"))
+    }
+
+    @Test("§8.1 #17b: the value of a kept part header is written by its shape, not read as free text", arguments: [
+        ("Content-Length: pin-4831", "Content-Length: [redacted]"),
+        ("Content-Length: 12 hunter2", "Content-Length: [redacted]"),
+        ("Content-Length: \u{0661}\u{0662}", "Content-Length: [redacted]"),
+        ("Content-Transfer-Encoding: hunter2", "Content-Transfer-Encoding: [redacted]"),
+        ("Content-Transfer-Encoding: BASE64", "Content-Transfer-Encoding: base64"),
+        ("Content-Length: 1", "Content-Length: 1"),
+    ])
+    func partHeaderValues(header: String, expected: String) {
+        let part = "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\n\(header)\r\n\r\nx\r\n--B0und--"
+        let output = redactor.redact(body: Data(part.utf8), contentType: "multipart/form-data; boundary=B0und")
+        #expect(output.components(separatedBy: "\r\n").dropFirst(2).first == expected, "\(output.debugDescription)")
     }
 
     @Test("§8.1 #19: a content type with a second type is unreadable")

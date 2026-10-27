@@ -212,7 +212,12 @@ about 40 bytes of memory for each byte of the body in the worst shapes, such as 
 63 levels deep. A part header name is a key of the part: the redactor writes it only when it is
 one of the headers a part carries (`Content-Length`, `Content-Transfer-Encoding`, `Content-ID`,
 `Content-Description`, `Content-Language`, `Content-Location`, `Content-Encoding`), and
-`[redacted]` otherwise, so a card number or a token in a header name never shows:
+`[redacted]` otherwise, so a card number or a token in a header name never shows. Only the values
+of `Content-Length` and `Content-Transfer-Encoding` are written, by their shape, and they are not
+read as free text, where a value that no rule finds would show: a length of one to twelve ASCII
+digits as it is, and `7bit`, `8bit`, `binary`, `base64` or `quoted-printable` in lowercase. Any
+other value is `[redacted]`, such as `Content-Length: 12 hunter2`, a card number written as a
+length or `Content-Transfer-Encoding: hunter2`:
 
 ```swift
 redactor.redact(body: Data(#"{"user":"bob","password":"hunter2"}"#.utf8), contentType: "application/json")
@@ -223,6 +228,9 @@ let part = "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\nX-411111111
     + "Content-Length: 1\r\n\r\nx\r\n--B0und--"
 redactor.redact(body: Data(part.utf8), contentType: "multipart/form-data; boundary=B0und")
 // "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\n[redacted]: [redacted]\r\nContent-Length: 1\r\n\r\nx\r\n--B0und--"
+let length = "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\nContent-Length: 12 hunter2\r\n\r\nx\r\n--B0und--"
+redactor.redact(body: Data(length.utf8), contentType: "multipart/form-data; boundary=B0und")
+// "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\nContent-Length: [redacted]\r\n\r\nx\r\n--B0und--"
 ```
 
 A body is also omitted when a common server parser — PHP, Werkzeug (Flask), Rack, Go or busboy —
@@ -313,6 +321,10 @@ stack and the time that a log line or body from an attacker can use:
 
 - A body larger than ``SensitiveDataRedactor/maximumBodySize`` (256 KiB by default) is omitted
   unread.
+- A text longer than 2^28 − 1 scalars (256 Mi) is hidden whole, unread: a log line passed to
+  ``SensitiveDataRedactor/redact(_:)`` becomes `[redacted]` alone and is one match of
+  ``SensitiveDataRedactor/matches(in:)``, a URL query value `[redacted]` and a path segment
+  `:id`, with the segment after it. No offset of such a text is kept, so none can be cut short.
 - JSON objects and arrays may be open 64 levels deep in all, counting the levels of every
   document a JSON string is in: JSON in a string inside one object may open 63 more.
 - At most four documents are read one inside another. A JSON text, a URL, a body and a multipart
