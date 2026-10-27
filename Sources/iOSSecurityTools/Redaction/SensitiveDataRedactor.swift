@@ -74,7 +74,8 @@ import Foundation
 /// plain-text bodies of up to ``maximumBodySize`` bytes; a body it cannot parse completely is
 /// omitted, and so is one that a common server parser could split into fields differently, such
 /// as a multipart body with `--boundary` after a bare LF or a form with a `;`. The name of a
-/// multipart part header is written only when it is one of the headers a part carries.
+/// multipart part header is written only when it is one of the headers a part carries, and a
+/// value only for `Content-Length` and `Content-Transfer-Encoding`, by its shape.
 ///
 /// ## Free text
 ///

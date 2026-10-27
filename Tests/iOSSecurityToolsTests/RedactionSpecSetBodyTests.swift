@@ -76,6 +76,20 @@ struct RedactionSpecSetBodyTests {
         #expect(redactor.redact(body: Data(bareLineFeed.utf8), contentType: type) == omitted(bareLineFeed, "multipart/form-data"))
     }
 
+    @Test("§8.1 #17b: the value of a kept part header is written by its shape, not read as free text", arguments: [
+        ("Content-Length: pin-4831", "Content-Length: [redacted]"),
+        ("Content-Length: 12 hunter2", "Content-Length: [redacted]"),
+        ("Content-Length: \u{0661}\u{0662}", "Content-Length: [redacted]"),
+        ("Content-Transfer-Encoding: hunter2", "Content-Transfer-Encoding: [redacted]"),
+        ("Content-Transfer-Encoding: BASE64", "Content-Transfer-Encoding: base64"),
+        ("Content-Length: 1", "Content-Length: 1"),
+    ])
+    func partHeaderValues(header: String, expected: String) {
+        let part = "--B0und\r\nContent-Disposition: form-data; name=\"a\"\r\n\(header)\r\n\r\nx\r\n--B0und--"
+        let output = redactor.redact(body: Data(part.utf8), contentType: "multipart/form-data; boundary=B0und")
+        #expect(output.components(separatedBy: "\r\n").dropFirst(2).first == expected, "\(output.debugDescription)")
+    }
+
     @Test("§8.1 #19: a content type with a second type is unreadable")
     func contentType() {
         #expect(redactor.redact(body: Data(#"{"a":1}"#.utf8), contentType: "application/json, text/plain") == "[body omitted: 7 bytes, unreadable content type]")

@@ -131,7 +131,7 @@ extension SensitiveDataRedactor {
         return (Self.replacing(spans, in: scalars), kind)
     }
 
-    /// A text inside a document (a form value, a query value, a multipart header), redacted as
+    /// A text inside a document (a form name or value, a query value, a text body), redacted as
     /// free text with the document's nesting and the document's readings table.
     func redact(_ text: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
         let scalars = Array(text.unicodeScalars)
