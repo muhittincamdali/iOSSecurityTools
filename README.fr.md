@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@cf4d89a47a7134103f2b2df8a33d41dbf9183291 status=reviewed -->
+<!-- i18n-source: README.md@b30f471d7d7c5223cfb9cd62afebedbf800271e2 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-fr-light.svg" alt="iOSSecurityTools: Trousseau, chiffrement, pinning, codes à usage unique et contrôles d’intégrité pour les apps Apple."></picture></p>
@@ -62,7 +62,7 @@ dépendance.
 - **Testé face à des entrées hostiles** — vecteurs des RFC 4226, 6238 et 5869, enveloppes et
   hachages produits par une implémentation indépendante, chaînes de certificats d’une PKI de test,
   dates NaN et infinies, `Int.min` et `Int.max`, paramètres d’URI surdimensionnés ou dupliqués :
-  605 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
+  622 tests Swift Testing sur macOS et sur un simulateur d’iPhone, plus les suites de tests du
   trousseau dans l’app d’exemple.
 
 ### Ce qui est inclus
@@ -307,7 +307,7 @@ au prix de jusqu’à environ 40 octets de mémoire pour chaque octet du corps),
 chaînes compris, ce qui borne la pile qu’une entrée hostile peut occuper ; une chaîne qui en
 contient davantage est masquée en entier. Les documents trouvés dans une entrée lisent en tout au
 plus quatre fois sa longueur, ce qui borne le temps ; le texte au-delà de ce budget est masqué en
-entier.
+entier, tout comme, sans être lu, un texte de 2^28 scalaires (256 Mi) ou plus.
 Un champ dont le nom est à un endroit et la valeur à un autre, comme dans
 `{"name":"X-Api-Key","value":…}`, dans une opération JSON Patch ou SCIM sur `/password` ou dans
 `[["Authorization","…"]]`, a sa valeur masquée en entier quand le nom est secret ou n’est pas en
@@ -315,7 +315,10 @@ ASCII simple. Un hôte d’URL qui n’est ni un nom fait de libellés ASCII ni 
 un numéro de carte ou un jeton, ou qui nomme un secret, la valeur pouvant se trouver dans l’hôte
 lui-même (`myapp://pin/4831`, dont l’hôte est `pin`, ou `https://pin-4831.example.com`) est écrit `scheme://[redacted]`,
 sans port, chemin ni query, et le nom d’un en-tête de partie multipart n’est écrit que s’il fait
-partie de ceux qu’une partie porte. Une URL de plus de 64 segments de chemin ou de 128 paramètres,
+partie de ceux qu’une partie porte. Des valeurs des en-têtes de partie, seules celles de
+`Content-Length` (un à douze chiffres ASCII) et de `Content-Transfer-Encoding` (`7bit`, `8bit`,
+`binary`, `base64` ou `quoted-printable`) sont écrites, sous cette forme et sans jamais être lues
+comme texte libre ; toute autre valeur devient `[redacted]`. Une URL de plus de 64 segments de chemin ou de 128 paramètres,
 ou dont le chemin est résolu différemment selon les
 serveurs (un segment point comme dans `/pin/./4831`, un `;` comme dans `/a;pin/4831`, un `.`, `/`,
 `\`, `;` ou `%` échappé), n’est enregistrée qu’avec son schéma et son hôte, et une

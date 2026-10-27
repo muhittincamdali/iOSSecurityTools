@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@cf4d89a47a7134103f2b2df8a33d41dbf9183291 status=reviewed -->
+<!-- i18n-source: README.md@b30f471d7d7c5223cfb9cd62afebedbf800271e2 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -61,7 +61,7 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
 - **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
   gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
   sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 605 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
+  ve bir iPhone simülatöründe 622 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
   keychain test setleri.
 
 ### Pakette neler var
@@ -306,14 +306,18 @@ da sayılarak en fazla 64 nesne ve dizi derinliğinde ve iç içe en fazla dört
 böylece kötü niyetli bir girdinin kullanabileceği yığın sınırlı kalır; daha fazlasını içeren bir
 dize bütünüyle maskelenir.
 Bir girdinin içinde bulunan belgeler toplamda en fazla girdinin dört katı uzunluğunda okunur; bu
-süreyi de sınırlar ve bu bütçenin ötesindeki metin bütünüyle maskelenir.
+süreyi de sınırlar ve bu bütçenin ötesindeki metin bütünüyle maskelenir; 2^28 skaler (256 Mi) ya da
+daha uzun bir metin de okunmadan bütünüyle maskelenir.
 Adı bir yerde, değeri başka bir yerde duran bir alanın — `{"name":"X-Api-Key","value":…}`,
 `/password` üzerinde bir JSON Patch ya da SCIM işlemi veya `[["Authorization","…"]]` — adı gizliyse
 ya da düz ASCII değilse değeri bütünüyle maskelenir. ASCII etiketlerinden oluşan bir ad ya da bir
 adres olmayan, bir kart numarası ya da token taşıyan veya gizli bir ad anan (`myapp://pin/4831`;
 burada host `pin`'dir; ya da değeri host'un kendisinde taşıyan `https://pin-4831.example.com`) bir
 URL host'u port, yol ve query olmadan `scheme://[redacted]` olarak yazılır; bir multipart
-parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse yazılır. 64'ten fazla
+parçasının başlık adı ise yalnız parçaların taşıdığı başlıklardan biriyse yazılır. Parça
+başlıklarının değerlerinden yalnız `Content-Length` (bir ile on iki arası ASCII rakam) ve
+`Content-Transfer-Encoding` (`7bit`, `8bit`, `binary`, `base64` ya da `quoted-printable`) bu
+biçimiyle yazılır ve hiçbir zaman serbest metin olarak okunmaz; başka her değer `[redacted]` olur. 64'ten fazla
 yol bölümü ya da 128'den fazla parametresi olan ya da yolunu sunucuların farklı çözebileceği (`/pin/./4831` gibi bir nokta
 bölümü, `/a;pin/4831` gibi bir `;`, kaçışlı `.`, `/`, `\`, `;` ya da
 `%`) bir URL yalnız şeması ve host'u ile kaydedilir;

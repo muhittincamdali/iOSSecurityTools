@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@cf4d89a47a7134103f2b2df8a33d41dbf9183291 status=reviewed -->
+<!-- i18n-source: README.md@b30f471d7d7c5223cfb9cd62afebedbf800271e2 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-de-light.svg" alt="iOSSecurityTools: Schlüsselbund, Verschlüsselung, Pinning, Einmalcodes und Integritätsprüfungen für Apple-Apps."></picture></p>
@@ -60,7 +60,7 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
 - **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
   und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
   und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  605 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
+  622 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
   Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
@@ -306,7 +306,8 @@ anheben, was bis zu etwa 40 Byte Speicher für jedes Byte des Bodys kostet), und
 den Stack begrenzt, den feindliche Eingaben belegen können; ein String, der mehr enthält, wird
 ganz geschwärzt.
 Die in einer Eingabe gefundenen Dokumente lesen zusammen höchstens das Vierfache ihrer Länge, was
-die Laufzeit begrenzt; Text jenseits dieses Budgets wird ganz geschwärzt.
+die Laufzeit begrenzt; Text jenseits dieses Budgets wird ganz geschwärzt, ebenso ungelesen ein
+Text aus 2^28 Skalaren (256 Mi) oder mehr.
 Ein Feld, dessen Name an einer Stelle und dessen Wert an einer anderen steht, wie in
 `{"name":"X-Api-Key","value":…}`, in einer JSON-Patch- oder SCIM-Operation auf `/password` oder in
 `[["Authorization","…"]]`, wird mit seinem ganzen Wert geschwärzt, wenn der Name geheim oder kein
@@ -314,7 +315,10 @@ reines ASCII ist. Ein URL-Host, der kein Name aus ASCII-Labels und keine Adresse
 Kartennummer oder ein Token enthält oder einen geheimen Namen nennt (`myapp://pin/4831`, dessen
 Host `pin` ist; der Wert kann im Host selbst stehen, wie in `https://pin-4831.example.com`), wird als
 `scheme://[redacted]` ohne Port, Pfad und Query geschrieben, und der Name eines
-Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Eine URL mit mehr als 64 Pfadsegmenten
+Multipart-Part-Headers nur dann, wenn ein Part ihn trägt. Von den Werten der Part-Header werden nur
+`Content-Length` (ein bis zwölf ASCII-Ziffern) und `Content-Transfer-Encoding` (`7bit`, `8bit`,
+`binary`, `base64` oder `quoted-printable`) geschrieben, in dieser Form und nie als freier Text
+gelesen; jeder andere Wert wird `[redacted]`. Eine URL mit mehr als 64 Pfadsegmenten
 oder 128 Parametern oder mit einem Pfad, den Server unterschiedlich auflösen (ein
 Punktsegment wie in `/pin/./4831`, ein `;` wie in `/a;pin/4831`, ein maskiertes `.`, `/`, `\`, `;`
 oder `%`), wird nur mit Schema und Host aufgezeichnet, und eine E-Mail-Adresse zeigt in
