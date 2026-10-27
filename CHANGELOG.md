@@ -5,6 +5,58 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - Unreleased
+
+### Security
+
+- `SensitiveDataRedactor.redact(body:contentType:)` in 2.1.1 read the values of a multipart part's
+  `Content-Length` and `Content-Transfer-Encoding` headers as free text, so a value that no rule
+  finds was written as it is: `Content-Length: 12 hunter2`, `Content-Length: hunter2` and
+  `Content-Transfer-Encoding: hunter2` showed, and `Content-Length: pin-4831` was written as
+  `Content-Length: pin[redacted]`. These two values are now written by their shape and never read
+  as free text: a `Content-Length` of one to twelve ASCII digits as it is, and `7bit`, `8bit`,
+  `binary`, `base64` or `quoted-printable` (in any case) in lowercase; any other value is
+  `[redacted]`. Twelve digits is stricter than the `[0-9]+` of the shared redaction spec (section
+  4 B4, 8.1 #17b): a card number written as a length, which 2.1.1 masked as `•••• 1111`, would
+  otherwise show. Header names, the other header values and which parts are read do not change.
+- `redact(_:)` and `matches(in:)` in 2.1.1 did not hide a text longer than 2^28 − 1 scalars
+  (256 Mi) whole, as documented. The span that was to hide it kept its end in 28 bits, masked, so
+  it ended at the length modulo 2^28 and the rest of the text was written: a text of 2^28 + 100
+  scalars ending in `password=hunter2` was written as `[redacted]` followed by its last
+  268,435,456 scalars, the secret included, and was one match of 100 scalars; a text of exactly
+  2^28 scalars was written whole after `[redacted]`. `redact(url:)` did the same for the value of
+  an allowed query parameter that long. Such a text is now `[redacted]` alone and one match of the
+  whole text, and a path segment that long is `:id`, as before, and so is the segment after it; a
+  span whose offsets do not fit hides the whole text instead of being masked. Bodies were not
+  affected: one of 256 MiB or more is omitted before it is read. This is section 8.1 #17c of the
+  shared spec. Only texts of 256 Mi scalars or more are affected.
+
+Both were found after 2.1.1 was released, by checking it against the shared spec as it was
+tightened on 26 October 2026.
+
+#### Known limitations
+
+The three limitations listed under 2.1.0 are not changed in 2.1.2:
+[#22](https://github.com/muhittincamdali/iOSSecurityTools/issues/22) and
+[#24](https://github.com/muhittincamdali/iOSSecurityTools/issues/24) hide more than they need to,
+and [#23](https://github.com/muhittincamdali/iOSSecurityTools/issues/23) shows the values of keys
+such as `tokenvalue`, `secretvalue` and `dbpw`; mark such properties with `@Redacted`.
+
+### Changed
+
+- A part header value that 2.1.1 wrote after reading it as free text is now `[redacted]` unless it
+  has one of the two shapes: an empty value, a length with a sign, a unit or more than twelve
+  digits, and an encoding such as `x-uuencode`. `Content-Transfer-Encoding: BASE64` is written as
+  `base64`.
+
+### Fixed
+
+- The logging guide says which part header values are written and how, and names the longest text
+  that is read.
+- The test suite holds the shared spec's new required cases 8.1 #17b (in
+  `RedactionSpecSetBodyTests`) and #17c (in `RedactionTextLengthLimitTests`, at the real limit and
+  with a lower limit that a test can reach), and `RedactionPartHeaderValueTests`.
+
 ## [2.1.1] - 2026-10-26
 
 ### Security
@@ -753,6 +805,7 @@ No 1.0.0 API remains.
 First tagged release: encryption, keychain, authentication and monitoring managers. Replaced by
 2.0.0.
 
+[2.1.2]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.1...HEAD
 [2.1.1]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v1.0.0...v2.0.0
