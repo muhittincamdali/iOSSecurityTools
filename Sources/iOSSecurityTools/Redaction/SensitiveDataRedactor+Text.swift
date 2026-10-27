@@ -3,7 +3,7 @@ extension SensitiveDataRedactor {
     /// the text is in; a text inside one whose JSON or URL goes past a limit is one finding.
     func textSpans(in scalars: [Unicode.Scalar], compatibility: CompatibilityText, role: FreeTextScanner.Role = .text, nesting: Nesting) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty, !Self.isQuietWord(scalars) else { return [] }
-        guard scalars.count <= Self.maximumTextLength else { return [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)] }
+        guard !hidesUnread(scalarCount: scalars.count) else { return [.wholeText(kind: .secretFields)] }
         // With the free-text rule the text is cut at the first scalar outside the safe alphabet
         // at the latest, so the copy is made only as far as the scan and the detectors read.
         let extent: NormalizedText.Extent = kinds.contains(.secretFields) ? .scanned : .whole
@@ -15,8 +15,9 @@ extension SensitiveDataRedactor {
     /// With `detectsInRegions` the value detectors also read the JSON and URLs in the text, which
     /// a path segment needs: a URL in one keeps its host, and a token in the host must still make
     /// the segment `:id`. A text inside a document found in the input that the reading budget no
-    /// longer covers (see ``ReadingBudget``) is one finding, and so is a text longer than
-    /// ``maximumTextLength``, whose offsets the scanning copy cannot hold.
+    /// longer covers (see ``ReadingBudget``) is hidden whole, and so is a text longer than
+    /// ``textLengthLimit``, whose offsets no span could hold; each is one span of the whole text
+    /// (see ``Span/wholeText(kind:)``), which holds no offsets.
     ///
     /// The free-text rule cuts the text at its first trigger (see ``FreeTextScanner``): what comes
     /// before the cut keeps the findings of the JSON, URLs and value detectors in it, and the cut
@@ -26,8 +27,8 @@ extension SensitiveDataRedactor {
         nesting: Nesting, detectsInRegions: Bool = false
     ) -> [Span] {
         guard !scalars.isEmpty, !kinds.isEmpty else { return [] }
-        let whole = [Span(start: 0, end: scalars.count, kind: .secretFields, replacement: Self.replacement)]
-        guard scalars.count <= Self.maximumTextLength else { return whole }
+        let whole = [Span.wholeText(kind: .secretFields)]
+        guard !hidesUnread(scalarCount: scalars.count) else { return whole }
         guard kinds.contains(.secretFields) else { return Self.merged(detectorSpans(in: text)) }
         guard nesting.reads(scalars.count) else { return whole }
         var scanner = FreeTextScanner(source: scalars, text: text, redactor: self, compatibility: compatibility, role: role, nesting: nesting)
@@ -56,8 +57,22 @@ extension SensitiveDataRedactor {
     }
 
     /// The longest text that is read: one whose scalar offsets fit in the 28 bits a ``Span`` keeps
-    /// them in, 256 Mi scalars. A longer one is hidden whole, and a longer body is omitted.
-    static let maximumTextLength = (1 << 28) - 1
+    /// them in, 2^28 − 1 scalars. A longer one is hidden whole, and a longer body is omitted.
+    static let maximumTextLength = Span.offsets.upperBound
+
+    /// Whether a text of `scalarCount` scalars is hidden whole without being read: it is longer
+    /// than ``textLengthLimit`` and the redactor looks for something. Every text read as free
+    /// text or as a path segment, wherever it is, is checked here before a span or a scanning copy
+    /// is made for it.
+    func hidesUnread(scalarCount: Int) -> Bool {
+        !kinds.isEmpty && scalarCount > textLengthLimit
+    }
+
+    /// ``hidesUnread(scalarCount:)`` for a text whose scalars are not yet copied. A text has no
+    /// more scalars than UTF-8 bytes, so most texts are passed without counting their scalars.
+    func hidesUnread(_ text: String) -> Bool {
+        text.utf8.count > textLengthLimit && hidesUnread(scalarCount: text.unicodeScalars.count)
+    }
 
     /// The findings that run over the edge of a JSON or URL region, hidden whole. A URL ends
     /// before the punctuation that ends a sentence, so `…?q=eyJ….eyJ….` keeps the dot of an
@@ -132,8 +147,10 @@ extension SensitiveDataRedactor {
     }
 
     /// A text inside a document (a form name or value, a query value, a text body), redacted as
-    /// free text with the document's nesting and the document's readings table.
+    /// free text with the document's nesting and the document's readings table. A text longer
+    /// than ``textLengthLimit`` is ``replacement`` before its scalars are copied.
     func redact(_ text: String, nesting: Nesting, compatibility: CompatibilityText) -> String {
+        guard !hidesUnread(text) else { return Self.replacement }
         let scalars = Array(text.unicodeScalars)
         let spans = textSpans(in: scalars, compatibility: compatibility, nesting: nesting)
         return spans.isEmpty ? text : Self.replacing(spans, in: scalars)

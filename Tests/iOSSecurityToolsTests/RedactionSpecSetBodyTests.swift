@@ -5,7 +5,9 @@ import iOSSecurityTools
 /// The required test set of the shared redaction spec (REDACTION-SPEC 2.1-r2, §8), ported to this
 /// package's API: §8.1 keys and bodies (§2, §4) and §8.2 control characters and held names (§2 K11).
 /// Each case is the spec's input and the output this package writes for it (`[R]` is
-/// ``SensitiveDataRedactor/replacement``). The numbers are the spec's.
+/// ``SensitiveDataRedactor/replacement``). The numbers are the spec's. §8.1 #17c, a text past the
+/// reading limit of 2^28 − 1 scalars, is in ``RedactionTextLengthLimitTests``: its texts are made
+/// with a limit lowered for the test, and its spans at the real limit.
 @Suite("Redaction spec §8.1–8.2: keys, bodies and held names")
 struct RedactionSpecSetBodyTests {
     let redactor = SensitiveDataRedactor()

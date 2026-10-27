@@ -153,7 +153,8 @@ import Foundation
 /// next line that is not blank, the readings of characters outside ASCII are cached in a table of
 /// fixed size, and the value detectors look only before the cut and each finding takes 24 bytes:
 /// a megabyte of it takes less than 16 MB more memory, also when it is dense with findings or
-/// nearly every character in it is a different one, and a body of 256 KiB less than 16 MB. Free text of 256 Mi scalars or more is hidden whole, and a body of 256 MiB or
+/// nearly every character in it is a different one, and a body of 256 KiB less than 16 MB. Free text of 256 Mi scalars or more is hidden whole without
+/// being read, as a log line, a URL query value or a path segment, and a body of 256 MiB or
 /// more is omitted, whatever ``maximumBodySize`` says.
 public struct SensitiveDataRedactor: Sendable {
     /// The kinds of data to look for.
@@ -249,6 +250,12 @@ public struct SensitiveDataRedactor: Sendable {
     /// bytes for each byte of the body, so a limit of 1 MiB can take 40 MB.
     public let maximumBodySize: Int
 
+    /// The longest text that is read, in scalars: ``maximumTextLength`` (2^28 − 1). A longer text
+    /// — a log line, a string, a form or query value, a path segment — is hidden whole without
+    /// being read. Only tests make a redactor with a shorter limit (see
+    /// ``init(_:textLengthLimit:)``), since a text past the real one takes more than a gigabyte.
+    let textLengthLimit: Int
+
     /// Creates a redactor.
     ///
     /// - Parameters:
@@ -270,15 +277,27 @@ public struct SensitiveDataRedactor: Sendable {
         self.allowedQueryParameters = Self.allowableFolds(allowedQueryParameters)
         self.urlDetail = urlDetail
         self.maximumBodySize = maximumBodySize
+        textLengthLimit = Self.maximumTextLength
     }
 
-    /// A redactor with the allowlists and URL detail of `other` that looks for `kinds`.
+    /// A redactor with the allowlists, URL detail and limits of `other` that looks for `kinds`.
     init(_ other: SensitiveDataRedactor, kinds: Kinds) {
+        self.init(other, kinds: kinds, textLengthLimit: other.textLengthLimit)
+    }
+
+    /// A redactor like `other` that reads texts of at most `textLengthLimit` scalars, which is
+    /// held to 0 through ``maximumTextLength``: for tests of what is written for a longer text.
+    init(_ other: SensitiveDataRedactor, textLengthLimit: Int) {
+        self.init(other, kinds: other.kinds, textLengthLimit: min(max(textLengthLimit, 0), Self.maximumTextLength))
+    }
+
+    private init(_ other: SensitiveDataRedactor, kinds: Kinds, textLengthLimit: Int) {
         self.kinds = kinds
         self.allowedTextKeys = other.allowedTextKeys
         self.allowedQueryParameters = other.allowedQueryParameters
         self.urlDetail = other.urlDetail
         self.maximumBodySize = other.maximumBodySize
+        self.textLengthLimit = textLengthLimit
     }
 
     private static func allowableFolds(_ names: [String]) -> Set<String> {
@@ -409,13 +428,15 @@ public struct SensitiveDataRedactor: Sendable {
         return redact(text, nesting: .text(length: length), compatibility: CompatibilityText(length: length))
     }
 
-    /// Returns the sensitive data found in a text, in order, without overlaps.
+    /// Returns the sensitive data found in a text, in order, without overlaps. A text that
+    /// ``redact(_:)`` hides whole, such as one of 2^28 scalars or more, is one match of all of it.
     public func matches(in text: String) -> [Match] {
-        var spans = {
+        var spans = hidesUnread(text) ? [Span.wholeText(kind: .secretFields)] : {
             let scalars = Array(text.unicodeScalars)
             return textSpans(in: scalars, compatibility: CompatibilityText(length: scalars.count), nesting: .text(length: scalars.count))
         }()
         spans.removeAll { $0.kind.isEmpty }
+        if let whole = spans.first(where: \.hidesWholeText) { return [Match(kind: whole.kind, range: text.startIndex..<text.endIndex)] }
         // The spans are in order and do not overlap, so one walk through the scalars finds the
         // index of each start and end; no index is kept for any other scalar.
         let view = text.unicodeScalars
