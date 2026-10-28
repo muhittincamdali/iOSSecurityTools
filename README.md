@@ -23,8 +23,9 @@
 <!-- brand:end -->
 
 A Swift package of security building blocks for apps on iOS, macOS, tvOS, watchOS and
-visionOS: keychain storage, authenticated encryption, PIN hashes, Secure Enclave keys,
-certificate pinning, one-time passwords, device integrity checks and log redaction. It is for
+visionOS: keychain storage, authenticated encryption, public-key encryption, signatures, signed
+tokens (JWT), PIN hashes, Secure Enclave keys, certificate pinning, one-time passwords, device
+integrity checks and log redaction. It is for
 app developers who need these pieces done correctly without studying the Security framework's
 C APIs. Each type validates what it is given and throws a typed error instead of crashing, so
 values from a QR code, a server or a file cannot trap the app. The package has no dependencies.
@@ -37,6 +38,13 @@ values from a QR code, a server or a file cannot trap the app. The package has n
 - **Encryption that detects tampering** — `DataCipher` writes AES-256-GCM or ChaCha20-Poly1305
   envelopes that carry their own version, algorithm and nonce; any changed byte, wrong key or
   wrong associated data fails decryption. HKDF, PBKDF2 and PHC-format PIN hashes come with it.
+- **End-to-end encryption without a shared secret** — `PublicKeyCipher` seals data to a device's
+  public key with HPKE (RFC 9180), so a server or another user can send what only that device
+  opens; `SigningKey` and `VerifyingKey` sign and check data with Ed25519 or P-256 keys read from
+  raw bytes, DER or PEM.
+- **Tokens checked before they are trusted** — `JWTVerifier` takes the algorithm from its key, so
+  `none` and `HS256`-with-a-public-key tokens fail before anything is read, and checks the
+  signature, `exp`, `nbf`, `iss` and `aud`; `JWTSigner` issues tokens with the same keys.
 - **Pinning that does not lock users out** — `PinningPolicy` requires a backup pin, supports
   subdomains, expiration dates and a report-only mode, and still requires the system's own trust
   evaluation to pass.
@@ -50,17 +58,21 @@ values from a QR code, a server or a file cannot trap the app. The package has n
   form and multipart bodies are parsed, and unparsed bodies are omitted, as are bodies that a
   server could split into fields differently. Free text is cut at its first trigger: a character
   outside a safe alphabet, an escape, a long word, a key it does not allow or a secret name.
-- **Tested against hostile input** — RFC 4226, 6238 and 5869 vectors, envelopes and hashes made by
-  an independent implementation, certificate chains from a test PKI, NaN and infinite dates,
-  `Int.min` and `Int.max`, oversized and duplicated URI parameters: 622 Swift Testing tests on
-  macOS and an iPhone simulator, plus the keychain suites inside the example app.
+- **Tested against hostile input** — RFC 4226, 6238, 5869, 7748, 8032 and 4231 vectors,
+  envelopes, hashes, signatures and tokens made by an independent implementation, certificate
+  chains from a test PKI, NaN and infinite dates, `Int.min` and `Int.max`, oversized and
+  duplicated URI parameters, forged token headers: 676 Swift Testing tests on macOS and an iPhone
+  simulator, plus the keychain suites inside the example app.
 
 ### What's included
 
 | Area                   | Types                                                                                     |
 | ---------------------- | ----------------------------------------------------------------------------------------- |
 | Keychain               | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError`               |
-| Encryption and hashing | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| Encryption and hashing | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `MessageAuthenticator`, `SecureRandom`, `ConstantTime` |
+| End-to-end encryption  | `PublicKeyCipher`, `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)`, `Keychain.keyAgreementKey(forKey:)` |
+| Signatures             | `SigningKey`, `VerifyingKey`, `SignatureAlgorithm`, `Keychain.signingKey(forKey:algorithm:)` |
+| Signed tokens          | `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm`                                  |
 | Secure Enclave         | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)`                      |
 | Biometrics             | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS)                         |
 | Certificate pinning    | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
@@ -153,6 +165,10 @@ targets: [
 ]
 ```
 
+Version 2.2.0 takes over the public-key encryption, signing, HMAC and token code of
+SwiftCrypto-Pro, which is archived; the
+[CHANGELOG](CHANGELOG.md) maps its types to the ones here.
+
 Version 2.0.0 (October 2026) is the first release of the current package. The earlier release,
 1.0.0 (February 2026), is a different code base: in June 2026 its sources were replaced with
 placeholder code, and in October 2026 the package was rebuilt from scratch with tests.
@@ -204,6 +220,62 @@ func encryptionSample() throws -> String {
     return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
+
+### Send a message only one device can read
+
+```swift
+func endToEndSample() throws -> String {
+    // On the receiving device: create a key pair once and publish the 32-byte public key.
+    let deviceKey = PublicKeyCipher.PrivateKey()   // or Keychain.keyAgreementKey(forKey:)
+    let published = deviceKey.publicKey.rawRepresentation
+
+    // On any sender, your server included: no shared secret needed.
+    let recipient = try PublicKeyCipher.publicKey(rawRepresentation: published)
+    let envelope = try PublicKeyCipher.seal("See you at 7", to: recipient)
+
+    // Back on the device: only its private key opens the envelope.
+    return try PublicKeyCipher.openString(envelope, using: deviceKey)   // "See you at 7"
+}
+```
+
+The envelope does not say who sent it and can be sent again by anyone who recorded it: the
+[end-to-end guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+shows sender authentication, message numbers and key agreement for long conversations.
+
+### Sign and verify data
+
+```swift
+func signatureSample() throws -> Bool {
+    let signingKey = SigningKey()                     // Ed25519; SigningKey(algorithm: .p256) for P-256
+    let export = Data("orders.csv contents".utf8)
+    let signature = try signingKey.signature(for: export)
+
+    // Anyone with the public key (raw, DER or PEM) can check the file.
+    let publicKey = try VerifyingKey(pemRepresentation: signingKey.publicKey.pemRepresentation)
+    return publicKey.isValidSignature(signature, for: export)   // true
+}
+```
+
+### Verify a signed token
+
+```swift
+func tokenSample() throws -> String? {
+    // Your server signs the token; here a key made in place stands in for it.
+    let serverKey = SigningKey()
+    let token = try JWTSigner(signingKey: serverKey).sign(JWTClaims(
+        issuer: "https://auth.example.com", subject: "user-42", audience: ["ios-app"],
+        expiration: Date().addingTimeInterval(600)
+    ))
+
+    // The app checks the signature, the algorithm, exp, nbf, iss and aud before trusting it.
+    let verifier = try JWTVerifier(publicKey: serverKey.publicKey,
+                                   issuer: "https://auth.example.com", audience: "ios-app")
+    return try verifier.verify(token).subject   // "user-42"
+}
+```
+
+The [token guide](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+lists every check in order and what is not supported (RSA, JWK sets, encrypted tokens).
 
 ### Check an app lock PIN
 
@@ -436,6 +508,12 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 - [Detecting Compromised Devices](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)
   — what each integrity check sees, what it cannot, and when to use App Attest
   ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)).
+- [Encrypting End to End](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+  — device key pairs, sealing to a public key, sender authentication, signatures and HMAC
+  ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [Verifying Signed Tokens](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+  — what `JWTVerifier` checks, reading your own claims and signing tokens
+  ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 - [Keeping Secrets Out of Logs](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
   — `Redacted`, masks, the redactor and the privacy shield
   ([source](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)).
@@ -457,15 +535,16 @@ Xcode 27.
 
 ## Architecture
 
-- `Sources/iOSSecurityTools/<Area>/` holds one folder per area: `Keychain`, `Crypto`, `Random`,
-  `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` and
-  `Privacy`. Everything is a `Sendable` value type except `PinningURLSessionDelegate`, which
+- `Sources/iOSSecurityTools/<Area>/` holds one folder per area: `Keychain`, `Crypto`, `Signing`,
+  `Tokens`, `Random`, `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`,
+  `Redaction` and `Privacy`. Everything is a `Sendable` value type except `PinningURLSessionDelegate`, which
   `URLSession` requires to be a class.
 - The package calls Apple's frameworks directly — Security for the keychain and trust
-  evaluation, CryptoKit for AES-GCM, ChaCha20-Poly1305, HKDF, HMAC and the Secure Enclave,
-  CommonCrypto for PBKDF2, LocalAuthentication for biometry — and implements only what they lack:
-  the envelope format, SubjectPublicKeyInfo encoding for pins, HOTP/TOTP truncation, Base32,
-  the PHC hash format and the redaction scanner.
+  evaluation, CryptoKit for AES-GCM, ChaCha20-Poly1305, HPKE, X25519, Ed25519, ECDSA P-256, HKDF,
+  HMAC and the Secure Enclave, CommonCrypto for PBKDF2, LocalAuthentication for biometry — and
+  implements only what they lack: the envelope formats, SubjectPublicKeyInfo and PEM encoding for
+  pins and keys, the JWT compact format, HOTP/TOTP truncation, Base32, the PHC hash format and the
+  redaction scanner. There is no cipher, hash or curve arithmetic of its own.
 - Errors are typed (`throws(KeychainError)`, `throws(CipherError)`, ...) and every enum case
   has a description. Values that come from outside the app have limits checked before any work
   is done.

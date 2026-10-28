@@ -43,6 +43,21 @@ struct ReadmeExamplesTests {
         #expect(log == "charged •••• 4242 to a•••@example.com, token=[redacted]")
     }
 
+    @Test("the end-to-end sample opens the sealed message")
+    func endToEnd() throws {
+        #expect(try endToEndSample() == "See you at 7")
+    }
+
+    @Test("the signature sample verifies through the PEM key")
+    func signature() throws {
+        #expect(try signatureSample())
+    }
+
+    @Test("the token sample verifies and returns the subject")
+    func token() throws {
+        #expect(try tokenSample() == "user-42")
+    }
+
     @Test("the keychain sample returns the token", .enabled(if: KeychainTestSupport.usesDataProtectionKeychain == true, "The README sample uses the data protection keychain"))
     func keychain() throws {
         #expect(try keychainSample() == "r-7f3a9c")
