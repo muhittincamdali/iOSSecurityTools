@@ -52,6 +52,8 @@ remap = [
   '^https://muhittincamdali\.github\.io/iOSSecurityTools/documentation/iossecuritytools/pinningcertificates/?$ file:///home/runner/work/iOSSecurityTools/iOSSecurityTools/Sources/iOSSecurityTools/iOSSecurityTools.docc/PinningCertificates.md',
   '^https://muhittincamdali\.github\.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices/?$ file:///home/runner/work/iOSSecurityTools/iOSSecurityTools/Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md',
   '^https://muhittincamdali\.github\.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs/?$ file:///home/runner/work/iOSSecurityTools/iOSSecurityTools/Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md',
+  '^https://muhittincamdali\.github\.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend/?$ file:///home/runner/work/iOSSecurityTools/iOSSecurityTools/Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md',
+  '^https://muhittincamdali\.github\.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens/?$ file:///home/runner/work/iOSSecurityTools/iOSSecurityTools/Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md',
 ]
 
 exclude_path = [

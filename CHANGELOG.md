@@ -5,6 +5,58 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-10-28
+
+### Added
+
+The public-key encryption, signing, HMAC and token code of
+[SwiftCrypto-Pro](https://github.com/muhittincamdali/SwiftCrypto-Pro) moves into this package,
+rebuilt on CryptoKit with tests; SwiftCrypto-Pro is archived. Nothing existing changes, so code
+written for 2.1 builds unchanged.
+
+- `PublicKeyCipher`: encrypts data to an X25519 public key with HPKE (RFC 9180, DHKEM(X25519,
+  HKDF-SHA256), HKDF-SHA256, ChaCha20-Poly1305), in a versioned envelope of 50 bytes more than the
+  plaintext. `seal(_:to:from:)` and `open(_:using:from:)` add sender authentication (HPKE auth
+  mode), which convinces the recipient but not a third party. Envelopes of one mode do not open in
+  the other.
+- `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)` for X25519 and
+  P-256: the shared secret goes through HKDF-SHA256 and is never returned raw, and a low-order peer
+  key, which gives a secret of zeros, throws.
+- `SigningKey` and `VerifyingKey` for Ed25519 and ECDSA P-256 (`SignatureAlgorithm`), with raw,
+  DER and PEM public keys. `VerifyingKey` checks the 64-byte signatures of `SigningKey` and the DER
+  signatures of `SecureEnclaveKey`. A signing key prints as `SigningKey(ed25519, <redacted>)`.
+- `MessageAuthenticator`: HMAC-SHA256, -384 and -512 with a constant-time check and a
+  hexadecimal form for webhook signatures; keys under 128 bits throw.
+- `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm` and `JWTError`: compact JSON Web
+  Tokens with `HS256`, `ES256` and `EdDSA`. The key decides the algorithm, so `none` and an `HS256`
+  token keyed with a public key are refused before the signature is read. Tokens are limited to
+  16 KiB of canonical unpadded Base64URL; a header with `crit`, a repeated member name or a byte
+  order mark is refused; `exp` is required by default, dates must be finite numbers and a NaN
+  clock fails the time checks.
+- `Keychain.keyAgreementKey(forKey:)` and `Keychain.signingKey(forKey:algorithm:)` create a key on
+  first use and return the same key afterwards, also to concurrent callers. A signing key is
+  stored with its algorithm, so it is never read back as a key of the other algorithm.
+- The articles "Encrypting End to End" and "Verifying Signed Tokens", a Messages screen in the
+  SecurityLab example app, and `scripts/make-interop-vectors.mjs`, which makes the test vectors of
+  the new types with Node's crypto (OpenSSL).
+
+### Security
+
+- `VerifyingKey(rawRepresentation:algorithm:)` reads a P-256 key through its X9.63 form, because
+  CryptoKit's raw initializer accepts 64 bytes that are not a point on the curve, all zeros
+  included. Such a key is refused.
+
+### Moving from SwiftCrypto-Pro
+
+| SwiftCrypto-Pro 2.0 | iOSSecurityTools 2.2 |
+| --- | --- |
+| `CryptoSymmetric.encrypt(_:key:)` / `decrypt(_:key:)` | `DataCipher(key:).encrypt(_:)` / `decrypt(_:)` |
+| `ZeroKnowledgeEngine.generateKeyPair()` | `PublicKeyCipher.PrivateKey()` or `Keychain.keyAgreementKey(forKey:)` |
+| `ZeroKnowledgeEngine.deriveSharedSecret(privateKey:remotePublicKeyData:)` | `KeyDerivation.sharedKey(privateKey:peerPublicKey:info:)`, or `PublicKeyCipher.seal(_:to:)` |
+
+The ciphers and hashes that SwiftCrypto-Pro implemented itself in earlier versions (Blowfish,
+scrypt, Argon2) are not taken over: this package uses only Apple's implementations.
+
 ## [2.1.2] - 2026-10-27
 
 ### Security
@@ -805,6 +857,7 @@ No 1.0.0 API remains.
 First tagged release: encryption, keychain, authentication and monitoring managers. Replaced by
 2.0.0.
 
+[2.2.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...v2.1.0

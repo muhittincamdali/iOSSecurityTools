@@ -21,21 +21,18 @@ if [[ -z "$device" ]]; then
 fi
 
 bundle_id="io.github.muhittincamdali.SecurityLab"
-screens=(integrity vault codes redaction privacy)
+screens=(integrity vault messages codes redaction privacy)
 output_dir="$repo_root/docs/images"
 build_dir="$(mktemp -d)"
 trap 'rm -rf "$build_dir"' EXIT
 mkdir -p "$output_dir"
 
-echo "Building SecurityLab for '$device'"
-destination="platform=iOS Simulator,name=$device"
-if [[ "$device" =~ ^[0-9A-F-]{36}$ ]]; then
-  destination="platform=iOS Simulator,id=$device"
-fi
+echo "Building SecurityLab for the iOS simulator, to run on '$device'"
+# A generic destination needs no device lookup by xcodebuild; simctl installs the build below.
 xcodebuild build \
   -project "$repo_root/Examples/SecurityLab/SecurityLab.xcodeproj" \
   -scheme SecurityLab \
-  -destination "$destination" \
+  -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$build_dir" \
   -quiet
 app="$(find "$build_dir/Build/Products" -maxdepth 2 -name 'SecurityLab.app' -path '*iphonesimulator*' | head -1)"
@@ -53,10 +50,16 @@ for appearance in light dark; do
     sleep 5 # navigation push, demo actions (the PIN hash takes a moment) and first layout
     file="$output_dir/example-$screen-$appearance.png"
     xcrun simctl io "$device" screenshot --type=png "$file" >/dev/null 2>&1
-    # Half the width of an iPhone 17 screenshot keeps the README light; the lowest part of the
-    # display is empty on these screens, so keep the top 1.9 widths.
+    # Half the width of an iPhone 17 Pro screenshot keeps the README light. The crop drops the
+    # status bar and the empty lowest part of the display; the Messages screen is taller, so it
+    # keeps more height to show its token row whole. sips ignores an offset of 0 0 and crops
+    # around the centre, so the offset is given explicitly.
+    crop_height=1145
+    if [[ "$screen" == messages ]]; then
+      crop_height=1185
+    fi
     sips --resampleWidth 603 "$file" >/dev/null
-    sips --cropToHeightWidth 1145 603 --cropOffset 0 0 "$file" >/dev/null
+    sips --cropToHeightWidth "$crop_height" 603 --cropOffset 83 0 "$file" >/dev/null
     echo "$file"
   done
 done

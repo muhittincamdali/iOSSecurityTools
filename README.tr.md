@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
+<!-- i18n-source: README.md@9d0fcb1711e79058fe8846d4e13964cac6689083 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="CI durumu"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Son sürüm: v2.1.2"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Son sürüm: v2.2.0"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Desteklenen platformlar: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Dil sürümü: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="Lisans: MIT"></picture></a>
@@ -26,7 +26,7 @@
 <!-- brand:end -->
 
 iOS, macOS, tvOS, watchOS ve visionOS uygulamaları için güvenlik yapı taşlarından oluşan bir
-Swift paketi: keychain ile saklama, doğrulanmış şifreleme, PIN özetleri, Secure Enclave anahtarları,
+Swift paketi: keychain ile saklama, doğrulanmış şifreleme, açık anahtarlı şifreleme, imzalar, imzalı token'lar (JWT), PIN özetleri, Secure Enclave anahtarları,
 sertifika pinning'i, tek kullanımlık parolalar, cihaz bütünlüğü denetimleri ve günlüklerde veri
 maskeleme. Bu parçaların Security framework'ünün C API'lerini incelemeden doğru biçimde
 yazılmasını isteyen uygulama geliştiricileri için hazırlandı. Her tür, aldığı değeri doğrular ve
@@ -43,6 +43,8 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
   içinde taşıyan AES-256-GCM veya ChaCha20-Poly1305 zarfları yazar; değişen tek bir bayt, yanlış
   anahtar ya da yanlış ilişkili veri şifre çözmeyi başarısız kılar. HKDF, PBKDF2 ve PHC
   biçiminde PIN özetleri de pakete dahildir.
+- **Ortak sır gerektirmeyen uçtan uca şifreleme** — `PublicKeyCipher`, veriyi HPKE (RFC 9180) ile bir cihazın açık anahtarına mühürler; böylece bir sunucu ya da başka bir kullanıcı yalnızca o cihazın açabileceği bir şey gönderebilir. `SigningKey` ve `VerifyingKey`, ham bayt, DER ya da PEM olarak okunan Ed25519 veya P-256 anahtarlarıyla veriyi imzalar ve doğrular.
+- **Güvenilmeden önce denetlenen token'lar** — `JWTVerifier` algoritmayı kendi anahtarından alır; bu yüzden `none` ve açık anahtarla kullanılan `HS256` token'ları daha hiçbir şey okunmadan reddedilir. İmzayı, `exp`, `nbf`, `iss` ve `aud` alanlarını denetler; `JWTSigner` aynı anahtarlarla token üretir.
 - **Kullanıcıyı dışarıda bırakmayan pinning** — `PinningPolicy` yedek bir pin ister; alt alan
   adlarını, son kullanma tarihlerini ve yalnızca raporlama kipini destekler ve yine de sistemin
   kendi güven değerlendirmesinin başarılı olmasını şart koşar.
@@ -58,18 +60,17 @@ değerler uygulamayı çökertemez. Paketin hiçbir bağımlılığı yoktur.
   bölebileceği gövdeler atlanır. Serbest metin ilk tetikleyicide kesilir: güvenli bir alfabenin
   dışındaki bir karakter, bir kaçış dizisi, uzun bir kelime, izin verilmeyen bir anahtar ya da bir
   gizli ad.
-- **Düşmanca girdiyle sınandı** — RFC 4226, 6238 ve 5869 test vektörleri, bağımsız bir
-  gerçekleştirmenin ürettiği zarflar ve özetler, test PKI'sından sertifika zincirleri, NaN ve
-  sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri: macOS'ta
-  ve bir iPhone simülatöründe 622 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan
-  keychain test setleri.
+- **Düşmanca girdiyle sınandı** — RFC 4226, 6238, 5869, 7748, 8032 ve 4231 test vektörleri, bağımsız bir gerçekleştirmenin ürettiği zarflar, özetler, imzalar ve token'lar, test PKI'sından sertifika zincirleri, NaN ve sonsuz tarihler, `Int.min` ve `Int.max`, aşırı büyük ve tekrarlanan URI parametreleri, sahte token başlıkları: macOS'ta ve bir iPhone simülatöründe 676 Swift Testing testi, ayrıca örnek uygulamanın içinde çalışan keychain test setleri.
 
 ### Pakette neler var
 
 | Alan | Türler |
 | --- | --- |
 | Keychain | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError` |
-| Şifreleme ve özetleme | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| Şifreleme ve özetleme | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `MessageAuthenticator`, `SecureRandom`, `ConstantTime` |
+| Uçtan uca şifreleme | `PublicKeyCipher`, `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)`, `Keychain.keyAgreementKey(forKey:)` |
+| İmzalar | `SigningKey`, `VerifyingKey`, `SignatureAlgorithm`, `Keychain.signingKey(forKey:algorithm:)` |
+| İmzalı token'lar | `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm` |
 | Secure Enclave | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)` |
 | Biyometri | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS) |
 | Sertifika pinning'i | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
@@ -88,7 +89,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
 Adresi pencerenin sağ üstündeki arama alanına yapıştırın. **Dependency Rule** ayarını
-`2.1.2` sürümünden itibaren **Up to Next Major Version** olarak bırakın, ardından **Add Package**
+`2.2.0` sürümünden itibaren **Up to Next Major Version** olarak bırakın, ardından **Add Package**
 düğmesine tıklayın. Açılan pencerede **iOSSecurityTools** satırının yanından uygulama hedefinizi
 seçin ve yeniden **Add Package**'a tıklayın.
 
@@ -155,7 +156,7 @@ Ya da `Package.swift` dosyanızdaki `dependencies` listesine ekleyin:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.2")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.2.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -163,6 +164,8 @@ targets: [
     ])
 ]
 ```
+
+2.2.0 sürümü, arşivlenmiş olan SwiftCrypto-Pro paketinin açık anahtarlı şifreleme, imzalama, HMAC ve token kodunu devralır; türlerinin buradakilerle eşleşmesi [CHANGELOG](CHANGELOG.md) dosyasındadır.
 
 2.0.0 sürümü (Ekim 2026), paketin güncel halinin ilk sürümüdür. Daha önceki 1.0.0 sürümü
 (Şubat 2026) farklı bir kod tabanıdır: Haziran 2026'da kaynak kodu yer tutucu kodla
@@ -215,6 +218,59 @@ func encryptionSample() throws -> String {
     return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
+
+### Yalnızca tek bir cihazın okuyabileceği mesaj gönderme
+
+```swift
+func endToEndSample() throws -> String {
+    // On the receiving device: create a key pair once and publish the 32-byte public key.
+    let deviceKey = PublicKeyCipher.PrivateKey()   // or Keychain.keyAgreementKey(forKey:)
+    let published = deviceKey.publicKey.rawRepresentation
+
+    // On any sender, your server included: no shared secret needed.
+    let recipient = try PublicKeyCipher.publicKey(rawRepresentation: published)
+    let envelope = try PublicKeyCipher.seal("See you at 7", to: recipient)
+
+    // Back on the device: only its private key opens the envelope.
+    return try PublicKeyCipher.openString(envelope, using: deviceKey)   // "See you at 7"
+}
+```
+
+Zarf, kimin gönderdiğini söylemez ve kaydeden herkes tarafından yeniden gönderilebilir: [uçtan uca şifreleme rehberi](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend); gönderen kimlik doğrulamasını, mesaj numaralarını ve uzun konuşmalar için anahtar anlaşmasını gösterir.
+
+### Veriyi imzalama ve doğrulama
+
+```swift
+func signatureSample() throws -> Bool {
+    let signingKey = SigningKey()                     // Ed25519; SigningKey(algorithm: .p256) for P-256
+    let export = Data("orders.csv contents".utf8)
+    let signature = try signingKey.signature(for: export)
+
+    // Anyone with the public key (raw, DER or PEM) can check the file.
+    let publicKey = try VerifyingKey(pemRepresentation: signingKey.publicKey.pemRepresentation)
+    return publicKey.isValidSignature(signature, for: export)   // true
+}
+```
+
+### İmzalı bir token'ı doğrulama
+
+```swift
+func tokenSample() throws -> String? {
+    // Your server signs the token; here a key made in place stands in for it.
+    let serverKey = SigningKey()
+    let token = try JWTSigner(signingKey: serverKey).sign(JWTClaims(
+        issuer: "https://auth.example.com", subject: "user-42", audience: ["ios-app"],
+        expiration: Date().addingTimeInterval(600)
+    ))
+
+    // The app checks the signature, the algorithm, exp, nbf, iss and aud before trusting it.
+    let verifier = try JWTVerifier(publicKey: serverKey.publicKey,
+                                   issuer: "https://auth.example.com", audience: "ios-app")
+    return try verifier.verify(token).subject   // "user-42"
+}
+```
+
+[Token rehberi](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) her denetimi sırasıyla listeler ve nelerin desteklenmediğini (RSA, JWK kümeleri, şifreli token'lar) belirtir.
 
 ### Uygulama kilidi PIN'ini doğrulama
 
@@ -415,19 +471,15 @@ SecurityLab örnek uygulamasının bir iPhone simülatöründeki ekranları;
 [`scripts/capture-example-screens.sh`](scripts/capture-example-screens.sh) betiğiyle çalışan
 uygulamadan alındı:
 
-| Bütünlük        | Kasa                                                                                                                                             | Tek kullanımlık kodlar |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="Simülatörde bütünlük raporu: jailbreak denetimi geçerli değil, simülatör bulundu; hata ayıklayıcı, enjekte edilmiş kütüphaneler ve proxy temiz" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="Keychain'e 46 bayt olarak şifrelenip geri okunan bir not ve saklanan özetiyle karşılaştırılan bir PIN" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="Bir otpauth URI'sinden üretilmiş altı haneli TOTP kodu ve kalan saniyeleri geri sayan bir halka" width="260"></picture> |
+| Bütünlük | Kasa | Mesajlar |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="Simülatörde bütünlük raporu: jailbreak denetimi geçerli değil, simülatör bulundu; hata ayıklayıcı, enjekte edilmiş kütüphaneler ve proxy temiz" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="Keychain'e 46 bayt olarak şifrelenip geri okunan bir not ve saklanan özetiyle karşılaştırılan bir PIN" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-messages-dark.png"><img src="docs/images/example-messages-light.png" alt="Cihazın açık anahtarına mühürlenip yeniden açılan bir mesaj, özgün mesaj için geçerli ve değiştirilmiş mesaj için geçersiz olan bir imza ve doğrulanmış 263 baytlık bir EdDSA token'ı" width="260"></picture> |
 
-| Maskeleme       | Gizlilik kalkanı                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------ |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="İçinde e-posta, parola, bearer token ve kart numarası bulunan bir günlük metni ve altında maskelenmiş hali" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="Gizlilik kalkanının kilit simgesiyle örttüğü bir kart bilgileri ekranı" width="260"></picture> |
+| Tek kullanımlık kodlar | Maskeleme | Gizlilik kalkanı |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="Bir otpauth URI'sinden üretilmiş altı haneli TOTP kodu ve kalan saniyeleri geri sayan bir halka" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="İçinde e-posta, parola, bearer token ve kart numarası bulunan bir günlük metni ve altında maskelenmiş hali" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="Gizlilik kalkanının kilit simgesiyle örttüğü bir kart bilgileri ekranı" width="260"></picture> |
 
-Uygulamayı çalıştırmak için [`Examples/SecurityLab`](Examples/SecurityLab) klasöründeki
-`SecurityLab.xcodeproj` dosyasını Xcode ile açın, bir iPhone simülatörü ya da **My Mac** seçin ve
-**Run**'a basın. Uygulamada ayrıca hızlı başlangıç örneği ve bir sunucuya bağlanıp sertifika
-zincirinin pin'lerini listeleyen bir sertifika pinning ekranı da var; ayrıntılar
-[Examples/README.md](Examples/README.md) dosyasında.
+Uygulamayı çalıştırmak için [`Examples/SecurityLab`](Examples/SecurityLab) klasöründeki `SecurityLab.xcodeproj` dosyasını Xcode ile açın, bir iPhone simülatörü ya da **My Mac** seçin ve **Run**'a basın. Uygulamada ayrıca hızlı başlangıç örneği, bir mesajı cihazın anahtarına mühürleyip imzalayan ve imzalı bir token'ı denetleyen bir Mesajlar ekranı ve bir sunucuya bağlanıp sertifika zincirinin pin'lerini listeleyen bir sertifika pinning ekranı da var; ayrıntılar [Examples/README.md](Examples/README.md) dosyasında.
 
 ## Dokümantasyon
 
@@ -455,6 +507,12 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 - [Ele geçirilmiş cihazları algılama](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)
   — her bütünlük denetiminin ne gördüğü, neyi göremediği ve App Attest'in ne zaman kullanılacağı
   ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)).
+- [Uçtan uca şifreleme](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+  — cihaz anahtar çiftleri, bir açık anahtara mühürleme, gönderen kimlik doğrulaması, imzalar ve HMAC
+  ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [İmzalı token'ları doğrulama](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+  — `JWTVerifier`'ın neleri denetlediği, kendi claim'lerinizi okuma ve token imzalama
+  ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 - [Gizli verileri günlüklerden uzak tutma](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
   — `Redacted`, maskeler, redactor ve gizlilik kalkanı
   ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)).
@@ -475,15 +533,8 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 
 ## Mimari
 
-- `Sources/iOSSecurityTools/<Area>/` her alan için bir klasör içerir: `Keychain`, `Crypto`,
-  `Random`, `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`,
-  `Redaction` ve `Privacy`. `URLSession`'ın sınıf olmasını şart koştuğu
-  `PinningURLSessionDelegate` dışında her şey `Sendable` bir değer türüdür.
-- Paket Apple'ın framework'lerini doğrudan çağırır — keychain ve güven değerlendirmesi için
-  Security, AES-GCM, ChaCha20-Poly1305, HKDF, HMAC ve Secure Enclave için CryptoKit, PBKDF2 için
-  CommonCrypto, biyometri için LocalAuthentication — ve yalnızca bunların sunmadığı parçaları
-  kendisi gerçekleştirir: zarf biçimi, pin'ler için SubjectPublicKeyInfo kodlaması, HOTP/TOTP
-  kırpma işlemi, Base32, PHC özet biçimi ve maskeleme tarayıcısı.
+- `Sources/iOSSecurityTools/<Area>/` her alan için bir klasör içerir: `Keychain`, `Crypto`, `Signing`, `Tokens`, `Random`, `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` ve `Privacy`. `URLSession`'ın sınıf olmasını şart koştuğu `PinningURLSessionDelegate` dışında her şey `Sendable` bir değer türüdür.
+- Paket Apple'ın framework'lerini doğrudan çağırır — keychain ve güven değerlendirmesi için Security, AES-GCM, ChaCha20-Poly1305, HPKE, X25519, Ed25519, ECDSA P-256, HKDF, HMAC ve Secure Enclave için CryptoKit, PBKDF2 için CommonCrypto, biyometri için LocalAuthentication — ve yalnızca bunların sunmadığı parçaları kendisi gerçekleştirir: zarf biçimleri, pin'ler ve anahtarlar için SubjectPublicKeyInfo ve PEM kodlaması, JWT kompakt biçimi, HOTP/TOTP kırpma işlemi, Base32, PHC özet biçimi ve maskeleme tarayıcısı. Kendine ait bir şifre, özet ya da eğri aritmetiği yoktur.
 - Hatalar tiplidir (`throws(KeychainError)`, `throws(CipherError)`, ...) ve her enum durumunun
   bir açıklaması vardır. Uygulamanın dışından gelen değerlerin sınırları, herhangi bir işlem
   yapılmadan önce denetlenir.

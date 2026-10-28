@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
+<!-- i18n-source: README.md@9d0fcb1711e79058fe8846d4e13964cac6689083 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml"><img src="https://github.com/muhittincamdali/iOSSecurityTools/actions/workflows/ci.yml/badge.svg" alt="Status da CI"></a>
-<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Versão mais recente: v2.1.2"></picture></a>
+<a href="https://github.com/muhittincamdali/iOSSecurityTools/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-version-light.svg" alt="Versão mais recente: v2.2.0"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-platforms-light.svg" alt="Plataformas compatíveis: iOS 17+ · macOS 14+ · tvOS 17+ · watchOS 10+ · visionOS 1+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/Package.swift"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-language-light.svg" alt="Versão da linguagem: Swift 6.2+"></picture></a>
 <a href="https://github.com/muhittincamdali/iOSSecurityTools/blob/master/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/badge-license-light.svg" alt="Licença: MIT"></picture></a>
@@ -26,7 +26,7 @@
 <!-- brand:end -->
 
 Um pacote Swift com blocos de segurança para apps em iOS, macOS, tvOS, watchOS e visionOS:
-armazenamento no keychain, criptografia autenticada, hashes de PIN, chaves do Secure Enclave,
+armazenamento no keychain, criptografia autenticada, criptografia de chave pública, assinaturas, tokens assinados (JWT), hashes de PIN, chaves do Secure Enclave,
 certificate pinning, senhas de uso único, verificações de integridade do dispositivo e
 ocultação de dados nos logs. Ele é para desenvolvedores de apps que precisam implementar essas
 peças corretamente sem estudar as APIs em C do framework Security. Cada tipo valida o que recebe
@@ -42,6 +42,8 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   ChaCha20-Poly1305 que carregam a própria versão, o algoritmo e o nonce; qualquer byte
   alterado, chave errada ou dado associado errado faz a descriptografia falhar. HKDF, PBKDF2 e
   hashes de PIN no formato PHC acompanham o pacote.
+- **Criptografia de ponta a ponta sem segredo compartilhado** — `PublicKeyCipher` sela dados para a chave pública de um dispositivo com HPKE (RFC 9180), de modo que um servidor ou outro usuário pode enviar algo que só aquele dispositivo abre; `SigningKey` e `VerifyingKey` assinam e verificam dados com chaves Ed25519 ou P-256 lidas de bytes brutos, DER ou PEM.
+- **Tokens verificados antes de serem aceitos** — `JWTVerifier` toma o algoritmo da própria chave, então tokens `none` e tokens `HS256` com uma chave pública falham antes de qualquer coisa ser lida, e verifica a assinatura, `exp`, `nbf`, `iss` e `aud`; `JWTSigner` emite tokens com as mesmas chaves.
 - **Pinning que não deixa os usuários de fora** — `PinningPolicy` exige um pin de reserva, aceita
   subdomínios, datas de expiração e um modo somente relatório, e ainda exige que a avaliação de
   confiança do próprio sistema seja aprovada.
@@ -57,18 +59,17 @@ um arquivo não conseguem derrubar o app. O pacote não tem dependências.
   campos de outro jeito. O texto livre é cortado no primeiro gatilho: um caractere fora de um
   alfabeto seguro, uma sequência de escape, uma palavra longa, uma chave não permitida ou um nome
   secreto.
-- **Testado contra entradas hostis** — vetores das RFCs 4226, 6238 e 5869, envelopes e hashes
-  gerados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas
-  NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI grandes demais ou duplicados: 622
-  testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain
-  dentro do app de exemplo.
+- **Testado com entradas hostis** — vetores das RFCs 4226, 6238, 5869, 7748, 8032 e 4231, envelopes, hashes, assinaturas e tokens criados por uma implementação independente, cadeias de certificados de uma PKI de teste, datas NaN e infinitas, `Int.min` e `Int.max`, parâmetros de URI gigantes ou duplicados, cabeçalhos de token forjados: 676 testes com Swift Testing no macOS e em um simulador de iPhone, além das suítes do keychain dentro do app de exemplo.
 
 ### O que está incluído
 
 | Área | Tipos |
 | --- | --- |
 | Keychain | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError` |
-| Criptografia e hash | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| Criptografia e hash | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `MessageAuthenticator`, `SecureRandom`, `ConstantTime` |
+| Criptografia de ponta a ponta | `PublicKeyCipher`, `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)`, `Keychain.keyAgreementKey(forKey:)` |
+| Assinaturas | `SigningKey`, `VerifyingKey`, `SignatureAlgorithm`, `Keychain.signingKey(forKey:algorithm:)` |
+| Tokens assinados | `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm` |
 | Secure Enclave | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)` |
 | Biometria | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS) |
 | Certificate pinning | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
@@ -87,7 +88,7 @@ https://github.com/muhittincamdali/iOSSecurityTools.git
 ```
 
 Cole-o no campo de busca no canto superior direito da janela. Deixe **Dependency Rule** em
-**Up to Next Major Version** a partir de `2.1.2` e clique em **Add Package**. Na janela seguinte,
+**Up to Next Major Version** a partir de `2.2.0` e clique em **Add Package**. Na janela seguinte,
 escolha o target do seu app ao lado de **iOSSecurityTools** e clique em **Add Package** de novo.
 
 **2. Importe o módulo**
@@ -152,7 +153,7 @@ Ou adicione-o às `dependencies` do seu `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.1.2")
+    .package(url: "https://github.com/muhittincamdali/iOSSecurityTools.git", from: "2.2.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -160,6 +161,8 @@ targets: [
     ])
 ]
 ```
+
+A versão 2.2.0 assume o código de criptografia de chave pública, assinatura, HMAC e tokens do SwiftCrypto-Pro, que está arquivado; o [CHANGELOG](CHANGELOG.md) relaciona os tipos dele aos daqui.
 
 A versão 2.0.0 (outubro de 2026) é a primeira versão do pacote atual. A versão anterior, a
 1.0.0 (fevereiro de 2026), é outra base de código: em junho de 2026 seu código-fonte foi
@@ -212,6 +215,59 @@ func encryptionSample() throws -> String {
     return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
+
+### Enviar uma mensagem que só um dispositivo consegue ler
+
+```swift
+func endToEndSample() throws -> String {
+    // On the receiving device: create a key pair once and publish the 32-byte public key.
+    let deviceKey = PublicKeyCipher.PrivateKey()   // or Keychain.keyAgreementKey(forKey:)
+    let published = deviceKey.publicKey.rawRepresentation
+
+    // On any sender, your server included: no shared secret needed.
+    let recipient = try PublicKeyCipher.publicKey(rawRepresentation: published)
+    let envelope = try PublicKeyCipher.seal("See you at 7", to: recipient)
+
+    // Back on the device: only its private key opens the envelope.
+    return try PublicKeyCipher.openString(envelope, using: deviceKey)   // "See you at 7"
+}
+```
+
+O envelope não diz quem o enviou e pode ser reenviado por qualquer pessoa que o tenha gravado: o [guia de criptografia de ponta a ponta](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) mostra a autenticação do remetente, os números de mensagem e o acordo de chaves para conversas longas.
+
+### Assinar e verificar dados
+
+```swift
+func signatureSample() throws -> Bool {
+    let signingKey = SigningKey()                     // Ed25519; SigningKey(algorithm: .p256) for P-256
+    let export = Data("orders.csv contents".utf8)
+    let signature = try signingKey.signature(for: export)
+
+    // Anyone with the public key (raw, DER or PEM) can check the file.
+    let publicKey = try VerifyingKey(pemRepresentation: signingKey.publicKey.pemRepresentation)
+    return publicKey.isValidSignature(signature, for: export)   // true
+}
+```
+
+### Verificar um token assinado
+
+```swift
+func tokenSample() throws -> String? {
+    // Your server signs the token; here a key made in place stands in for it.
+    let serverKey = SigningKey()
+    let token = try JWTSigner(signingKey: serverKey).sign(JWTClaims(
+        issuer: "https://auth.example.com", subject: "user-42", audience: ["ios-app"],
+        expiration: Date().addingTimeInterval(600)
+    ))
+
+    // The app checks the signature, the algorithm, exp, nbf, iss and aud before trusting it.
+    let verifier = try JWTVerifier(publicKey: serverKey.publicKey,
+                                   issuer: "https://auth.example.com", audience: "ios-app")
+    return try verifier.verify(token).subject   // "user-42"
+}
+```
+
+O [guia de tokens](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) lista cada verificação em ordem e o que não é suportado (RSA, conjuntos JWK, tokens criptografados).
 
 ### Verificar o PIN de bloqueio do app
 
@@ -415,18 +471,15 @@ Estas limitações são conhecidas e ainda não foram mudadas:
 Telas do app de exemplo SecurityLab em um simulador de iPhone, capturadas do app em execução por
 [`scripts/capture-example-screens.sh`](scripts/capture-example-screens.sh):
 
-| Integridade                                                                                                                                                                      | Cofre                                                                                                                    | Códigos de uso único                                                                                                              |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="Relatório de integridade no simulador: verificação de jailbreak não se aplica, simulador encontrado, depurador, bibliotecas injetadas e proxy sem ocorrências" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="Uma nota criptografada no keychain com 46 bytes e lida de volta, e um PIN conferido com o hash armazenado" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="Um código TOTP de seis dígitos de um URI otpauth, com um anel que faz a contagem regressiva dos segundos restantes" width="260"></picture> |
+| Integridade | Cofre | Mensagens |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="Relatório de integridade no simulador: verificação de jailbreak não se aplica, simulador encontrado, depurador, bibliotecas injetadas e proxy sem ocorrências" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="Uma nota criptografada no keychain com 46 bytes e lida de volta, e um PIN conferido com o hash armazenado" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-messages-dark.png"><img src="docs/images/example-messages-light.png" alt="Uma mensagem selada para a chave pública do dispositivo e aberta de novo, uma assinatura válida para a mensagem original e inválida para uma mensagem alterada, e um token EdDSA de 263 bytes verificado" width="260"></picture> |
 
-| Ocultação                                                                                                                                         | Escudo de privacidade                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="Um texto de log com um e-mail, uma senha, um token bearer e um número de cartão, e abaixo dele a versão com os dados ocultados" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="Uma tela de detalhes de cartão coberta pelo escudo de privacidade, com um símbolo de cadeado" width="260"></picture> |
+| Códigos de uso único | Ocultação | Escudo de privacidade |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="Um código TOTP de seis dígitos de um URI otpauth, com um anel que faz a contagem regressiva dos segundos restantes" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="Um texto de log com um e-mail, uma senha, um token bearer e um número de cartão, e abaixo dele a versão com os dados ocultados" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="Uma tela de detalhes de cartão coberta pelo escudo de privacidade, com um símbolo de cadeado" width="260"></picture> |
 
-Para executar o app, abra `SecurityLab.xcodeproj`, em [`Examples/SecurityLab`](Examples/SecurityLab),
-no Xcode, escolha um simulador de iPhone ou **My Mac** e pressione **Run**. Ele também tem o início
-rápido e uma tela de certificate pinning que se conecta a um servidor e lista os pins da cadeia
-dele; o [Examples/README.md](Examples/README.md) traz os detalhes.
+Para executar o app, abra `SecurityLab.xcodeproj`, em [`Examples/SecurityLab`](Examples/SecurityLab), no Xcode, escolha um simulador de iPhone ou **My Mac** e pressione **Run**. Ele também tem o início rápido, uma tela de mensagens que sela uma mensagem para a chave do dispositivo, a assina e verifica um token assinado, e uma tela de certificate pinning que se conecta a um servidor e lista os pins da cadeia dele; o [Examples/README.md](Examples/README.md) traz os detalhes.
 
 ## Documentação
 
@@ -454,6 +507,12 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 - [Detectando dispositivos comprometidos](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)
   — o que cada verificação de integridade enxerga, o que ela não enxerga e quando usar o App Attest
   ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)).
+- [Criptografia de ponta a ponta](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+  — pares de chaves do dispositivo, selagem para uma chave pública, autenticação do remetente, assinaturas e HMAC
+  ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [Verificando tokens assinados](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+  — o que o `JWTVerifier` verifica, como ler seus próprios claims e como assinar tokens
+  ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 - [Mantendo segredos fora dos logs](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
   — `Redacted`, máscaras, o redator e o escudo de privacidade
   ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)).
@@ -475,15 +534,8 @@ o Xcode 27.
 
 ## Arquitetura
 
-- `Sources/iOSSecurityTools/<Area>/` tem uma pasta por área: `Keychain`, `Crypto`, `Random`,
-  `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` e
-  `Privacy`. Tudo é um tipo de valor `Sendable`, exceto `PinningURLSessionDelegate`, que o
-  `URLSession` exige que seja uma classe.
-- O pacote chama diretamente os frameworks da Apple — Security para o keychain e a avaliação de
-  confiança, CryptoKit para AES-GCM, ChaCha20-Poly1305, HKDF, HMAC e o Secure Enclave,
-  CommonCrypto para o PBKDF2 e LocalAuthentication para a biometria — e implementa apenas o que
-  falta neles: o formato do envelope, a codificação SubjectPublicKeyInfo dos pins, o truncamento
-  de HOTP/TOTP, Base32, o formato de hash PHC e o analisador de ocultação.
+- `Sources/iOSSecurityTools/<Area>/` tem uma pasta por área: `Keychain`, `Crypto`, `Signing`, `Tokens`, `Random`, `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` e `Privacy`. Tudo é um tipo de valor `Sendable`, exceto `PinningURLSessionDelegate`, que o `URLSession` exige que seja uma classe.
+- O pacote chama diretamente os frameworks da Apple — Security para o keychain e a avaliação de confiança, CryptoKit para AES-GCM, ChaCha20-Poly1305, HPKE, X25519, Ed25519, ECDSA P-256, HKDF, HMAC e o Secure Enclave, CommonCrypto para o PBKDF2 e LocalAuthentication para a biometria — e implementa apenas o que falta neles: os formatos de envelope, a codificação SubjectPublicKeyInfo e PEM para pins e chaves, o formato compacto do JWT, o truncamento de HOTP/TOTP, Base32, o formato de hash PHC e o analisador de ocultação. Não há aritmética própria de cifras, hashes ou curvas.
 - Os erros são tipados (`throws(KeychainError)`, `throws(CipherError)`, ...) e todo caso de enum
   tem uma descrição. Os valores que vêm de fora do app têm seus limites verificados antes de
   qualquer processamento.

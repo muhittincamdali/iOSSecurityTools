@@ -1,7 +1,7 @@
 # ``iOSSecurityTools``
 
-Keychain storage, encryption, certificate pinning, one-time passwords, integrity checks and log
-redaction for apps on iOS, macOS, tvOS, watchOS and visionOS.
+Keychain storage, encryption, signatures, signed tokens, certificate pinning, one-time passwords,
+integrity checks and log redaction for apps on iOS, macOS, tvOS, watchOS and visionOS.
 
 ## Overview
 
@@ -45,6 +45,25 @@ The package has no dependencies and builds in the Swift 6 language mode.
 - ``TokenEncoding``
 - ``SecureRandomError``
 - ``ConstantTime``
+
+### End-to-end encryption and signatures
+
+- <doc:EncryptingEndToEnd>
+- ``PublicKeyCipher``
+- ``SigningKey``
+- ``VerifyingKey``
+- ``SignatureAlgorithm``
+- ``SignatureError``
+- ``MessageAuthenticator``
+
+### Signed tokens
+
+- <doc:VerifyingSignedTokens>
+- ``JWTVerifier``
+- ``JWTSigner``
+- ``JWTClaims``
+- ``JWTAlgorithm``
+- ``JWTError``
 
 ### Secure Enclave and biometrics
 

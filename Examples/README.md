@@ -3,10 +3,11 @@
 ## SecurityLab
 
 A small iOS and macOS app with one screen per feature: the README quick start, the integrity
-report, an encrypted note and a PIN hash in the keychain, live TOTP codes from an `otpauth://`
-URI, log redaction, the privacy shield and a certificate pinning check against a real server.
-It uses the package from this checkout (a local package reference to `../..`), so it always
-shows the current code.
+report, an encrypted note and a PIN hash in the keychain, a message sealed to this device's
+public key with a signature and a signed token, live TOTP codes from an `otpauth://` URI, log
+redaction, the privacy shield and a certificate pinning check against a real server. It uses
+the package from this checkout (a local package reference to `../..`), so it always shows the
+current code.
 
 Run it:
 
