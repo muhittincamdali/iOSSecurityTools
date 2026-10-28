@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0] - 2026-10-28
 
 ### Added
 
@@ -857,7 +857,7 @@ No 1.0.0 API remains.
 First tagged release: encryption, keychain, authentication and monitoring managers. Replaced by
 2.0.0.
 
-[Unreleased]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.2...HEAD
+[2.2.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/muhittincamdali/iOSSecurityTools/compare/v2.0.0...v2.1.0
