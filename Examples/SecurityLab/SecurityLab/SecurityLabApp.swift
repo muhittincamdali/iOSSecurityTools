@@ -13,7 +13,7 @@ struct SecurityLabApp: App {
 /// The demo screens. `-screen <case>` on the command line opens one directly, and `-demo YES`
 /// fills it with sample input; scripts/capture-example-screens.sh uses both.
 enum Screen: String, CaseIterable, Identifiable, Hashable {
-    case quickStart, integrity, vault, codes, redaction, privacy, pinning
+    case quickStart, integrity, vault, messages, codes, redaction, privacy, pinning
 
     var id: Self { self }
 
@@ -22,6 +22,7 @@ enum Screen: String, CaseIterable, Identifiable, Hashable {
         case .quickStart: "Quick start"
         case .integrity: "Integrity"
         case .vault: "Vault"
+        case .messages: "Messages"
         case .codes: "One-time codes"
         case .redaction: "Redaction"
         case .privacy: "Privacy shield"
@@ -34,6 +35,7 @@ enum Screen: String, CaseIterable, Identifiable, Hashable {
         case .quickStart: "The README quick start"
         case .integrity: "Jailbreak, debugger, hooks, proxy"
         case .vault: "Keychain, encryption, PIN hash"
+        case .messages: "End-to-end encryption, signatures, tokens"
         case .codes: "TOTP from an otpauth URI"
         case .redaction: "Hide secrets in log lines"
         case .privacy: "App switcher and screen recording"
@@ -46,6 +48,7 @@ enum Screen: String, CaseIterable, Identifiable, Hashable {
         case .quickStart: "sparkles"
         case .integrity: "checkmark.shield"
         case .vault: "lock.rectangle.stack"
+        case .messages: "envelope.badge.shield.half.filled"
         case .codes: "number.square"
         case .redaction: "eye.slash"
         case .privacy: "rectangle.dashed.badge.record"
@@ -59,6 +62,7 @@ enum Screen: String, CaseIterable, Identifiable, Hashable {
         case .quickStart: ContentView()
         case .integrity: IntegrityScreen()
         case .vault: VaultScreen()
+        case .messages: MessagesScreen()
         case .codes: CodesScreen()
         case .redaction: RedactionScreen()
         case .privacy: PrivacyScreen()

@@ -21,7 +21,7 @@ if [[ -z "$device" ]]; then
 fi
 
 bundle_id="io.github.muhittincamdali.SecurityLab"
-screens=(integrity vault codes redaction privacy)
+screens=(integrity vault messages codes redaction privacy)
 output_dir="$repo_root/docs/images"
 build_dir="$(mktemp -d)"
 trap 'rm -rf "$build_dir"' EXIT

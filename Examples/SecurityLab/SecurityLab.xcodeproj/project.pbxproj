@@ -20,6 +20,7 @@
 		BFD6FE89FF275C002D1C652F /* iOSSecurityTools in Frameworks */ = {isa = PBXBuildFile; productRef = 30A4865E75AACF1A61238FC9 /* iOSSecurityTools */; };
 		D5003CAA001E22F2F4F9B64C /* SecureEnclaveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D340645347864A2B6EE166D /* SecureEnclaveTests.swift */; };
 		DBFE5BF0BBDEBF6B6F4BB28D /* iOSSecurityTools in Frameworks */ = {isa = PBXBuildFile; productRef = 9C2E4E5132DFD588604F6DB0 /* iOSSecurityTools */; };
+		F9C18C6ABEF2CF1421CAD21B /* MessagesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E677F80F1805F3735451536A /* MessagesScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +45,7 @@
 		D1045EC3C397EB629E348341 /* SecurityLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityLabApp.swift; sourceTree = "<group>"; };
 		D72B5247FB924E170C25B755 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		D87B099A2D987BF24E9EC660 /* VaultScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultScreen.swift; sourceTree = "<group>"; };
+		E677F80F1805F3735451536A /* MessagesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesScreen.swift; sourceTree = "<group>"; };
 		EE95F14CBAD71B10E201C44D /* IntegrityScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrityScreen.swift; sourceTree = "<group>"; };
 		F66701E2986EA4640A62A6DB /* PinningScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinningScreen.swift; sourceTree = "<group>"; };
 		F8815728D40382A74E4D5568 /* SecurityLabTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SecurityLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -120,6 +122,7 @@
 			children = (
 				0D14ECD5969104D6C2BCC03D /* CodesScreen.swift */,
 				EE95F14CBAD71B10E201C44D /* IntegrityScreen.swift */,
+				E677F80F1805F3735451536A /* MessagesScreen.swift */,
 				F66701E2986EA4640A62A6DB /* PinningScreen.swift */,
 				309DD292D72480DAEAFA0B80 /* PrivacyScreen.swift */,
 				593994CC86B1AA9637E8787E /* ReadmeSamples.swift */,
@@ -226,6 +229,7 @@
 			files = (
 				89AA86E910419AE60E3DCAB4 /* CodesScreen.swift in Sources */,
 				362DB5B12297B4C91D54C7FB /* IntegrityScreen.swift in Sources */,
+				F9C18C6ABEF2CF1421CAD21B /* MessagesScreen.swift in Sources */,
 				1109B47CB83D149BF62453EB /* PinningScreen.swift in Sources */,
 				60A1DA71B0F3FF72321DD9B5 /* PrivacyScreen.swift in Sources */,
 				4A8D18B90AA25A43C4066BA7 /* ReadmeSamples.swift in Sources */,
