@@ -1,7 +1,4 @@
 <!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
-- [종단 간 암호화](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) — 기기 키 쌍, 공개 키로 봉인하기, 발신자 인증, 서명, HMAC([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
-- [서명된 토큰 검증](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) — `JWTVerifier`가 검사하는 것, 직접 정의한 클레임 읽기, 토큰 서명하기([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
-<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-light.svg" alt="iOSSecurityTools: Apple 앱을 위한 키체인, 암호화, 인증서 피닝, 일회용 코드, 무결성 검사."></picture></p>
@@ -363,6 +360,8 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 - [비밀 정보 저장](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/storingsecrets) — 접근 가능 조건, 생체 인증 보호, 암호화 키, PIN 해시, Secure Enclave 키([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/StoringSecrets.md)).
 - [인증서 피닝](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/pinningcertificates) — 핀 얻기, 백업 핀 고르기, 보고 전용 모드로 단계적 적용하기, 만료([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/PinningCertificates.md)).
 - [손상된 기기 감지](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices) — 각 무결성 검사가 볼 수 있는 것과 볼 수 없는 것, 그리고 App Attest를 써야 하는 때([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)).
+- [종단 간 암호화](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) — 기기 키 쌍, 공개 키로 봉인하기, 발신자 인증, 서명, HMAC([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [서명된 토큰 검증](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) — `JWTVerifier`가 검사하는 것, 직접 정의한 클레임 읽기, 토큰 서명하기([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 - [비밀 정보를 로그에 남기지 않기](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs) — `Redacted`, 마스크, 리댁터, 개인정보 보호막([소스](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)).
 
 ## 요구 사항

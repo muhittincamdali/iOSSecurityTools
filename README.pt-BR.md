@@ -1,11 +1,4 @@
 <!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
-- [Criptografia de ponta a ponta](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
-  — pares de chaves do dispositivo, selagem para uma chave pública, autenticação do remetente, assinaturas e HMAC
-  ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
-- [Verificando tokens assinados](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
-  — o que o `JWTVerifier` verifica, como ler seus próprios claims e como assinar tokens
-  ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
-<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-pt-BR-light.svg" alt="iOSSecurityTools: Keychain, criptografia, pinning, códigos de uso único e verificações de integridade para apps Apple."></picture></p>
@@ -514,6 +507,12 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 - [Detectando dispositivos comprometidos](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)
   — o que cada verificação de integridade enxerga, o que ela não enxerga e quando usar o App Attest
   ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)).
+- [Criptografia de ponta a ponta](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+  — pares de chaves do dispositivo, selagem para uma chave pública, autenticação do remetente, assinaturas e HMAC
+  ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [Verificando tokens assinados](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+  — o que o `JWTVerifier` verifica, como ler seus próprios claims e como assinar tokens
+  ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 - [Mantendo segredos fora dos logs](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
   — `Redacted`, máscaras, o redator e o escudo de privacidade
   ([código-fonte](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)).

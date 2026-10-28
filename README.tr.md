@@ -1,11 +1,4 @@
 <!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
-- [Uçtan uca şifreleme](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
-  — cihaz anahtar çiftleri, bir açık anahtara mühürleme, gönderen kimlik doğrulaması, imzalar ve HMAC
-  ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
-- [İmzalı token'ları doğrulama](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
-  — `JWTVerifier`'ın neleri denetlediği, kendi claim'lerinizi okuma ve token imzalama
-  ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
-<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-tr-light.svg" alt="iOSSecurityTools: Apple uygulamaları için keychain, şifreleme, pinning, tek kullanımlık kodlar ve bütünlük denetimi."></picture></p>
@@ -514,6 +507,12 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 - [Ele geçirilmiş cihazları algılama](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)
   — her bütünlük denetiminin ne gördüğü, neyi göremediği ve App Attest'in ne zaman kullanılacağı
   ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)).
+- [Uçtan uca şifreleme](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+  — cihaz anahtar çiftleri, bir açık anahtara mühürleme, gönderen kimlik doğrulaması, imzalar ve HMAC
+  ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [İmzalı token'ları doğrulama](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+  — `JWTVerifier`'ın neleri denetlediği, kendi claim'lerinizi okuma ve token imzalama
+  ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 - [Gizli verileri günlüklerden uzak tutma](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs)
   — `Redacted`, maskeler, redactor ve gizlilik kalkanı
   ([kaynak](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)).

@@ -1,7 +1,4 @@
 <!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
-- [エンドツーエンド暗号化](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) — デバイスの鍵ペア、公開鍵宛ての封印、送信者の認証、署名、HMAC（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)）。
-- [署名付きトークンの検証](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) — `JWTVerifier` が検証する内容、自分のクレームの読み取り、トークンへの署名（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)）。
-<!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg" alt="iOSSecurityTools: Apple アプリ向けのキーチェーン、暗号化、証明書ピンニング、ワンタイムコード、整合性チェック。"></picture></p>
@@ -363,6 +360,8 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 - [秘密情報の保存](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/storingsecrets) — アクセス可能性、生体認証による保護、暗号化キー、PIN ハッシュ、Secure Enclave の鍵（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/StoringSecrets.md)）。
 - [証明書のピンニング](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/pinningcertificates) — ピンの取得、バックアップの選び方、レポートのみの段階的導入、有効期限（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/PinningCertificates.md)）。
 - [侵害されたデバイスの検出](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices) — 各整合性チェックで分かること、分からないこと、App Attest を使うべき場面（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/DetectingCompromisedDevices.md)）。
+- [エンドツーエンド暗号化](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) — デバイスの鍵ペア、公開鍵宛ての封印、送信者の認証、署名、HMAC（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)）。
+- [署名付きトークンの検証](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) — `JWTVerifier` が検証する内容、自分のクレームの読み取り、トークンへの署名（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)）。
 - [秘密情報をログに出さない](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/keepingsecretsoutoflogs) — `Redacted`、マスク、リダクター、プライバシーシールド（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/KeepingSecretsOutOfLogs.md)）。
 
 ## 動作要件
