@@ -479,7 +479,8 @@ Screens of the SecurityLab example app on an iPhone simulator, captured from the
 
 To run the app, open `SecurityLab.xcodeproj` in [`Examples/SecurityLab`](Examples/SecurityLab)
 with Xcode, choose an iPhone simulator or **My Mac**, and press **Run**. It also has the quick
-start and a certificate pinning screen that connects to a server and lists the pins of its
+start, a Messages screen that seals a message to the device's key, signs it and checks a signed
+token, and a certificate pinning screen that connects to a server and lists the pins of its
 chain; [Examples/README.md](Examples/README.md) has the details.
 
 ## Documentation

@@ -27,15 +27,12 @@ build_dir="$(mktemp -d)"
 trap 'rm -rf "$build_dir"' EXIT
 mkdir -p "$output_dir"
 
-echo "Building SecurityLab for '$device'"
-destination="platform=iOS Simulator,name=$device"
-if [[ "$device" =~ ^[0-9A-F-]{36}$ ]]; then
-  destination="platform=iOS Simulator,id=$device"
-fi
+echo "Building SecurityLab for the iOS simulator, to run on '$device'"
+# A generic destination needs no device lookup by xcodebuild; simctl installs the build below.
 xcodebuild build \
   -project "$repo_root/Examples/SecurityLab/SecurityLab.xcodeproj" \
   -scheme SecurityLab \
-  -destination "$destination" \
+  -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$build_dir" \
   -quiet
 app="$(find "$build_dir/Build/Products" -maxdepth 2 -name 'SecurityLab.app' -path '*iphonesimulator*' | head -1)"
