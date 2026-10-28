@@ -8,13 +8,16 @@ base and does not receive fixes.
 ## What counts as a vulnerability
 
 iOSSecurityTools protects secrets inside apps and reads data the app does not control: scanned
-`otpauth://` URIs, server certificates, stored password hashes and envelopes, log text. Please
+`otpauth://` URIs, server certificates, stored password hashes and envelopes, public keys,
+signatures and signed tokens from other parties, log text. Please
 report privately anything that makes it:
 
 - reveal a secret: a key, a keychain value, a TOTP secret or a `Redacted` value in a description,
   a log line, an error message or a file,
 - accept what it should reject: a tampered envelope, a wrong one-time code, a certificate chain
-  that is not trusted or not pinned, a malformed URI or hash,
+  that is not trusted or not pinned, a malformed URI or hash, a forged signature or HMAC code, a
+  JSON Web Token with another algorithm, a bad signature or expired claims, or a public key that
+  is not a valid point,
 - miss data that `SensitiveDataRedactor` or `Mask` documents that it hides, for example through
   Unicode tricks,
 - crash (a trap, an out-of-range index, an integer overflow) instead of throwing,
