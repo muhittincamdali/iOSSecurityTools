@@ -231,3 +231,58 @@ struct KeychainSymmetricKeyTests {
         #expect(throws: KeychainError.unexpectedData) { try keychain.symmetricKey(forKey: "short") }
     }
 }
+
+@Suite("Keychain key agreement and signing keys", .enabled(if: KeychainTestSupport.isAvailable, KeychainTestSupport.unavailableReason))
+struct KeychainAsymmetricKeyTests {
+    @Test("creates an X25519 key once and returns the same key afterwards")
+    func keyAgreementKey() throws {
+        let keychain = KeychainTestSupport.makeKeychain()
+        defer { try? keychain.removeAll() }
+        let first = try keychain.keyAgreementKey(forKey: "device")
+        let second = try keychain.keyAgreementKey(forKey: "device")
+        #expect(first.rawRepresentation == second.rawRepresentation)
+        let envelope = try PublicKeyCipher.seal("hello", to: first.publicKey)
+        #expect(try PublicKeyCipher.openString(envelope, using: second) == "hello")
+    }
+
+    @Test("creates a signing key of each algorithm once")
+    func signingKey() throws {
+        let keychain = KeychainTestSupport.makeKeychain()
+        defer { try? keychain.removeAll() }
+        for algorithm in SignatureAlgorithm.allCases {
+            let first = try keychain.signingKey(forKey: "sign-\(algorithm.rawValue)", algorithm: algorithm)
+            let second = try keychain.signingKey(forKey: "sign-\(algorithm.rawValue)", algorithm: algorithm)
+            #expect(first.algorithm == algorithm)
+            #expect(first.publicKey == second.publicKey)
+            let data = Data("challenge".utf8)
+            #expect(second.publicKey.isValidSignature(try first.signature(for: data), for: data))
+        }
+    }
+
+    @Test("concurrent first calls agree on one signing key")
+    func concurrentCreation() async throws {
+        let keychain = KeychainTestSupport.makeKeychain()
+        defer { try? keychain.removeAll() }
+        let keys = try await withThrowingTaskGroup(of: Data.self) { group in
+            for _ in 0..<8 {
+                group.addTask { try keychain.signingKey(forKey: "shared").publicKey.rawRepresentation }
+            }
+            return try await group.reduce(into: Set<Data>()) { $0.insert($1) }
+        }
+        #expect(keys.count == 1)
+    }
+
+    @Test("does not read a key stored for another algorithm or of the wrong size")
+    func mismatches() throws {
+        let keychain = KeychainTestSupport.makeKeychain()
+        defer { try? keychain.removeAll() }
+        _ = try keychain.signingKey(forKey: "ed", algorithm: .ed25519)
+        #expect(throws: KeychainError.unexpectedData) { try keychain.signingKey(forKey: "ed", algorithm: .p256) }
+        try keychain.set(Data(count: 16), forKey: "short")
+        #expect(throws: KeychainError.unexpectedData) { try keychain.keyAgreementKey(forKey: "short") }
+        #expect(throws: KeychainError.unexpectedData) { try keychain.signingKey(forKey: "short") }
+        // A P-256 private key must be below the curve order.
+        try keychain.set(Data([2]) + Data(repeating: 0xFF, count: 32), forKey: "out-of-range")
+        #expect(throws: KeychainError.unexpectedData) { try keychain.signingKey(forKey: "out-of-range", algorithm: .p256) }
+    }
+}
