@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
+<!-- i18n-source: README.md@9d0fcb1711e79058fe8846d4e13964cac6689083 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ja-light.svg" alt="iOSSecurityTools: Apple アプリ向けのキーチェーン、暗号化、証明書ピンニング、ワンタイムコード、整合性チェック。"></picture></p>
@@ -333,13 +333,13 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
 
 iPhone シミュレータ上の SecurityLab サンプルアプリの画面です。[`scripts/capture-example-screens.sh`](scripts/capture-example-screens.sh) で、実行中のアプリから取得しました。
 
-| 整合性                                                                                                                                          | ボールト                                                                                                         | ワンタイムコード                                                                                 |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="シミュレータでの整合性レポート。脱獄チェックは対象外、シミュレータを検出、デバッガ、注入されたライブラリ、プロキシは問題なし" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="46 バイトとしてキーチェーンに暗号化して保存し、読み戻したメモと、保存済みのハッシュと照合した PIN" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="otpauth URI から生成した 6 桁の TOTP コードと、残り秒数をカウントダウンするリング" width="260"></picture> |
+| 整合性 | ボールト | メッセージ |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="シミュレータでの整合性レポート。脱獄チェックは対象外、シミュレータを検出、デバッガ、注入されたライブラリ、プロキシは問題なし" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="46 バイトとしてキーチェーンに暗号化して保存し、読み戻したメモと、保存済みのハッシュと照合した PIN" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-messages-dark.png"><img src="docs/images/example-messages-light.png" alt="デバイスの公開鍵宛てに封印して再び開いたメッセージ、元のメッセージには有効で変更したメッセージには無効な署名、検証済みの 263 バイトの EdDSA トークン" width="260"></picture> |
 
-| マスキング                                                                                                                    | プライバシーシールド                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="メールアドレス、パスワード、bearer token、カード番号を含むログのテキストと、その下にマスキング後のテキスト" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="ロックのシンボルを表示するプライバシーシールドで覆われたカード詳細ビュー" width="260"></picture> |
+| ワンタイムコード | マスキング | プライバシーシールド |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="otpauth URI から生成した 6 桁の TOTP コードと、残り秒数をカウントダウンするリング" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="メールアドレス、パスワード、bearer token、カード番号を含むログのテキストと、その下にマスキング後のテキスト" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="ロックのシンボルを表示するプライバシーシールドで覆われたカード詳細ビュー" width="260"></picture> |
 
 アプリを実行するには、[`Examples/SecurityLab`](Examples/SecurityLab) の `SecurityLab.xcodeproj` を Xcode で開き、iPhone シミュレータまたは **My Mac** を選んで **Run** を押します。クイックスタートのサンプルに加えて、メッセージをデバイスの鍵宛てに封印して署名し、署名付きトークンを検証するメッセージ画面と、サーバーに接続して証明書チェーンのピンを一覧表示する証明書ピンニングの画面もあります。詳細は [Examples/README.md](Examples/README.md) をご覧ください。
 

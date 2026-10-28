@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
+<!-- i18n-source: README.md@9d0fcb1711e79058fe8846d4e13964cac6689083 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-ko-light.svg" alt="iOSSecurityTools: Apple 앱을 위한 키체인, 암호화, 인증서 피닝, 일회용 코드, 무결성 검사."></picture></p>
@@ -333,13 +333,13 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
 
 iPhone 시뮬레이터에서 실행한 SecurityLab 예제 앱의 화면입니다. [`scripts/capture-example-screens.sh`](scripts/capture-example-screens.sh)로 실행 중인 앱에서 캡처했습니다.
 
-| 무결성                                                                                                                               | 보관함                                                                                            | 일회용 코드                                                                           |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="시뮬레이터의 무결성 리포트: 탈옥 검사는 해당 없음, 시뮬레이터 감지, 디버거, 주입된 라이브러리, 프록시는 이상 없음" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="46바이트로 키체인에 암호화해 저장했다가 다시 읽은 메모와, 저장된 해시와 대조한 PIN" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="otpauth URI로 만든 여섯 자리 TOTP 코드와 남은 시간을 초 단위로 세는 링" width="260"></picture> |
+| 무결성 | 보관함 | 메시지 |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="시뮬레이터의 무결성 리포트: 탈옥 검사는 해당 없음, 시뮬레이터 감지, 디버거, 주입된 라이브러리, 프록시는 이상 없음" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="46바이트로 키체인에 암호화해 저장했다가 다시 읽은 메모와, 저장된 해시와 대조한 PIN" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-messages-dark.png"><img src="docs/images/example-messages-light.png" alt="기기의 공개 키로 봉인했다가 다시 연 메시지, 원본 메시지에는 유효하고 변경된 메시지에는 유효하지 않은 서명, 검증된 263바이트 EdDSA 토큰" width="260"></picture> |
 
-| 마스킹                                                                                                        | 개인정보 보호막                                                                |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="이메일, 비밀번호, bearer 토큰, 카드 번호가 들어 있는 로그 텍스트와 그 아래의 마스킹된 결과" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="자물쇠 기호가 있는 개인정보 보호막이 덮고 있는 카드 상세 화면" width="260"></picture> |
+| 일회용 코드 | 마스킹 | 개인정보 보호막 |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="otpauth URI로 만든 여섯 자리 TOTP 코드와 남은 시간을 초 단위로 세는 링" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="이메일, 비밀번호, bearer 토큰, 카드 번호가 들어 있는 로그 텍스트와 그 아래의 마스킹된 결과" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="자물쇠 기호가 있는 개인정보 보호막이 덮고 있는 카드 상세 화면" width="260"></picture> |
 
 앱을 실행하려면 [`Examples/SecurityLab`](Examples/SecurityLab)의 `SecurityLab.xcodeproj`를 Xcode로 열고, iPhone 시뮬레이터나 **My Mac**을 선택한 다음 **Run**을 누르세요. 빠른 시작 예제와 함께, 메시지를 기기의 키로 봉인하고 서명한 뒤 서명된 토큰을 검사하는 메시지 화면, 서버에 연결해 인증서 체인의 핀을 나열하는 인증서 피닝 화면도 있습니다. 자세한 내용은 [Examples/README.md](Examples/README.md)를 참고하세요.
 

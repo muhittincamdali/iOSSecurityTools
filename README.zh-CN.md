@@ -1,4 +1,4 @@
-<!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
+<!-- i18n-source: README.md@9d0fcb1711e79058fe8846d4e13964cac6689083 status=reviewed -->
 <!-- brand:start -->
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-zh-CN-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-zh-CN-light.svg"><img src="https://raw.githubusercontent.com/muhittincamdali/iOSSecurityTools/master/.github/brand/banner-zh-CN-light.svg" alt="iOSSecurityTools: 面向 Apple 应用的钥匙串、加密、证书固定、一次性验证码和完整性检查。"></picture></p>
@@ -333,13 +333,13 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
 
 SecurityLab 示例应用在 iPhone 模拟器上的界面，由 [`scripts/capture-example-screens.sh`](scripts/capture-example-screens.sh) 从运行中的应用截取：
 
-| 完整性                                                                                              | 保险库                                                                                   | 一次性验证码                                                                       |
-| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="模拟器中的完整性报告：越狱检查不适用，检测到模拟器，调试器、注入库和代理均为正常" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="一条笔记被加密为 46 字节存入钥匙串并读回，以及一个 PIN 与其存储的哈希比对" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="由 otpauth URI 生成的六位 TOTP 验证码，旁边的圆环倒计时显示剩余秒数" width="260"></picture> |
+| 完整性 | 保险库 | 消息 |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="模拟器中的完整性报告：越狱检查不适用，检测到模拟器，调试器、注入库和代理均为正常" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="一条笔记被加密为 46 字节存入钥匙串并读回，以及一个 PIN 与其存储的哈希比对" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-messages-dark.png"><img src="docs/images/example-messages-light.png" alt="一条消息被密封到设备的公钥上并再次打开，一个对原始消息有效、对修改后的消息无效的签名，以及一个已验证的 263 字节 EdDSA 令牌" width="260"></picture> |
 
-| 脱敏                                                                                             | 隐私屏障                                                |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="一段包含电子邮件、密码、bearer token 和银行卡号的日志文本，下方是脱敏后的版本" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="银行卡详情视图被带锁图标的隐私屏障遮住" width="260"></picture> |
+| 一次性验证码 | 脱敏 | 隐私屏障 |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="由 otpauth URI 生成的六位 TOTP 验证码，旁边的圆环倒计时显示剩余秒数" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="一段包含电子邮件、密码、bearer token 和银行卡号的日志文本，下方是脱敏后的版本" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="银行卡详情视图被带锁图标的隐私屏障遮住" width="260"></picture> |
 
 要运行该应用，请用 Xcode 打开 [`Examples/SecurityLab`](Examples/SecurityLab) 中的 `SecurityLab.xcodeproj`，选择一个 iPhone 模拟器或 **My Mac**，然后点击 **Run**。应用中还包含快速开始示例、一个“消息”页面（把消息密封到设备的密钥上、对其签名，并验证签名令牌），以及一个证书固定页面，它会连接服务器并列出其证书链的 pin；详情见 [Examples/README.md](Examples/README.md)。
 

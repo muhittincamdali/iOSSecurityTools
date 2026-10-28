@@ -469,13 +469,13 @@ These are known and not changed yet:
 Screens of the SecurityLab example app on an iPhone simulator, captured from the running app by
 [`scripts/capture-example-screens.sh`](scripts/capture-example-screens.sh):
 
-| Integrity | Vault | One-time codes |
+| Integrity | Vault | Messages |
 | --- | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="Integrity report in the simulator: jailbreak check not applicable, simulator found, debugger, injected libraries and proxy clear" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="A note encrypted into the keychain as 46 bytes and read back, and a PIN checked against its stored hash" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="A six-digit TOTP code from an otpauth URI with a ring counting down the seconds left" width="260"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-integrity-dark.png"><img src="docs/images/example-integrity-light.png" alt="Integrity report in the simulator: jailbreak check not applicable, simulator found, debugger, injected libraries and proxy clear" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-vault-dark.png"><img src="docs/images/example-vault-light.png" alt="A note encrypted into the keychain as 46 bytes and read back, and a PIN checked against its stored hash" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-messages-dark.png"><img src="docs/images/example-messages-light.png" alt="A message sealed to the device's public key and opened again, a signature that is valid for the original and invalid for a changed message, and a verified 263-byte EdDSA token" width="260"></picture> |
 
-| Redaction | Privacy shield |
-| --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="A log text with an email, a password, a bearer token and a card number, and the redacted version below it" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="A card details view covered by the privacy shield with a lock symbol" width="260"></picture> |
+| One-time codes | Redaction | Privacy shield |
+| --- | --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-codes-dark.png"><img src="docs/images/example-codes-light.png" alt="A six-digit TOTP code from an otpauth URI with a ring counting down the seconds left" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="A log text with an email, a password, a bearer token and a card number, and the redacted version below it" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="A card details view covered by the privacy shield with a lock symbol" width="260"></picture> |
 
 To run the app, open `SecurityLab.xcodeproj` in [`Examples/SecurityLab`](Examples/SecurityLab)
 with Xcode, choose an iPhone simulator or **My Mac**, and press **Run**. It also has the quick
