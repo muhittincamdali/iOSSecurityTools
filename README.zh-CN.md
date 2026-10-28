@@ -1,3 +1,6 @@
+<!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
+- [端到端加密](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) —— 设备密钥对、密封到公钥、发送者认证、签名和 HMAC（[源文件](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)）。
+- [验证签名令牌](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) —— `JWTVerifier` 检查的内容、读取你自己的 claim，以及签发令牌（[源文件](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)）。
 <!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
@@ -25,23 +28,28 @@
 
 <!-- brand:end -->
 
-一个面向 iOS、macOS、tvOS、watchOS 和 visionOS 应用的 Swift 安全组件包：钥匙串存储、认证加密、PIN 哈希、Secure Enclave 密钥、证书固定、一次性密码、设备完整性检查和日志脱敏。它适合希望正确实现这些功能、又不想研究 Security framework 的 C API 的应用开发者。每个类型都会校验收到的输入，并抛出带类型的错误而不是崩溃，因此来自二维码、服务器或文件的值不会让应用陷入崩溃。该软件包没有任何依赖。
+一个面向 iOS、macOS、tvOS、watchOS 和 visionOS 应用的 Swift 安全组件包：钥匙串存储、认证加密、公钥加密、签名、签名令牌（JWT）、PIN 哈希、Secure Enclave 密钥、证书固定、一次性密码、设备完整性检查和日志脱敏。它适合希望正确实现这些功能、又不想研究 Security framework 的 C API 的应用开发者。每个类型都会校验收到的输入，并抛出带类型的错误而不是崩溃，因此来自二维码、服务器或文件的值不会让应用陷入崩溃。该软件包没有任何依赖。
 
 ## 亮点
 
 - **无需手写字典的钥匙串** —— `Keychain` 可以存储数据、字符串和 `Codable` 值，在首次使用时创建加密密钥，并可要求 Face ID、Touch ID 或设备密码；这一限制由钥匙串本身强制执行，而不是靠 `LAContext` 外面的一个 `if`。
 - **能发现篡改的加密** —— `DataCipher` 写出 AES-256-GCM 或 ChaCha20-Poly1305 信封，信封中自带版本、算法和 nonce；任何一个字节被改动、密钥错误或关联数据错误，都会导致解密失败。同时提供 HKDF、PBKDF2 和 PHC 格式的 PIN 哈希。
+- **无需共享密钥的端到端加密** —— `PublicKeyCipher` 使用 HPKE（RFC 9180）把数据密封到设备的公钥上，因此服务器或其他用户可以发送只有该设备才能打开的内容；`SigningKey` 和 `VerifyingKey` 使用从原始字节、DER 或 PEM 读取的 Ed25519 或 P-256 密钥对数据进行签名和验证。
+- **先检查再信任的令牌** —— `JWTVerifier` 从自己的密钥中确定算法，因此 `none` 令牌以及用公钥作为密钥的 `HS256` 令牌在读取任何内容之前就会失败；它还会检查签名、`exp`、`nbf`、`iss` 和 `aud`；`JWTSigner` 使用同样的密钥签发令牌。
 - **不会把用户锁在门外的证书固定** —— `PinningPolicy` 要求提供备用 pin，支持子域名、过期日期和仅报告模式，并且仍要求系统自身的信任评估通过。
 - **提供信号，而非承诺** —— `IntegrityInspector` 以 `Codable` 报告的形式给出越狱文件、调试器、模拟器、hook 库和系统代理的检测结果；文档也会说明攻击者能够隐藏哪些内容。
 - **机密不会出现在日志和截图中** —— `@Redacted` 在任何地方都输出 `<redacted>`；`SensitiveDataRedactor` 会清除银行卡号、电子邮件、token 和机密字段；`.privacyShield()` 会在 App 切换器和屏幕录制期间遮住视图。脱敏器只把纯 ASCII 的键与机密名称比较，其他任何键默认都会被脱敏；JSON、表单和 multipart 请求体会经过解析，无法解析的请求体以及服务器可能以不同方式拆分字段的请求体会被省略。自由文本在第一个触发点处截断：安全字母表之外的字符、转义序列、长单词、不被允许的键或机密名称。
-- **经受过恶意输入的测试** —— RFC 4226、6238 和 5869 的测试向量，由独立实现生成的信封和哈希，来自测试 PKI 的证书链，NaN 和无穷大的日期，`Int.min` 和 `Int.max`，过大和重复的 URI 参数：在 macOS 和 iPhone 模拟器上共有 622 个 Swift Testing 测试，另外还有示例应用内部的钥匙串测试套件。
+- **经受过恶意输入的测试** —— RFC 4226、6238、5869、7748、8032 和 4231 的测试向量，由独立实现生成的信封、哈希、签名和令牌，来自测试 PKI 的证书链，NaN 和无穷大的日期，`Int.min` 和 `Int.max`，过大和重复的 URI 参数，伪造的令牌头：在 macOS 和 iPhone 模拟器上共有 676 个 Swift Testing 测试，另外还有示例应用内部的钥匙串测试套件。
 
 ### 包含的内容
 
 | 领域 | 类型 |
 | --- | --- |
 | 钥匙串 | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError` |
-| 加密与哈希 | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| 加密与哈希 | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `MessageAuthenticator`, `SecureRandom`, `ConstantTime` |
+| 端到端加密 | `PublicKeyCipher`, `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)`, `Keychain.keyAgreementKey(forKey:)` |
+| 签名 | `SigningKey`, `VerifyingKey`, `SignatureAlgorithm`, `Keychain.signingKey(forKey:algorithm:)` |
+| 签名令牌 | `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm` |
 | Secure Enclave | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)` |
 | 生物识别 | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS) |
 | 证书固定 | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
@@ -128,6 +136,8 @@ targets: [
 ]
 ```
 
+2.2.0 版本接管了已归档的 SwiftCrypto-Pro 中的公钥加密、签名、HMAC 和令牌代码；其中的类型与本包中类型的对应关系见 [CHANGELOG](CHANGELOG.md)。
+
 2.0.0 版（2026 年 10 月）是当前软件包的首个发布版本。更早的 1.0.0 版（2026 年 2 月）是另一套代码：2026 年 6 月，它的源代码被替换成了占位代码，2026 年 10 月，该软件包连同测试一起被完全重写。变更列表见 [CHANGELOG.md](CHANGELOG.md)。
 
 macOS 应用要使用钥匙串，需要在 **Signing & Capabilities** 中设置开发团队；iOS 应用和模拟器无需额外设置。若要使用 Face ID，请在应用的 Info.plist 中添加 `NSFaceIDUsageDescription`。
@@ -171,6 +181,59 @@ func encryptionSample() throws -> String {
     return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
+
+### 发送只有一台设备能读取的消息
+
+```swift
+func endToEndSample() throws -> String {
+    // On the receiving device: create a key pair once and publish the 32-byte public key.
+    let deviceKey = PublicKeyCipher.PrivateKey()   // or Keychain.keyAgreementKey(forKey:)
+    let published = deviceKey.publicKey.rawRepresentation
+
+    // On any sender, your server included: no shared secret needed.
+    let recipient = try PublicKeyCipher.publicKey(rawRepresentation: published)
+    let envelope = try PublicKeyCipher.seal("See you at 7", to: recipient)
+
+    // Back on the device: only its private key opens the envelope.
+    return try PublicKeyCipher.openString(envelope, using: deviceKey)   // "See you at 7"
+}
+```
+
+信封不会说明发送者是谁，任何记录下它的人都可以再次发送：[端到端指南](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)介绍了发送者认证、消息编号，以及用于长对话的密钥协商。
+
+### 对数据签名并验证
+
+```swift
+func signatureSample() throws -> Bool {
+    let signingKey = SigningKey()                     // Ed25519; SigningKey(algorithm: .p256) for P-256
+    let export = Data("orders.csv contents".utf8)
+    let signature = try signingKey.signature(for: export)
+
+    // Anyone with the public key (raw, DER or PEM) can check the file.
+    let publicKey = try VerifyingKey(pemRepresentation: signingKey.publicKey.pemRepresentation)
+    return publicKey.isValidSignature(signature, for: export)   // true
+}
+```
+
+### 验证签名令牌
+
+```swift
+func tokenSample() throws -> String? {
+    // Your server signs the token; here a key made in place stands in for it.
+    let serverKey = SigningKey()
+    let token = try JWTSigner(signingKey: serverKey).sign(JWTClaims(
+        issuer: "https://auth.example.com", subject: "user-42", audience: ["ios-app"],
+        expiration: Date().addingTimeInterval(600)
+    ))
+
+    // The app checks the signature, the algorithm, exp, nbf, iss and aud before trusting it.
+    let verifier = try JWTVerifier(publicKey: serverKey.publicKey,
+                                   issuer: "https://auth.example.com", audience: "ios-app")
+    return try verifier.verify(token).subject   // "user-42"
+}
+```
+
+[令牌指南](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)按顺序列出了每一项检查，以及不支持的内容（RSA、JWK 集合、加密令牌）。
 
 ### 校验应用锁 PIN
 
@@ -281,7 +344,7 @@ SecurityLab 示例应用在 iPhone 模拟器上的界面，由 [`scripts/capture
 | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="一段包含电子邮件、密码、bearer token 和银行卡号的日志文本，下方是脱敏后的版本" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="银行卡详情视图被带锁图标的隐私屏障遮住" width="260"></picture> |
 
-要运行该应用，请用 Xcode 打开 [`Examples/SecurityLab`](Examples/SecurityLab) 中的 `SecurityLab.xcodeproj`，选择一个 iPhone 模拟器或 **My Mac**，然后点击 **Run**。应用中还包含快速开始示例，以及一个证书固定页面，它会连接服务器并列出其证书链的 pin；详情见 [Examples/README.md](Examples/README.md)。
+要运行该应用，请用 Xcode 打开 [`Examples/SecurityLab`](Examples/SecurityLab) 中的 `SecurityLab.xcodeproj`，选择一个 iPhone 模拟器或 **My Mac**，然后点击 **Run**。应用中还包含快速开始示例、一个“消息”页面（把消息密封到设备的密钥上、对其签名，并验证签名令牌），以及一个证书固定页面，它会连接服务器并列出其证书链的 pin；详情见 [Examples/README.md](Examples/README.md)。
 
 ## 文档
 
@@ -317,8 +380,8 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 
 ## 架构
 
-- `Sources/iOSSecurityTools/<Area>/` 中每个功能领域对应一个文件夹：`Keychain`、`Crypto`、`Random`、`SecureEnclave`、`Biometrics`、`Pinning`、`OneTimePassword`、`Integrity`、`Redaction` 和 `Privacy`。除了 `URLSession` 要求必须是类的 `PinningURLSessionDelegate` 之外，所有类型都是 `Sendable` 的值类型。
-- 软件包直接调用 Apple 的 framework —— 用 Security 处理钥匙串和信任评估，用 CryptoKit 处理 AES-GCM、ChaCha20-Poly1305、HKDF、HMAC 和 Secure Enclave，用 CommonCrypto 处理 PBKDF2，用 LocalAuthentication 处理生物识别 —— 只实现它们所缺少的部分：信封格式、用于 pin 的 SubjectPublicKeyInfo 编码、HOTP/TOTP 截断、Base32、PHC 哈希格式和脱敏扫描器。
+- `Sources/iOSSecurityTools/<Area>/` 中每个功能领域对应一个文件夹：`Keychain`、`Crypto`、`Signing`、`Tokens`、`Random`、`SecureEnclave`、`Biometrics`、`Pinning`、`OneTimePassword`、`Integrity`、`Redaction` 和 `Privacy`。除了 `URLSession` 要求必须是类的 `PinningURLSessionDelegate` 之外，所有类型都是 `Sendable` 的值类型。
+- 软件包直接调用 Apple 的 framework —— 用 Security 处理钥匙串和信任评估，用 CryptoKit 处理 AES-GCM、ChaCha20-Poly1305、HPKE、X25519、Ed25519、ECDSA P-256、HKDF、HMAC 和 Secure Enclave，用 CommonCrypto 处理 PBKDF2，用 LocalAuthentication 处理生物识别 —— 只实现它们所缺少的部分：信封格式、用于 pin 和密钥的 SubjectPublicKeyInfo 与 PEM 编码、JWT 紧凑格式、HOTP/TOTP 截断、Base32、PHC 哈希格式和脱敏扫描器。软件包自身不包含任何密码、哈希或曲线运算。
 - 错误是带类型的（`throws(KeychainError)`、`throws(CipherError)` 等），每个枚举 case 都有描述。来自应用外部的值会在执行任何处理之前先检查其限制。
 - 读取系统状态的代码（完整性检查、`LAContext`）都经过小型的内部 protocol，因此测试可以用 fake 对象覆盖每个分支，同时也会检查真实的实现。
 - 软件包不做什么，同样是设计的一部分：不使用 `ptrace` deny-attach，不使用 method swizzling，不读取私有的 dyld 结构。这些做法在不同系统版本之间容易失效，也很容易被绕过；[完整性指南](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)建议改用 App Attest。

@@ -1,3 +1,6 @@
+<!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
+- [エンドツーエンド暗号化](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) — デバイスの鍵ペア、公開鍵宛ての封印、送信者の認証、署名、HMAC（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)）。
+- [署名付きトークンの検証](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) — `JWTVerifier` が検証する内容、自分のクレームの読み取り、トークンへの署名（[ソース](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)）。
 <!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
@@ -25,23 +28,28 @@
 
 <!-- brand:end -->
 
-iOS、macOS、tvOS、watchOS、visionOS のアプリ向けに、セキュリティの部品をまとめた Swift パッケージです。キーチェーンへの保存、認証付き暗号化、PIN のハッシュ、Secure Enclave の鍵、証明書ピンニング、ワンタイムパスワード、デバイスの整合性チェック、ログのマスキングを含みます。Security framework の C API を学ばなくても、これらを正しく実装したいアプリ開発者のためのものです。各型は受け取った値を検証し、クラッシュする代わりに型付きのエラーを throw します。そのため、QR コードやサーバー、ファイルから受け取った値でアプリが異常終了することはありません。パッケージに依存関係はありません。
+iOS、macOS、tvOS、watchOS、visionOS のアプリ向けに、セキュリティの部品をまとめた Swift パッケージです。キーチェーンへの保存、認証付き暗号化、公開鍵暗号化、署名、署名付きトークン（JWT）、PIN のハッシュ、Secure Enclave の鍵、証明書ピンニング、ワンタイムパスワード、デバイスの整合性チェック、ログのマスキングを含みます。Security framework の C API を学ばなくても、これらを正しく実装したいアプリ開発者のためのものです。各型は受け取った値を検証し、クラッシュする代わりに型付きのエラーを throw します。そのため、QR コードやサーバー、ファイルから受け取った値でアプリが異常終了することはありません。パッケージに依存関係はありません。
 
 ## 主な特長
 
 - **辞書を書かずに使えるキーチェーン** — `Keychain` はデータ、文字列、`Codable` の値を保存し、初回の利用時に暗号化キーを作成します。Face ID、Touch ID、パスコードの要求も可能で、その強制は `LAContext` の周りの `if` ではなく、キーチェーン自身が行います。
 - **改ざんを検出する暗号化** — `DataCipher` は、バージョン、アルゴリズム、nonce を自身に持つ AES-256-GCM または ChaCha20-Poly1305 のエンベロープを書き出します。1 バイトでも変更されたり、鍵や関連データが誤っていたりすると、復号は失敗します。HKDF、PBKDF2、PHC 形式の PIN ハッシュも付属します。
+- **共有シークレット不要のエンドツーエンド暗号化** — `PublicKeyCipher` は HPKE（RFC 9180）でデータをデバイスの公開鍵宛てに封印するため、サーバーや別のユーザーが、そのデバイスだけが開ける内容を送れます。`SigningKey` と `VerifyingKey` は、生のバイト列、DER、PEM から読み込んだ Ed25519 または P-256 の鍵でデータに署名し、検証します。
+- **信頼する前に検証するトークン** — `JWTVerifier` はアルゴリズムを自身の鍵から決めるため、`none` のトークンや、公開鍵を使った `HS256` のトークンは、何かを読み取る前に失敗します。署名、`exp`、`nbf`、`iss`、`aud` も検証します。`JWTSigner` は同じ鍵でトークンを発行します。
 - **ユーザーを締め出さないピンニング** — `PinningPolicy` はバックアップ用のピンを必須とし、サブドメイン、有効期限、レポートのみのモードに対応します。そのうえで、システム標準の信頼評価に合格することも引き続き求めます。
 - **約束ではなくシグナル** — `IntegrityInspector` は、脱獄の痕跡ファイル、デバッガ、シミュレータ、フックするライブラリ、システムプロキシを `Codable` のレポートとして返します。攻撃者がどこまで隠せるかも、ドキュメントに明記しています。
 - **秘密情報をログとスクリーンショットから遠ざける** — `@Redacted` はどこで出力しても `<redacted>` と表示します。`SensitiveDataRedactor` は、カード番号、メールアドレス、token、秘密のフィールドを消去します。`.privacyShield()` は、App スイッチャーや画面収録中にビューを覆います。リダクタは純粋な ASCII のキーだけを秘密の名前と比較し、それ以外のキーはすべて既定でマスクします。JSON、フォーム、multipart の本文はパーサーで読み、解析できない本文と、サーバーがフィールドを別の形に分割しうる本文は省略します。自由形式のテキストは最初のトリガー（安全なアルファベットの外にある文字、エスケープ、長い単語、許可されていないキー、秘密の名前）で切られます。
-- **悪意ある入力に対するテスト済み** — RFC 4226、6238、5869 のテストベクトル、独立した実装が作成したエンベロープとハッシュ、テスト用 PKI の証明書チェーン、NaN と無限大の日付、`Int.min` と `Int.max`、過大な URI パラメータや重複した URI パラメータ。macOS と iPhone シミュレータで 622 件の Swift Testing テストを実行し、さらにサンプルアプリの中でキーチェーンのテストスイートも実行します。
+- **悪意ある入力に対するテスト済み** — RFC 4226、6238、5869、7748、8032、4231 のテストベクトル、独立した実装が作成したエンベロープ、ハッシュ、署名、トークン、テスト用 PKI の証明書チェーン、NaN と無限大の日付、`Int.min` と `Int.max`、過大な URI パラメータや重複した URI パラメータ、偽造されたトークンヘッダー。macOS と iPhone シミュレータで 676 件の Swift Testing テストを実行し、さらにサンプルアプリの中でキーチェーンのテストスイートも実行します。
 
 ### 含まれるもの
 
 | 分野 | 型 |
 | --- | --- |
 | キーチェーン | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError` |
-| 暗号化とハッシュ | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| 暗号化とハッシュ | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `MessageAuthenticator`, `SecureRandom`, `ConstantTime` |
+| エンドツーエンド暗号化 | `PublicKeyCipher`, `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)`, `Keychain.keyAgreementKey(forKey:)` |
+| 署名 | `SigningKey`, `VerifyingKey`, `SignatureAlgorithm`, `Keychain.signingKey(forKey:algorithm:)` |
+| 署名付きトークン | `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm` |
 | Secure Enclave | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)` |
 | 生体認証 | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS) |
 | 証明書ピンニング | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
@@ -128,6 +136,8 @@ targets: [
 ]
 ```
 
+バージョン 2.2.0 は、アーカイブ済みの SwiftCrypto-Pro にあった公開鍵暗号化、署名、HMAC、トークンのコードを引き継ぎます。型の対応表は [CHANGELOG](CHANGELOG.md) にあります。
+
 バージョン 2.0.0（2026 年 10 月）は、現行のパッケージとして最初のリリースです。以前の 1.0.0（2026 年 2 月）は別のコードベースです。2026 年 6 月にソースがプレースホルダーのコードに置き換えられ、2026 年 10 月にパッケージはテストとともにゼロから作り直されました。変更内容は [CHANGELOG.md](CHANGELOG.md) にあります。
 
 macOS アプリでキーチェーンを使うには、**Signing & Capabilities** で開発チームを設定する必要があります。iOS アプリとシミュレータでは追加の設定は不要です。Face ID を使うには、アプリの Info.plist に `NSFaceIDUsageDescription` を追加してください。
@@ -171,6 +181,59 @@ func encryptionSample() throws -> String {
     return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
+
+### 1 台のデバイスだけが読めるメッセージを送る
+
+```swift
+func endToEndSample() throws -> String {
+    // On the receiving device: create a key pair once and publish the 32-byte public key.
+    let deviceKey = PublicKeyCipher.PrivateKey()   // or Keychain.keyAgreementKey(forKey:)
+    let published = deviceKey.publicKey.rawRepresentation
+
+    // On any sender, your server included: no shared secret needed.
+    let recipient = try PublicKeyCipher.publicKey(rawRepresentation: published)
+    let envelope = try PublicKeyCipher.seal("See you at 7", to: recipient)
+
+    // Back on the device: only its private key opens the envelope.
+    return try PublicKeyCipher.openString(envelope, using: deviceKey)   // "See you at 7"
+}
+```
+
+エンベロープは送信者が誰かを示さず、記録した人なら誰でも再送できます。送信者の認証、メッセージ番号、長い会話のための鍵合意については、[エンドツーエンド暗号化のガイド](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)をご覧ください。
+
+### データに署名して検証する
+
+```swift
+func signatureSample() throws -> Bool {
+    let signingKey = SigningKey()                     // Ed25519; SigningKey(algorithm: .p256) for P-256
+    let export = Data("orders.csv contents".utf8)
+    let signature = try signingKey.signature(for: export)
+
+    // Anyone with the public key (raw, DER or PEM) can check the file.
+    let publicKey = try VerifyingKey(pemRepresentation: signingKey.publicKey.pemRepresentation)
+    return publicKey.isValidSignature(signature, for: export)   // true
+}
+```
+
+### 署名付きトークンを検証する
+
+```swift
+func tokenSample() throws -> String? {
+    // Your server signs the token; here a key made in place stands in for it.
+    let serverKey = SigningKey()
+    let token = try JWTSigner(signingKey: serverKey).sign(JWTClaims(
+        issuer: "https://auth.example.com", subject: "user-42", audience: ["ios-app"],
+        expiration: Date().addingTimeInterval(600)
+    ))
+
+    // The app checks the signature, the algorithm, exp, nbf, iss and aud before trusting it.
+    let verifier = try JWTVerifier(publicKey: serverKey.publicKey,
+                                   issuer: "https://auth.example.com", audience: "ios-app")
+    return try verifier.verify(token).subject   // "user-42"
+}
+```
+
+[トークンのガイド](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)には、すべての検証が順番に載っているほか、非対応のもの（RSA、JWK セット、暗号化トークン）も記載されています。
 
 ### アプリロックの PIN を確認する
 
@@ -281,7 +344,7 @@ iPhone シミュレータ上の SecurityLab サンプルアプリの画面です
 | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="メールアドレス、パスワード、bearer token、カード番号を含むログのテキストと、その下にマスキング後のテキスト" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="ロックのシンボルを表示するプライバシーシールドで覆われたカード詳細ビュー" width="260"></picture> |
 
-アプリを実行するには、[`Examples/SecurityLab`](Examples/SecurityLab) の `SecurityLab.xcodeproj` を Xcode で開き、iPhone シミュレータまたは **My Mac** を選んで **Run** を押します。クイックスタートのサンプルに加えて、サーバーに接続して証明書チェーンのピンを一覧表示する証明書ピンニングの画面もあります。詳細は [Examples/README.md](Examples/README.md) をご覧ください。
+アプリを実行するには、[`Examples/SecurityLab`](Examples/SecurityLab) の `SecurityLab.xcodeproj` を Xcode で開き、iPhone シミュレータまたは **My Mac** を選んで **Run** を押します。クイックスタートのサンプルに加えて、メッセージをデバイスの鍵宛てに封印して署名し、署名付きトークンを検証するメッセージ画面と、サーバーに接続して証明書チェーンのピンを一覧表示する証明書ピンニングの画面もあります。詳細は [Examples/README.md](Examples/README.md) をご覧ください。
 
 ## ドキュメント
 
@@ -317,8 +380,8 @@ xcodebuild docbuild -scheme iOSSecurityTools -destination 'generic/platform=macO
 
 ## アーキテクチャ
 
-- `Sources/iOSSecurityTools/<Area>/` には、分野ごとに 1 つのフォルダがあります。`Keychain`、`Crypto`、`Random`、`SecureEnclave`、`Biometrics`、`Pinning`、`OneTimePassword`、`Integrity`、`Redaction`、`Privacy` です。`URLSession` がクラスであることを要求する `PinningURLSessionDelegate` を除き、すべて `Sendable` な値型です。
-- パッケージは Apple の framework を直接呼び出します。キーチェーンと信頼評価には Security、AES-GCM、ChaCha20-Poly1305、HKDF、HMAC、Secure Enclave には CryptoKit、PBKDF2 には CommonCrypto、生体認証には LocalAuthentication を使い、それらにないものだけを自前で実装しています。エンベロープの形式、ピンのための SubjectPublicKeyInfo のエンコード、HOTP/TOTP の切り詰め、Base32、PHC ハッシュ形式、マスキングのスキャナです。
+- `Sources/iOSSecurityTools/<Area>/` には、分野ごとに 1 つのフォルダがあります。`Keychain`、`Crypto`、`Signing`、`Tokens`、`Random`、`SecureEnclave`、`Biometrics`、`Pinning`、`OneTimePassword`、`Integrity`、`Redaction`、`Privacy` です。`URLSession` がクラスであることを要求する `PinningURLSessionDelegate` を除き、すべて `Sendable` な値型です。
+- パッケージは Apple の framework を直接呼び出します。キーチェーンと信頼評価には Security、AES-GCM、ChaCha20-Poly1305、HPKE、X25519、Ed25519、ECDSA P-256、HKDF、HMAC、Secure Enclave には CryptoKit、PBKDF2 には CommonCrypto、生体認証には LocalAuthentication を使い、それらにないものだけを自前で実装しています。エンベロープの形式、ピンと鍵のための SubjectPublicKeyInfo と PEM のエンコード、JWT のコンパクト形式、HOTP/TOTP の切り詰め、Base32、PHC ハッシュ形式、マスキングのスキャナです。暗号、ハッシュ、曲線演算を独自に実装することはありません。
 - エラーは型付きで（`throws(KeychainError)`、`throws(CipherError)` など）、すべての enum のケースに説明があります。アプリの外から来る値は、処理を行う前に上限を確認します。
 - システムを読み取るコード（整合性チェック、`LAContext`）は、小さな内部 protocol を介します。そのため、テストではフェイクですべての分岐を動かし、実際の実装も確認します。
 - パッケージが行わないことも設計の一部です。`ptrace` の deny-attach、メソッドスウィズリング、非公開の dyld 構造体の読み取りは行いません。これらは OS のリリースごとに壊れやすく、回避も容易です。代わりに App Attest を使うことを、[整合性ガイド](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/detectingcompromiseddevices)で案内しています。

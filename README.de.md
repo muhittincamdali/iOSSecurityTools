@@ -1,3 +1,10 @@
+<!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
+- [Ende-zu-Ende-Verschlüsselung](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+  — Schlüsselpaare des Geräts, Versiegeln für einen öffentlichen Schlüssel, Absenderauthentifizierung, Signaturen und HMAC
+  ([Quelle](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [Signierte Tokens prüfen](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+  — was `JWTVerifier` prüft, wie man eigene Claims liest und wie man Tokens signiert
+  ([Quelle](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 <!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
@@ -26,7 +33,7 @@
 <!-- brand:end -->
 
 Ein Swift-Paket mit Sicherheitsbausteinen für Apps auf iOS, macOS, tvOS, watchOS und visionOS:
-Schlüsselbund-Speicherung, authentifizierte Verschlüsselung, PIN-Hashes, Secure-Enclave-Schlüssel,
+Schlüsselbund-Speicherung, authentifizierte Verschlüsselung, Public-Key-Verschlüsselung, Signaturen, signierte Tokens (JWT), PIN-Hashes, Secure-Enclave-Schlüssel,
 Certificate Pinning, Einmalpasswörter, Integritätsprüfungen des Geräts und das Schwärzen von
 Logs. Es richtet sich an App-Entwickler, die diese Teile korrekt umsetzen wollen, ohne die
 C-APIs des Security-Frameworks zu studieren. Jeder Typ prüft, was er bekommt, und wirft einen
@@ -42,6 +49,8 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
   ChaCha20-Poly1305-Umschläge, die ihre Version, ihren Algorithmus und ihre Nonce selbst
   mitführen. Jedes geänderte Byte, ein falscher Schlüssel oder falsche zugehörige Daten lassen die
   Entschlüsselung fehlschlagen. HKDF, PBKDF2 und PIN-Hashes im PHC-Format sind dabei.
+- **Ende-zu-Ende-Verschlüsselung ohne gemeinsames Geheimnis** — `PublicKeyCipher` versiegelt Daten mit HPKE (RFC 9180) für den öffentlichen Schlüssel eines Geräts, sodass ein Server oder ein anderer Nutzer etwas senden kann, das nur dieses Gerät öffnet. `SigningKey` und `VerifyingKey` signieren und prüfen Daten mit Ed25519- oder P-256-Schlüsseln, die aus Rohbytes, DER oder PEM gelesen werden.
+- **Tokens, die geprüft werden, bevor man ihnen vertraut** — `JWTVerifier` übernimmt den Algorithmus von seinem Schlüssel, daher scheitern `none`-Tokens und `HS256`-Tokens mit einem öffentlichen Schlüssel, bevor irgendetwas gelesen wird. Er prüft Signatur, `exp`, `nbf`, `iss` und `aud`; `JWTSigner` stellt Tokens mit denselben Schlüsseln aus.
 - **Pinning, das Nutzer nicht aussperrt** — `PinningPolicy` verlangt einen Backup-Pin, unterstützt
   Subdomains, Ablaufdaten und einen reinen Meldemodus und setzt trotzdem voraus, dass die
   systemeigene Vertrauensprüfung besteht.
@@ -57,18 +66,17 @@ aus einer Datei die App nicht zum Absturz bringen. Das Paket hat keine Abhängig
   ein Server anders in Felder aufteilen könnte. Freier Text wird beim ersten Auslöser
   abgeschnitten: einem Zeichen außerhalb eines sicheren Alphabets, einer Escape-Sequenz, einem
   langen Wort, einem nicht erlaubten Schlüssel oder einem geheimen Namen.
-- **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238 und 5869, Umschläge
-  und Hashes aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN
-  und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter:
-  622 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die
-  Schlüsselbund-Testsuites in der Beispiel-App.
+- **Gegen feindliche Eingaben getestet** — Testvektoren aus RFC 4226, 6238, 5869, 7748, 8032 und 4231, Umschläge, Hashes, Signaturen und Tokens aus einer unabhängigen Implementierung, Zertifikatsketten aus einer Test-PKI, NaN und unendliche Datumswerte, `Int.min` und `Int.max`, übergroße und doppelte URI-Parameter, gefälschte Token-Header: 676 Swift-Testing-Tests auf macOS und in einem iPhone-Simulator, dazu die Schlüsselbund-Testsuites in der Beispiel-App.
 
 ### Was enthalten ist
 
 | Bereich | Typen |
 | --- | --- |
 | Schlüsselbund | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError` |
-| Verschlüsselung und Hashing | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| Verschlüsselung und Hashing | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `MessageAuthenticator`, `SecureRandom`, `ConstantTime` |
+| Ende-zu-Ende-Verschlüsselung | `PublicKeyCipher`, `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)`, `Keychain.keyAgreementKey(forKey:)` |
+| Signaturen | `SigningKey`, `VerifyingKey`, `SignatureAlgorithm`, `Keychain.signingKey(forKey:algorithm:)` |
+| Signierte Tokens | `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm` |
 | Secure Enclave | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)` |
 | Biometrie | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS) |
 | Certificate Pinning | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
@@ -163,6 +171,8 @@ targets: [
 ]
 ```
 
+Version 2.2.0 übernimmt den Code für Public-Key-Verschlüsselung, Signaturen, HMAC und Tokens aus SwiftCrypto-Pro, das archiviert ist; das [CHANGELOG](CHANGELOG.md) ordnet dessen Typen den hiesigen zu.
+
 Version 2.0.0 (Oktober 2026) ist das erste Release des aktuellen Pakets. Das frühere Release
 1.0.0 (Februar 2026) ist eine andere Codebasis: Im Juni 2026 wurde ihr Quellcode durch
 Platzhaltercode ersetzt, und im Oktober 2026 wurde das Paket mit Tests von Grund auf neu
@@ -214,6 +224,59 @@ func encryptionSample() throws -> String {
     return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
+
+### Eine Nachricht senden, die nur ein Gerät lesen kann
+
+```swift
+func endToEndSample() throws -> String {
+    // On the receiving device: create a key pair once and publish the 32-byte public key.
+    let deviceKey = PublicKeyCipher.PrivateKey()   // or Keychain.keyAgreementKey(forKey:)
+    let published = deviceKey.publicKey.rawRepresentation
+
+    // On any sender, your server included: no shared secret needed.
+    let recipient = try PublicKeyCipher.publicKey(rawRepresentation: published)
+    let envelope = try PublicKeyCipher.seal("See you at 7", to: recipient)
+
+    // Back on the device: only its private key opens the envelope.
+    return try PublicKeyCipher.openString(envelope, using: deviceKey)   // "See you at 7"
+}
+```
+
+Der Umschlag verrät nicht, wer ihn gesendet hat, und kann von jedem erneut gesendet werden, der ihn aufgezeichnet hat: Die [Anleitung zur Ende-zu-Ende-Verschlüsselung](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) zeigt Absenderauthentifizierung, Nachrichtennummern und Schlüsselaustausch für lange Unterhaltungen.
+
+### Daten signieren und prüfen
+
+```swift
+func signatureSample() throws -> Bool {
+    let signingKey = SigningKey()                     // Ed25519; SigningKey(algorithm: .p256) for P-256
+    let export = Data("orders.csv contents".utf8)
+    let signature = try signingKey.signature(for: export)
+
+    // Anyone with the public key (raw, DER or PEM) can check the file.
+    let publicKey = try VerifyingKey(pemRepresentation: signingKey.publicKey.pemRepresentation)
+    return publicKey.isValidSignature(signature, for: export)   // true
+}
+```
+
+### Ein signiertes Token prüfen
+
+```swift
+func tokenSample() throws -> String? {
+    // Your server signs the token; here a key made in place stands in for it.
+    let serverKey = SigningKey()
+    let token = try JWTSigner(signingKey: serverKey).sign(JWTClaims(
+        issuer: "https://auth.example.com", subject: "user-42", audience: ["ios-app"],
+        expiration: Date().addingTimeInterval(600)
+    ))
+
+    // The app checks the signature, the algorithm, exp, nbf, iss and aud before trusting it.
+    let verifier = try JWTVerifier(publicKey: serverKey.publicKey,
+                                   issuer: "https://auth.example.com", audience: "ios-app")
+    return try verifier.verify(token).subject   // "user-42"
+}
+```
+
+Die [Token-Anleitung](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) listet jede Prüfung der Reihe nach auf und nennt, was nicht unterstützt wird (RSA, JWK-Sets, verschlüsselte Tokens).
 
 ### Die PIN der App-Sperre prüfen
 
@@ -431,10 +494,7 @@ App mit [`scripts/capture-example-screens.sh`](scripts/capture-example-screens.s
 | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="Ein Logtext mit E-Mail-Adresse, Passwort, Bearer-Token und Kartennummer und darunter die geschwärzte Fassung" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="Eine Ansicht mit Kartendetails, verdeckt vom Sichtschutz mit einem Schloss-Symbol" width="260"></picture> |
 
-Um die App auszuführen, öffne `SecurityLab.xcodeproj` in [`Examples/SecurityLab`](Examples/SecurityLab)
-mit Xcode, wähle einen iPhone-Simulator oder **My Mac** und drücke **Run**. Sie enthält auch den
-Schnellstart und einen Certificate-Pinning-Bildschirm, der sich mit einem Server verbindet und die
-Pins seiner Kette auflistet; Einzelheiten stehen in [Examples/README.md](Examples/README.md).
+Um die App auszuführen, öffne `SecurityLab.xcodeproj` in [`Examples/SecurityLab`](Examples/SecurityLab) mit Xcode, wähle einen iPhone-Simulator oder **My Mac** und drücke **Run**. Sie enthält auch den Schnellstart, einen Nachrichten-Bildschirm, der eine Nachricht für den Schlüssel des Geräts versiegelt, signiert und ein signiertes Token prüft, sowie einen Certificate-Pinning-Bildschirm, der sich mit einem Server verbindet und die Pins seiner Kette auflistet; Einzelheiten stehen in [Examples/README.md](Examples/README.md).
 
 ## Dokumentation
 
@@ -483,15 +543,8 @@ Xcode 27 entwickelt.
 
 ## Architektur
 
-- `Sources/iOSSecurityTools/<Area>/` enthält pro Bereich einen Ordner: `Keychain`, `Crypto`,
-  `Random`, `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`,
-  `Redaction` und `Privacy`. Alles ist ein `Sendable`-Werttyp, außer
-  `PinningURLSessionDelegate`, das laut `URLSession` eine Klasse sein muss.
-- Das Paket ruft die Frameworks von Apple direkt auf — Security für Schlüsselbund und
-  Vertrauensprüfung, CryptoKit für AES-GCM, ChaCha20-Poly1305, HKDF, HMAC und die Secure Enclave,
-  CommonCrypto für PBKDF2, LocalAuthentication für die Biometrie — und implementiert nur, was
-  ihnen fehlt: das Umschlagformat, die SubjectPublicKeyInfo-Kodierung für Pins, die
-  HOTP/TOTP-Kürzung, Base32, das PHC-Hashformat und den Scanner zum Schwärzen.
+- `Sources/iOSSecurityTools/<Area>/` enthält pro Bereich einen Ordner: `Keychain`, `Crypto`, `Signing`, `Tokens`, `Random`, `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` und `Privacy`. Alles ist ein `Sendable`-Werttyp, außer `PinningURLSessionDelegate`, das laut `URLSession` eine Klasse sein muss.
+- Das Paket ruft die Frameworks von Apple direkt auf — Security für Schlüsselbund und Vertrauensprüfung, CryptoKit für AES-GCM, ChaCha20-Poly1305, HPKE, X25519, Ed25519, ECDSA P-256, HKDF, HMAC und die Secure Enclave, CommonCrypto für PBKDF2, LocalAuthentication für die Biometrie — und implementiert nur, was ihnen fehlt: die Umschlagformate, die SubjectPublicKeyInfo- und PEM-Kodierung für Pins und Schlüssel, das kompakte JWT-Format, die HOTP/TOTP-Kürzung, Base32, das PHC-Hashformat und den Scanner zum Schwärzen. Eigene Chiffren-, Hash- oder Kurvenarithmetik gibt es nicht.
 - Fehler sind typisiert (`throws(KeychainError)`, `throws(CipherError)`, ...), und jeder
   Enum-Fall hat eine Beschreibung. Bei Werten, die von außerhalb der App kommen, werden die
   Grenzen geprüft, bevor irgendeine Arbeit beginnt.

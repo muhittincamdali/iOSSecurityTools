@@ -1,3 +1,10 @@
+<!-- i18n-source: README.md@f40d0d8d2a5dc0db52e83c57aa98a2cd44b5fec0 status=reviewed -->
+- [Сквозное шифрование](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend)
+  — пары ключей устройства, запечатывание для открытого ключа, аутентификация отправителя, подписи и HMAC
+  ([исходник](Sources/iOSSecurityTools/iOSSecurityTools.docc/EncryptingEndToEnd.md)).
+- [Проверка подписанных токенов](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens)
+  — что проверяет `JWTVerifier`, как читать собственные claims и как подписывать токены
+  ([исходник](Sources/iOSSecurityTools/iOSSecurityTools.docc/VerifyingSignedTokens.md)).
 <!-- i18n-source: README.md@3b063918e3cab4b0fc65a8700f097b639744fada status=reviewed -->
 <!-- brand:start -->
 
@@ -26,7 +33,7 @@
 <!-- brand:end -->
 
 Swift-пакет с набором компонентов безопасности для приложений на iOS, macOS, tvOS, watchOS и
-visionOS: хранение в связке ключей, шифрование с проверкой подлинности, хеши PIN-кодов, ключи
+visionOS: хранение в связке ключей, шифрование с проверкой подлинности, шифрование с открытым ключом, подписи, подписанные токены (JWT), хеши PIN-кодов, ключи
 Secure Enclave, пиннинг сертификатов, одноразовые пароли, проверки целостности устройства и
 маскирование данных в логах. Он предназначен для разработчиков приложений, которым нужно
 правильно реализовать всё это, не изучая C API фреймворка Security. Каждый тип проверяет то, что
@@ -43,6 +50,8 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   ChaCha20-Poly1305, в которых хранятся их версия, алгоритм и nonce; любой изменённый байт,
   неверный ключ или неверные связанные данные приводят к ошибке расшифровки. В комплекте HKDF,
   PBKDF2 и хеши PIN-кодов в формате PHC.
+- **Сквозное шифрование без общего секрета** — `PublicKeyCipher` запечатывает данные для открытого ключа устройства с помощью HPKE (RFC 9180), поэтому сервер или другой пользователь может отправить то, что откроет только это устройство; `SigningKey` и `VerifyingKey` подписывают и проверяют данные ключами Ed25519 или P-256, прочитанными из сырых байтов, DER или PEM.
+- **Токены, проверяемые до того, как им поверят** — `JWTVerifier` берёт алгоритм из своего ключа, поэтому токены `none` и токены `HS256` с открытым ключом отклоняются раньше, чем что-либо будет прочитано; он проверяет подпись, `exp`, `nbf`, `iss` и `aud`, а `JWTSigner` выпускает токены теми же ключами.
 - **Пиннинг, который не блокирует пользователей** — `PinningPolicy` требует резервный пин,
   поддерживает поддомены, сроки действия и режим «только отчёты» и при этом по-прежнему требует,
   чтобы проходила собственная проверка доверия системы.
@@ -57,18 +66,17 @@ Secure Enclave, пиннинг сертификатов, одноразовые 
   а тела, которые не удалось разобрать или которые сервер мог бы разделить на поля иначе,
   пропускаются. Свободный текст обрезается на первом триггере: символе вне безопасного алфавита,
   escape-последовательности, длинном слове, неразрешённом ключе или секретном имени.
-- **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238 и 5869, конверты и
-  хеши, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и
-  бесконечности, `Int.min` и `Int.max`, слишком большие и повторяющиеся параметры URI: 622 теста
-  Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри
-  примера приложения.
+- **Проверено на враждебных входных данных** — тестовые векторы RFC 4226, 6238, 5869, 7748, 8032 и 4231, конверты, хеши, подписи и токены, созданные независимой реализацией, цепочки сертификатов из тестовой PKI, даты NaN и бесконечность, `Int.min` и `Int.max`, чрезмерно большие и повторяющиеся параметры URI, поддельные заголовки токенов: 676 тестов Swift Testing на macOS и в симуляторе iPhone, а также наборы тестов связки ключей внутри примера приложения.
 
 ### Что входит в пакет
 
 | Область | Типы |
 | --- | --- |
 | Связка ключей | `Keychain`, `KeychainAccessibility`, `KeychainProtection`, `KeychainError` |
-| Шифрование и хеширование | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `SecureRandom`, `ConstantTime` |
+| Шифрование и хеширование | `DataCipher`, `KeyDerivation`, `PasswordKeyDerivation`, `PasswordHash`, `MessageAuthenticator`, `SecureRandom`, `ConstantTime` |
+| Сквозное шифрование | `PublicKeyCipher`, `KeyDerivation.sharedKey(privateKey:peerPublicKey:salt:info:outputByteCount:)`, `Keychain.keyAgreementKey(forKey:)` |
+| Подписи | `SigningKey`, `VerifyingKey`, `SignatureAlgorithm`, `Keychain.signingKey(forKey:algorithm:)` |
+| Подписанные токены | `JWTVerifier`, `JWTSigner`, `JWTClaims`, `JWTAlgorithm` |
 | Secure Enclave | `SecureEnclaveKey`, `Keychain.secureEnclaveKey(forKey:protection:)` |
 | Биометрия | `BiometricAuthenticator`, `BiometricError` (iOS, macOS, visionOS) |
 | Пиннинг сертификатов | `PinningPolicy`, `PinnedDomain`, `SPKIPin`, `PinningURLSessionDelegate`, `URLSession.pinned(policy:)` |
@@ -161,6 +169,8 @@ targets: [
 ]
 ```
 
+Версия 2.2.0 берёт на себя код шифрования с открытым ключом, подписей, HMAC и токенов из архивированного SwiftCrypto-Pro; в [CHANGELOG](CHANGELOG.md) его типы сопоставлены с типами этого пакета.
+
 Версия 2.0.0 (октябрь 2026 года) — первый релиз текущего пакета. Предыдущий релиз, 1.0.0
 (февраль 2026 года), — это другая кодовая база: в июне 2026 года её исходный код заменили кодом-заглушкой, а в октябре 2026 года пакет был с нуля переписан вместе с тестами. Список изменений —
 в [CHANGELOG.md](CHANGELOG.md).
@@ -211,6 +221,59 @@ func encryptionSample() throws -> String {
     return try cipher.decryptString(envelope, authenticating: recordID)   // "Meet at 7 pm"
 }
 ```
+
+### Отправить сообщение, которое прочтёт только одно устройство
+
+```swift
+func endToEndSample() throws -> String {
+    // On the receiving device: create a key pair once and publish the 32-byte public key.
+    let deviceKey = PublicKeyCipher.PrivateKey()   // or Keychain.keyAgreementKey(forKey:)
+    let published = deviceKey.publicKey.rawRepresentation
+
+    // On any sender, your server included: no shared secret needed.
+    let recipient = try PublicKeyCipher.publicKey(rawRepresentation: published)
+    let envelope = try PublicKeyCipher.seal("See you at 7", to: recipient)
+
+    // Back on the device: only its private key opens the envelope.
+    return try PublicKeyCipher.openString(envelope, using: deviceKey)   // "See you at 7"
+}
+```
+
+Конверт не сообщает, кто его отправил, и его может отправить повторно любой, кто его записал: [руководство по сквозному шифрованию](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/encryptingendtoend) показывает аутентификацию отправителя, номера сообщений и согласование ключей для длинных переписок.
+
+### Подписать данные и проверить подпись
+
+```swift
+func signatureSample() throws -> Bool {
+    let signingKey = SigningKey()                     // Ed25519; SigningKey(algorithm: .p256) for P-256
+    let export = Data("orders.csv contents".utf8)
+    let signature = try signingKey.signature(for: export)
+
+    // Anyone with the public key (raw, DER or PEM) can check the file.
+    let publicKey = try VerifyingKey(pemRepresentation: signingKey.publicKey.pemRepresentation)
+    return publicKey.isValidSignature(signature, for: export)   // true
+}
+```
+
+### Проверить подписанный токен
+
+```swift
+func tokenSample() throws -> String? {
+    // Your server signs the token; here a key made in place stands in for it.
+    let serverKey = SigningKey()
+    let token = try JWTSigner(signingKey: serverKey).sign(JWTClaims(
+        issuer: "https://auth.example.com", subject: "user-42", audience: ["ios-app"],
+        expiration: Date().addingTimeInterval(600)
+    ))
+
+    // The app checks the signature, the algorithm, exp, nbf, iss and aud before trusting it.
+    let verifier = try JWTVerifier(publicKey: serverKey.publicKey,
+                                   issuer: "https://auth.example.com", audience: "ios-app")
+    return try verifier.verify(token).subject   // "user-42"
+}
+```
+
+[Руководство по токенам](https://muhittincamdali.github.io/iOSSecurityTools/documentation/iossecuritytools/verifyingsignedtokens) перечисляет все проверки по порядку и то, что не поддерживается (RSA, наборы JWK, зашифрованные токены).
 
 ### Проверить PIN-код блокировки приложения
 
@@ -422,11 +485,7 @@ func deviceBindingSample(challenge: Data) throws -> (publicKey: Data, signature:
 | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-redaction-dark.png"><img src="docs/images/example-redaction-light.png" alt="Текст лога с адресом электронной почты, паролем, bearer-токеном и номером карты и ниже его замаскированная версия" width="260"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/example-privacy-dark.png"><img src="docs/images/example-privacy-light.png" alt="Экран с данными карты, закрытый экраном конфиденциальности со значком замка" width="260"></picture> |
 
-Чтобы запустить приложение, откройте `SecurityLab.xcodeproj` из папки
-[`Examples/SecurityLab`](Examples/SecurityLab) в Xcode, выберите симулятор iPhone или **My Mac** и
-нажмите **Run**. В нём также есть быстрый старт и экран пиннинга сертификатов, который
-подключается к серверу и выводит список пинов его цепочки; подробности — в
-[Examples/README.md](Examples/README.md).
+Чтобы запустить приложение, откройте `SecurityLab.xcodeproj` из папки [`Examples/SecurityLab`](Examples/SecurityLab) в Xcode, выберите симулятор iPhone или **My Mac** и нажмите **Run**. В нём также есть быстрый старт, экран сообщений, который запечатывает сообщение для ключа устройства, подписывает его и проверяет подписанный токен, и экран пиннинга сертификатов, который подключается к серверу и выводит список пинов его цепочки; подробности — в [Examples/README.md](Examples/README.md).
 
 ## Документация
 
@@ -474,15 +533,8 @@ Xcode по умолчанию из образа раннера `macos-26` на G
 
 ## Архитектура
 
-- В `Sources/iOSSecurityTools/<Area>/` по одной папке на область: `Keychain`, `Crypto`, `Random`,
-  `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` и
-  `Privacy`. Всё — значимые типы `Sendable`, кроме `PinningURLSessionDelegate`: `URLSession`
-  требует, чтобы он был классом.
-- Пакет напрямую вызывает фреймворки Apple — Security для связки ключей и проверки доверия,
-  CryptoKit для AES-GCM, ChaCha20-Poly1305, HKDF, HMAC и Secure Enclave, CommonCrypto для PBKDF2,
-  LocalAuthentication для биометрии — и сам реализует только то, чего в них нет: формат конверта,
-  кодирование SubjectPublicKeyInfo для пинов, усечение HOTP/TOTP, Base32, формат хешей PHC и
-  сканер для маскирования.
+- В `Sources/iOSSecurityTools/<Area>/` по одной папке на область: `Keychain`, `Crypto`, `Signing`, `Tokens`, `Random`, `SecureEnclave`, `Biometrics`, `Pinning`, `OneTimePassword`, `Integrity`, `Redaction` и `Privacy`. Всё — значимые типы `Sendable`, кроме `PinningURLSessionDelegate`: `URLSession` требует, чтобы он был классом.
+- Пакет напрямую вызывает фреймворки Apple — Security для связки ключей и проверки доверия, CryptoKit для AES-GCM, ChaCha20-Poly1305, HPKE, X25519, Ed25519, ECDSA P-256, HKDF, HMAC и Secure Enclave, CommonCrypto для PBKDF2, LocalAuthentication для биометрии — и сам реализует только то, чего в них нет: форматы конвертов, кодирование SubjectPublicKeyInfo и PEM для пинов и ключей, компактный формат JWT, усечение HOTP/TOTP, Base32, формат хешей PHC и сканер для маскирования. Собственной арифметики шифров, хешей или кривых в нём нет.
 - Ошибки типизированы (`throws(KeychainError)`, `throws(CipherError)`, ...), и у каждого случая
   enum есть описание. Для значений, приходящих извне приложения, ограничения проверяются до начала
   любой работы.
