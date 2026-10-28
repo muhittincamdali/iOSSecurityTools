@@ -9,10 +9,11 @@ struct JWTParts {
     let signingInput: Data
 
     init(_ token: String) throws(JWTError) {
-        let bytes = Array(token.utf8)
-        guard bytes.count <= JWTVerifier.maximumTokenLength else {
+        // Measure before copying, so an oversized token is rejected without allocating its size.
+        guard token.utf8.count <= JWTVerifier.maximumTokenLength else {
             throw .malformed("The token is longer than \(JWTVerifier.maximumTokenLength) bytes.")
         }
+        let bytes = Array(token.utf8)
         let parts = bytes.split(separator: UInt8(ascii: "."), omittingEmptySubsequences: false)
         guard parts.count == 3 else {
             throw .malformed("A compact token has three parts separated by dots, not \(parts.count).")
