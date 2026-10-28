@@ -140,7 +140,8 @@ public struct DataCipher: Sendable {
     }
 }
 
-/// An error from ``DataCipher``, ``KeyDerivation``, ``PasswordKeyDerivation`` or ``PasswordHash``.
+/// An error from ``DataCipher``, ``PublicKeyCipher``, ``MessageAuthenticator``, ``KeyDerivation``,
+/// ``PasswordKeyDerivation`` or ``PasswordHash``.
 public enum CipherError: Error, Hashable, Sendable, LocalizedError {
     /// The key has this many bits instead of 256.
     case invalidKeySize(Int)
