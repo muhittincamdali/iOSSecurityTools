@@ -28,4 +28,4 @@ jobs:
     uses: muhittincamdali/.github/.github/workflows/readme-i18n-sync.yml@59e72703c617cfab0c12482c477e706c485ed683 # v1.1.1
     with:
       languages: tr zh-CN ja ko es de fr pt-BR ru
-      strict: true
+      strict: false

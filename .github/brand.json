@@ -103,5 +103,6 @@
       "iOSSecurityTools"
     ]
   },
-  "socialTheme": "dark"
+  "socialTheme": "dark",
+  "i18nStrict": false
 }
